@@ -1,0 +1,37 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Go
+bin/
+dist/
+coverage.out
+*.test
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Dependencies / generated
+vendor/
+api/gen/
+
+# Logs / temp
+*.log
+tmp/
+.tmp/
+.cache/
+
+# Environment overrides
+.env
+.env.*
+!.env.example
+
+# Local configs
+configs/local/*.local.*
+configs/dev/*.local.*
+configs/staging/*.local.*
+configs/prod/*.local.*
