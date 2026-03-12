@@ -43,3 +43,22 @@ func TestRefreshRotatesTokenPair(t *testing.T) {
 		t.Fatalf("expected old refresh token to become invalid")
 	}
 }
+
+func TestIntrospectReturnsSubjectForAccessToken(t *testing.T) {
+	t.Parallel()
+
+	svc := NewAuthService()
+	pair, err := svc.Login("account-1", "player-1")
+	if err != nil {
+		t.Fatalf("login returned error: %+v", err)
+	}
+
+	subject, introspectErr := svc.Introspect(pair.AccessToken)
+	if introspectErr != nil {
+		t.Fatalf("introspect returned error: %+v", introspectErr)
+	}
+
+	if subject.AccountID != "account-1" || subject.PlayerID != "player-1" {
+		t.Fatalf("unexpected subject: %+v", subject)
+	}
+}

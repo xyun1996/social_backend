@@ -14,6 +14,7 @@ type TokenPair struct {
 
 // Session tracks the minimal identity session state needed by the in-memory prototype.
 type Session struct {
+	AccessToken  string
 	AccountID    string
 	PlayerID     string
 	RefreshToken string

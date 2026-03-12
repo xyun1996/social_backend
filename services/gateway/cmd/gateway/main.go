@@ -2,29 +2,32 @@ package main
 
 import (
 	"context"
-	"net/http"
+	"os"
 
 	"github.com/xyun1996/social_backend/pkg/app"
 	"github.com/xyun1996/social_backend/pkg/config"
 	"github.com/xyun1996/social_backend/pkg/logging"
-	"github.com/xyun1996/social_backend/pkg/transport"
+	identityclient "github.com/xyun1996/social_backend/services/gateway/internal/client/identity"
+	"github.com/xyun1996/social_backend/services/gateway/internal/handler"
 )
 
 func main() {
 	cfg := config.LoadServiceConfig("gateway", ":8080")
 	logger := logging.New(cfg.Name, cfg.Env)
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		transport.WriteJSON(w, http.StatusOK, transport.StatusPayload{
-			Service: cfg.Name,
-			Status:  "ok",
-		})
-	})
+	identityBaseURL := valueOrDefault(os.Getenv("IDENTITY_BASE_URL"), "http://127.0.0.1:8081")
+	mux := handler.NewHTTPHandler(identityclient.NewHTTPClient(identityBaseURL)).Routes()
 
 	service := app.NewHTTPService(cfg.Name, cfg.Addr, logger, mux)
 	if err := service.Run(context.Background()); err != nil {
 		logger.Error("service exited with error", "error", err)
 		panic(err)
 	}
+}
+
+func valueOrDefault(value string, fallback string) string {
+	if value == "" {
+		return fallback
+	}
+
+	return value
 }

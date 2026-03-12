@@ -18,16 +18,18 @@ const (
 
 // AuthService provides a local in-memory auth flow for early development.
 type AuthService struct {
-	mu       sync.RWMutex
-	sessions map[string]domain.Session
-	now      func() time.Time
+	mu              sync.RWMutex
+	refreshSessions map[string]domain.Session
+	accessSessions  map[string]domain.Session
+	now             func() time.Time
 }
 
 // NewAuthService constructs an in-memory auth service.
 func NewAuthService() *AuthService {
 	return &AuthService{
-		sessions: make(map[string]domain.Session),
-		now:      time.Now,
+		refreshSessions: make(map[string]domain.Session),
+		accessSessions:  make(map[string]domain.Session),
+		now:             time.Now,
 	}
 }
 
@@ -45,7 +47,8 @@ func (s *AuthService) Login(accountID string, playerID string) (domain.TokenPair
 	}
 
 	s.mu.Lock()
-	s.sessions[session.RefreshToken] = session
+	s.refreshSessions[session.RefreshToken] = session
+	s.accessSessions[session.AccessToken] = session
 	s.mu.Unlock()
 
 	return pair, nil
@@ -61,13 +64,14 @@ func (s *AuthService) Refresh(refreshToken string) (domain.TokenPair, *apperrors
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	session, ok := s.sessions[refreshToken]
+	session, ok := s.refreshSessions[refreshToken]
 	if !ok {
 		err := apperrors.New("unauthorized", "refresh token is invalid", 401)
 		return domain.TokenPair{}, &err
 	}
 
-	delete(s.sessions, refreshToken)
+	delete(s.refreshSessions, refreshToken)
+	delete(s.accessSessions, session.AccessToken)
 
 	pair, newSession, err := s.issueTokens(session.AccountID, session.PlayerID)
 	if err != nil {
@@ -75,8 +79,30 @@ func (s *AuthService) Refresh(refreshToken string) (domain.TokenPair, *apperrors
 		return domain.TokenPair{}, &internal
 	}
 
-	s.sessions[newSession.RefreshToken] = newSession
+	s.refreshSessions[newSession.RefreshToken] = newSession
+	s.accessSessions[newSession.AccessToken] = newSession
 	return pair, nil
+}
+
+// Introspect resolves an access token into the authenticated subject.
+func (s *AuthService) Introspect(accessToken string) (domain.Subject, *apperrors.Error) {
+	if accessToken == "" {
+		err := apperrors.New("invalid_request", "access token is required", 400)
+		return domain.Subject{}, &err
+	}
+
+	s.mu.RLock()
+	session, ok := s.accessSessions[accessToken]
+	s.mu.RUnlock()
+	if !ok {
+		err := apperrors.New("unauthorized", "access token is invalid", 401)
+		return domain.Subject{}, &err
+	}
+
+	return domain.Subject{
+		AccountID: session.AccountID,
+		PlayerID:  session.PlayerID,
+	}, nil
 }
 
 func (s *AuthService) issueTokens(accountID string, playerID string) (domain.TokenPair, domain.Session, error) {
@@ -91,6 +117,7 @@ func (s *AuthService) issueTokens(accountID string, playerID string) (domain.Tok
 	}
 
 	session := domain.Session{
+		AccessToken:  accessToken,
 		AccountID:    accountID,
 		PlayerID:     playerID,
 		RefreshToken: refreshToken,

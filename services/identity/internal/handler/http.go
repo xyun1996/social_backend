@@ -28,12 +28,17 @@ type refreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+type introspectRequest struct {
+	AccessToken string `json:"access_token"`
+}
+
 // Routes returns the identity HTTP routes.
 func (h *AuthHTTPHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", h.handleHealth)
 	mux.HandleFunc("POST /v1/auth/login", h.handleLogin)
 	mux.HandleFunc("POST /v1/auth/refresh", h.handleRefresh)
+	mux.HandleFunc("POST /v1/auth/introspect", h.handleIntrospect)
 	return mux
 }
 
@@ -74,6 +79,22 @@ func (h *AuthHTTPHandler) handleRefresh(w http.ResponseWriter, r *http.Request) 
 	}
 
 	transport.WriteJSON(w, http.StatusOK, pair)
+}
+
+func (h *AuthHTTPHandler) handleIntrospect(w http.ResponseWriter, r *http.Request) {
+	var request introspectRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	subject, appErr := h.auth.Introspect(request.AccessToken)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, subject)
 }
 
 func invalidJSONError() apperrors.Error {
