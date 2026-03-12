@@ -42,9 +42,12 @@ docs/       Plans, architecture, operations, releases, memory, templates
 
 ## Tooling Status
 
-This repository currently provides the project scaffold and governance documents. Go modules and service implementations are intentionally deferred to the next phase.
+This repository currently provides the project scaffold, governance documents, and the first reusable Go service bootstrap.
 
+- `go.mod` initializes the repository as the root Go module.
 - `go.work` is pre-created as the future monorepo entrypoint.
+- `pkg/app`, `pkg/config`, and `pkg/logging` provide a minimal shared runtime layer.
+- `services/gateway/cmd/gateway` and `services/identity/cmd/identity` are runnable starter binaries.
 - `Makefile` exposes placeholder targets so later automation has a stable home.
 - Most leaf directories include `.gitkeep` placeholders so the intended shape survives in version control.
 
