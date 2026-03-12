@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/xyun1996/social_backend/pkg/app"
 	"github.com/xyun1996/social_backend/pkg/config"
 	"github.com/xyun1996/social_backend/pkg/logging"
+	"github.com/xyun1996/social_backend/pkg/transport"
 )
 
 func main() {
@@ -16,7 +16,10 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = fmt.Fprintf(w, "%s ok", cfg.Name)
+		transport.WriteJSON(w, http.StatusOK, transport.StatusPayload{
+			Service: cfg.Name,
+			Status:  "ok",
+		})
 	})
 
 	service := app.NewHTTPService(cfg.Name, cfg.Addr, logger, mux)

@@ -14,7 +14,7 @@ bootstrap:
 	@echo "Read README.md and docs/plans/current.md to get started."
 
 test:
-	@echo "Go toolchain is not wired yet. Add service modules, then replace this target with real test commands."
+	go test ./...
 
 proto:
 	@echo "Protocol generation pipeline is not configured yet. Define proto sources under api/proto first."
@@ -23,7 +23,7 @@ lint:
 	@echo "Lint pipeline placeholder. Wire golangci-lint or equivalent when modules are added."
 
 format:
-	@echo "Format pipeline placeholder. Wire gofmt/gofumpt after modules are added."
+	gofmt -w ./pkg ./services
 
 docs:
 	@echo "Current plan: docs/plans/current.md"
