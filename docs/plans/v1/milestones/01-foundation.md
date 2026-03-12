@@ -26,6 +26,7 @@ Establish repository structure, documentation governance, templates, and the fir
 - Empty directories required for future implementation are preserved in version control.
 - Templates exist for the core doc types.
 - The repository can run basic service processes from a shared bootstrap path.
+- Starter services have standard local run entrypoints and example config files.
 
 ## Risks
 

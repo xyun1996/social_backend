@@ -57,3 +57,17 @@ This repository currently provides the project scaffold, governance documents, a
 2. Review [docs/plans/v1/roadmap.md](docs/plans/v1/roadmap.md)
 3. Check active constraints and ADRs under [docs/memory](docs/memory)
 4. Start creating service modules under `services/` as milestones move into implementation
+
+## Local Runflow
+
+Example environment files live under [configs/examples](configs/examples).
+
+- `make run-identity`
+- `make run-gateway`
+- `make run-social`
+
+Starter service defaults:
+
+- `identity` listens on `:8081`
+- `gateway` listens on `:8080`
+- `social` listens on `:8082`

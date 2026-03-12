@@ -1,4 +1,4 @@
-.PHONY: help bootstrap test proto lint format docs
+.PHONY: help bootstrap test proto lint format docs run-gateway run-identity run-social
 
 help:
 	@echo "Available targets:"
@@ -8,6 +8,9 @@ help:
 	@echo "  lint      - reserved for future lint entrypoint"
 	@echo "  format    - reserved for future format entrypoint"
 	@echo "  docs      - show current documentation entrypoints"
+	@echo "  run-gateway  - start the gateway starter service"
+	@echo "  run-identity - start the identity starter service"
+	@echo "  run-social   - start the social starter service"
 
 bootstrap:
 	@echo "Repository scaffold is in place."
@@ -30,3 +33,12 @@ docs:
 	@echo "Roadmap:      docs/plans/v1/roadmap.md"
 	@echo "Architecture: docs/architecture/overview.md"
 	@echo "Constraints:  docs/memory/constraints.md"
+
+run-gateway:
+	go run ./services/gateway/cmd/gateway
+
+run-identity:
+	go run ./services/identity/cmd/identity
+
+run-social:
+	go run ./services/social/cmd/social
