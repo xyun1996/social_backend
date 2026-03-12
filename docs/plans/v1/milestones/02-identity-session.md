@@ -1,6 +1,6 @@
 # 02 Identity Session
 
-- Status: `planned`
+- Status: `in-progress`
 - Version: `v1`
 
 ## Goal
@@ -19,12 +19,14 @@ Define and implement the account, token, player-selection, and real-time session
 - Gateway handshake contracts
 - Token validation flow
 - Player-scoped session lifecycle rules
+- Local in-memory login and refresh prototype
 
 ## Acceptance Criteria
 
 - HTTP login and token refresh flow are specified.
 - TCP/WebSocket connection establishment is documented and testable.
 - Session ownership and reconnect behavior are explicit.
+- Early identity endpoints are runnable without external dependencies.
 
 ## Risks
 
