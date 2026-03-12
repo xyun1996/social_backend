@@ -1,6 +1,6 @@
 # 03 Social Graph
 
-- Status: `planned`
+- Status: `in-progress`
 - Version: `v1`
 
 ## Goal
@@ -18,12 +18,14 @@ Define and implement friend, blocklist, and relationship semantics with clear st
 - Friend request state model
 - Block precedence rules
 - Relationship query contracts
+- Local in-memory friend and block prototype
 
 ## Acceptance Criteria
 
 - Double-confirm friend model is documented.
 - Point-to-point block behavior is enforced consistently.
 - Relationship APIs support downstream guild/chat/party checks.
+- Core relationship lifecycle is runnable without external dependencies.
 
 ## Risks
 
