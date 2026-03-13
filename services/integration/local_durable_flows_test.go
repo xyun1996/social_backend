@@ -446,6 +446,61 @@ func TestLocalDurableGatewayRedisPersistsSessionAcrossRestart(t *testing.T) {
 	}
 }
 
+func TestLocalDurablePresenceRedisPersistsAcrossRestart(t *testing.T) {
+	requireLocalDurableTests(t)
+
+	redisConfig, redisClient := newLocalRedisTestClient(t)
+
+	presenceA := presencetestkit.NewDurableServer(redisConfig, redisClient)
+	postJSON(t, presenceA.URL()+"/v1/presence/connect", map[string]any{
+		"player_id":  "p1",
+		"session_id": "sess-1",
+		"realm_id":   "realm-1",
+		"location":   "lobby",
+	}, nil)
+	presenceA.Close()
+
+	presenceB := presencetestkit.NewDurableServer(redisConfig, redisClient)
+	defer presenceB.Close()
+
+	var payload struct {
+		PlayerID  string `json:"player_id"`
+		Status    string `json:"status"`
+		SessionID string `json:"session_id"`
+	}
+	getJSON(t, presenceB.URL()+"/v1/presence/p1", &payload)
+	if payload.PlayerID != "p1" || payload.Status != "online" || payload.SessionID != "sess-1" {
+		t.Fatalf("unexpected durable presence payload after restart: %+v", payload)
+	}
+}
+
+func TestLocalDurableWorkerRedisPersistsQueuedJobsAcrossRestart(t *testing.T) {
+	requireLocalDurableTests(t)
+
+	redisConfig, redisClient := newLocalRedisTestClient(t)
+
+	workerA := workertestkit.NewDurableServer(redisConfig, redisClient)
+	postJSON(t, workerA.URL()+"/v1/jobs", map[string]any{
+		"type":    "invite.expire",
+		"payload": `{"invite_id":"inv-1"}`,
+	}, nil)
+	workerA.Close()
+
+	workerB := workertestkit.NewDurableServer(redisConfig, redisClient)
+	defer workerB.Close()
+
+	var jobs struct {
+		Count int `json:"count"`
+		Jobs  []struct {
+			Type string `json:"type"`
+		} `json:"jobs"`
+	}
+	getJSON(t, workerB.URL()+"/v1/jobs", &jobs)
+	if jobs.Count != 1 || len(jobs.Jobs) != 1 || jobs.Jobs[0].Type != "invite.expire" {
+		t.Fatalf("unexpected durable worker payload after restart: %+v", jobs)
+	}
+}
+
 func TestLocalDurableMySQLBootstrapRegistersMigrations(t *testing.T) {
 	requireLocalDurableTests(t)
 

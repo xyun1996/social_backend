@@ -122,6 +122,7 @@ Advance the prototype stack into durable local runtime shape by closing MySQL an
 - [docs/plans/v1/tasks/077-shared-mysql-migration-runner.md](v1/tasks/077-shared-mysql-migration-runner.md)
 - [docs/plans/v1/tasks/078-normalize-service-owned-mysql-migrations.md](v1/tasks/078-normalize-service-owned-mysql-migrations.md)
 - [docs/plans/v1/tasks/079-verify-local-mysql-migration-state.md](v1/tasks/079-verify-local-mysql-migration-state.md)
+- [docs/plans/v1/tasks/080-verify-local-redis-runtime-state.md](v1/tasks/080-verify-local-redis-runtime-state.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)
