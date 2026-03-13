@@ -18,6 +18,8 @@ const (
 	inviteDomainGuild = "guild"
 	roleOwner         = "owner"
 	roleMember        = "member"
+	presenceOnline    = "online"
+	presenceOffline   = "offline"
 )
 
 // Invite contains the subset of invite state guild depends on.
@@ -36,21 +38,47 @@ type InviteClient interface {
 	GetInvite(ctx context.Context, inviteID string) (Invite, *apperrors.Error)
 }
 
+// PresenceSnapshot contains the subset of presence state guild uses.
+type PresenceSnapshot struct {
+	PlayerID  string `json:"player_id"`
+	Status    string `json:"status"`
+	SessionID string `json:"session_id"`
+	RealmID   string `json:"realm_id,omitempty"`
+	Location  string `json:"location,omitempty"`
+}
+
+// PresenceReader resolves presence state for guild member views.
+type PresenceReader interface {
+	GetPresence(ctx context.Context, playerID string) (PresenceSnapshot, *apperrors.Error)
+}
+
+// MemberState combines guild role and presence state.
+type MemberState struct {
+	PlayerID  string `json:"player_id"`
+	Role      string `json:"role"`
+	Presence  string `json:"presence"`
+	SessionID string `json:"session_id,omitempty"`
+	RealmID   string `json:"realm_id,omitempty"`
+	Location  string `json:"location,omitempty"`
+}
+
 // GuildService provides an in-memory prototype for guild creation and joins.
 type GuildService struct {
 	mu         sync.RWMutex
 	guilds     map[string]domain.Guild
 	invites    InviteClient
+	presence   PresenceReader
 	now        func() time.Time
 	newGuildID func() (string, error)
 }
 
 // NewGuildService constructs an in-memory guild service.
-func NewGuildService(invites InviteClient) *GuildService {
+func NewGuildService(invites InviteClient, presence PresenceReader) *GuildService {
 	return &GuildService{
-		guilds:  make(map[string]domain.Guild),
-		invites: invites,
-		now:     time.Now,
+		guilds:   make(map[string]domain.Guild),
+		invites:  invites,
+		presence: presence,
+		now:      time.Now,
 		newGuildID: func() (string, error) {
 			return idgen.Token(8)
 		},
@@ -91,6 +119,48 @@ func (s *GuildService) CreateGuild(name string, ownerID string) (domain.Guild, *
 
 	s.guilds[guild.ID] = guild
 	return guild, nil
+}
+
+// ListMemberStates returns role and presence state for current guild members.
+func (s *GuildService) ListMemberStates(ctx context.Context, guildID string) ([]MemberState, *apperrors.Error) {
+	if guildID == "" {
+		err := apperrors.New("invalid_request", "guild_id is required", http.StatusBadRequest)
+		return nil, &err
+	}
+
+	s.mu.RLock()
+	guild, ok := s.guilds[guildID]
+	s.mu.RUnlock()
+	if !ok {
+		err := apperrors.New("not_found", "guild not found", http.StatusNotFound)
+		return nil, &err
+	}
+
+	states := make([]MemberState, 0, len(guild.Members))
+	for _, member := range guild.Members {
+		state := MemberState{
+			PlayerID: member.PlayerID,
+			Role:     member.Role,
+			Presence: presenceOffline,
+		}
+
+		if s.presence != nil {
+			snapshot, appErr := s.presence.GetPresence(ctx, member.PlayerID)
+			if appErr != nil && appErr.Code != "not_found" {
+				return nil, appErr
+			}
+			if appErr == nil {
+				state.Presence = snapshot.Status
+				state.SessionID = snapshot.SessionID
+				state.RealmID = snapshot.RealmID
+				state.Location = snapshot.Location
+			}
+		}
+
+		states = append(states, state)
+	}
+
+	return states, nil
 }
 
 // GetGuild returns a guild by id.

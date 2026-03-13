@@ -16,6 +16,10 @@ type fakeInviteClient struct {
 	lastResourceID string
 }
 
+type fakePresenceReader struct {
+	snapshots map[string]guildservice.PresenceSnapshot
+}
+
 func (f *fakeInviteClient) CreateInvite(_ context.Context, domainName string, resourceID string, fromPlayerID string, toPlayerID string) (guildservice.Invite, *apperrors.Error) {
 	f.lastResourceID = resourceID
 	return guildservice.Invite{
@@ -39,11 +43,26 @@ func (f *fakeInviteClient) GetInvite(_ context.Context, inviteID string) (guilds
 	}, nil
 }
 
+func (f *fakePresenceReader) GetPresence(_ context.Context, playerID string) (guildservice.PresenceSnapshot, *apperrors.Error) {
+	snapshot, ok := f.snapshots[playerID]
+	if !ok {
+		err := apperrors.New("not_found", "presence not found", http.StatusNotFound)
+		return guildservice.PresenceSnapshot{}, &err
+	}
+	return snapshot, nil
+}
+
 func TestGuildLifecycleEndpoints(t *testing.T) {
 	t.Parallel()
 
 	invites := &fakeInviteClient{}
-	h := NewHTTPHandler(guildservice.NewGuildService(invites))
+	presence := &fakePresenceReader{
+		snapshots: map[string]guildservice.PresenceSnapshot{
+			"p1": {PlayerID: "p1", Status: "online", SessionID: "sess-1"},
+			"p2": {PlayerID: "p2", Status: "online", SessionID: "sess-2"},
+		},
+	}
+	h := NewHTTPHandler(guildservice.NewGuildService(invites, presence))
 
 	createReq := httptest.NewRequest(http.MethodPost, "/v1/guilds", bytes.NewBufferString(`{"name":"Raiders","owner_id":"p1"}`))
 	createRec := httptest.NewRecorder()
@@ -74,5 +93,13 @@ func TestGuildLifecycleEndpoints(t *testing.T) {
 
 	if joinRec.Code != http.StatusOK {
 		t.Fatalf("unexpected join status: got %d want %d", joinRec.Code, http.StatusOK)
+	}
+
+	memberReq := httptest.NewRequest(http.MethodGet, "/v1/guilds/"+guildID+"/members", nil)
+	memberRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(memberRec, memberReq)
+
+	if memberRec.Code != http.StatusOK {
+		t.Fatalf("unexpected members status: got %d want %d", memberRec.Code, http.StatusOK)
 	}
 }

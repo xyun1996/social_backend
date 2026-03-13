@@ -41,6 +41,28 @@ Base purpose: guild creation, owner-scoped invite issuance, and join via accepte
 - `GET /v1/guilds/{guildID}`
 - Response `200`: guild shape from create response
 
+## List Members
+
+- `GET /v1/guilds/{guildID}/members`
+- Response `200`
+
+```json
+{
+  "guild_id": "guild-1",
+  "count": 2,
+  "members": [
+    {
+      "player_id": "p1",
+      "role": "owner",
+      "presence": "online",
+      "session_id": "sess-1",
+      "realm_id": "realm-1",
+      "location": "lobby"
+    }
+  ]
+}
+```
+
 ## Create Guild Invite
 
 - `POST /v1/guilds/{guildID}/invites`

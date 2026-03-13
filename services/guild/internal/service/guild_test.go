@@ -12,6 +12,10 @@ type fakeInviteClient struct {
 	get    Invite
 }
 
+type fakePresenceReader struct {
+	snapshots map[string]PresenceSnapshot
+}
+
 func (f *fakeInviteClient) CreateInvite(_ context.Context, domainName string, resourceID string, fromPlayerID string, toPlayerID string) (Invite, *apperrors.Error) {
 	result := f.create
 	result.Domain = domainName
@@ -23,6 +27,15 @@ func (f *fakeInviteClient) CreateInvite(_ context.Context, domainName string, re
 
 func (f *fakeInviteClient) GetInvite(_ context.Context, _ string) (Invite, *apperrors.Error) {
 	return f.get, nil
+}
+
+func (f *fakePresenceReader) GetPresence(_ context.Context, playerID string) (PresenceSnapshot, *apperrors.Error) {
+	snapshot, ok := f.snapshots[playerID]
+	if !ok {
+		err := apperrors.New("not_found", "presence not found", 404)
+		return PresenceSnapshot{}, &err
+	}
+	return snapshot, nil
 }
 
 func TestCreateInviteAndJoinGuild(t *testing.T) {
@@ -40,7 +53,7 @@ func TestCreateInviteAndJoinGuild(t *testing.T) {
 		},
 	}
 
-	svc := NewGuildService(invites)
+	svc := NewGuildService(invites, nil)
 	svc.newGuildID = func() (string, error) { return "guild-1", nil }
 
 	guild, err := svc.CreateGuild("Test Guild", "p1")
@@ -64,5 +77,34 @@ func TestCreateInviteAndJoinGuild(t *testing.T) {
 
 	if len(joined.Members) != 2 {
 		t.Fatalf("unexpected guild member count: %+v", joined.Members)
+	}
+}
+
+func TestListMemberStatesIncludesPresence(t *testing.T) {
+	t.Parallel()
+
+	svc := NewGuildService(&fakeInviteClient{}, &fakePresenceReader{
+		snapshots: map[string]PresenceSnapshot{
+			"p1": {
+				PlayerID:  "p1",
+				Status:    presenceOnline,
+				SessionID: "sess-1",
+			},
+		},
+	})
+	svc.newGuildID = func() (string, error) { return "guild-1", nil }
+
+	guild, err := svc.CreateGuild("Guild", "p1")
+	if err != nil {
+		t.Fatalf("create guild returned error: %+v", err)
+	}
+
+	states, listErr := svc.ListMemberStates(context.Background(), guild.ID)
+	if listErr != nil {
+		t.Fatalf("list member states returned error: %+v", listErr)
+	}
+
+	if len(states) != 1 || states[0].Presence != presenceOnline {
+		t.Fatalf("unexpected member states: %+v", states)
 	}
 }

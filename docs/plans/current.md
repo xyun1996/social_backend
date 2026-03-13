@@ -56,6 +56,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/012-presence-http-prototype.md](v1/tasks/012-presence-http-prototype.md)
 - [docs/plans/v1/tasks/013-presence-aware-chat-delivery.md](v1/tasks/013-presence-aware-chat-delivery.md)
 - [docs/plans/v1/tasks/014-presence-aware-party-runtime.md](v1/tasks/014-presence-aware-party-runtime.md)
+- [docs/plans/v1/tasks/015-presence-aware-guild-runtime.md](v1/tasks/015-presence-aware-guild-runtime.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/errors/README.md](../api/errors/README.md)
 - [docs/memory/constraints.md](../memory/constraints.md)
