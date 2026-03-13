@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"os"
 	"strings"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/xyun1996/social_backend/pkg/app"
@@ -47,6 +48,18 @@ func buildAuthService() (*service.AuthService, func(), error) {
 	}
 
 	repo := mysqlrepo.NewRepository(mysqlConfig, sqlDB)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	if err := sqlDB.PingContext(ctx); err != nil {
+		_ = sqlDB.Close()
+		return nil, func() {}, err
+	}
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("IDENTITY_AUTO_MIGRATE")), "true") {
+		if err := repo.BootstrapSchema(ctx); err != nil {
+			_ = sqlDB.Close()
+			return nil, func() {}, err
+		}
+	}
 	return service.NewAuthServiceWithStores(repo, repo), func() {
 		_ = sqlDB.Close()
 	}, nil

@@ -9,6 +9,10 @@ import (
 	"github.com/xyun1996/social_backend/services/identity/internal/domain"
 )
 
+type schemaExecutor interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
 const (
 	// AccountsTable is owned by identity for account to player mappings.
 	AccountsTable = "identity_accounts"
@@ -52,6 +56,15 @@ func (r *Repository) SchemaStatements() []string {
 			INDEX idx_identity_refresh_tokens_account (account_id)
 		);`,
 	}
+}
+
+// BootstrapSchema applies the identity-owned schema statements against the configured MySQL connection.
+func (r *Repository) BootstrapSchema(ctx context.Context) error {
+	if r == nil || r.sqlDB == nil {
+		return errors.New("mysql repository is not configured")
+	}
+
+	return applySchema(ctx, r.sqlDB, r.SchemaStatements())
 }
 
 // UpsertAccount persists the durable account-to-player mapping.
@@ -164,4 +177,13 @@ func (r *Repository) DeleteSessionByRefreshToken(refreshToken string) error {
 		refreshToken,
 	)
 	return err
+}
+
+func applySchema(ctx context.Context, exec schemaExecutor, statements []string) error {
+	for _, statement := range statements {
+		if _, err := exec.ExecContext(ctx, statement); err != nil {
+			return err
+		}
+	}
+	return nil
 }
