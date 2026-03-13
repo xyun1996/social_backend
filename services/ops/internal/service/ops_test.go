@@ -34,12 +34,21 @@ func (f *fakeGuildReader) GetGuildSnapshot(context.Context, string) (GuildSnapsh
 	return f.record, f.err
 }
 
+type fakeWorkerReader struct {
+	record WorkerSnapshot
+	err    *apperrors.Error
+}
+
+func (f *fakeWorkerReader) GetWorkerSnapshot(context.Context, string, string) (WorkerSnapshot, *apperrors.Error) {
+	return f.record, f.err
+}
+
 func TestGetPlayerPresence(t *testing.T) {
 	t.Parallel()
 
 	svc := NewOpsService(&fakePresenceReader{
 		record: PresenceRecord{PlayerID: "p1", Status: "online"},
-	}, nil, nil)
+	}, nil, nil, nil)
 
 	record, err := svc.GetPlayerPresence(context.Background(), "p1")
 	if err != nil {
@@ -55,7 +64,7 @@ func TestGetPartySnapshot(t *testing.T) {
 
 	svc := NewOpsService(nil, &fakePartyReader{
 		record: PartySnapshot{PartyID: "party-1", Count: 1},
-	}, nil)
+	}, nil, nil)
 
 	record, err := svc.GetPartySnapshot(context.Background(), "party-1")
 	if err != nil {
@@ -63,5 +72,21 @@ func TestGetPartySnapshot(t *testing.T) {
 	}
 	if record.PartyID != "party-1" {
 		t.Fatalf("unexpected party snapshot: %+v", record)
+	}
+}
+
+func TestGetWorkerSnapshot(t *testing.T) {
+	t.Parallel()
+
+	svc := NewOpsService(nil, nil, nil, &fakeWorkerReader{
+		record: WorkerSnapshot{Count: 1},
+	})
+
+	record, err := svc.GetWorkerSnapshot(context.Background(), "queued", "invite.expire")
+	if err != nil {
+		t.Fatalf("get worker returned error: %+v", err)
+	}
+	if record.Count != 1 {
+		t.Fatalf("unexpected worker snapshot: %+v", record)
 	}
 }

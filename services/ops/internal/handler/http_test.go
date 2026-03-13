@@ -28,15 +28,22 @@ func (f *fakeGuildReader) GetGuildSnapshot(context.Context, string) (opsservice.
 	return opsservice.GuildSnapshot{GuildID: "guild-1", Count: 1}, nil
 }
 
+type fakeWorkerReader struct{}
+
+func (f *fakeWorkerReader) GetWorkerSnapshot(context.Context, string, string) (opsservice.WorkerSnapshot, *apperrors.Error) {
+	return opsservice.WorkerSnapshot{Count: 1}, nil
+}
+
 func TestOpsEndpoints(t *testing.T) {
 	t.Parallel()
 
-	h := NewHTTPHandler(opsservice.NewOpsService(&fakePresenceReader{}, &fakePartyReader{}, &fakeGuildReader{}))
+	h := NewHTTPHandler(opsservice.NewOpsService(&fakePresenceReader{}, &fakePartyReader{}, &fakeGuildReader{}, &fakeWorkerReader{}))
 
 	tests := []string{
 		"/v1/ops/players/p1/presence",
 		"/v1/ops/parties/party-1",
 		"/v1/ops/guilds/guild-1",
+		"/v1/ops/jobs?status=queued",
 	}
 
 	for _, path := range tests {

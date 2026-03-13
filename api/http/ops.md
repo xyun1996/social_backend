@@ -36,3 +36,17 @@ Base purpose: operator-facing read queries across runtime-aware service boundari
   "members": []
 }
 ```
+
+## Worker Snapshot
+
+- `GET /v1/ops/jobs?status=queued&type=invite.expire`
+- Response `200`
+
+```json
+{
+  "status": "queued",
+  "type": "invite.expire",
+  "count": 1,
+  "jobs": []
+}
+```

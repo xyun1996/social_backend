@@ -55,6 +55,28 @@ type GuildSnapshot struct {
 	Members []GuildMemberState `json:"members"`
 }
 
+// WorkerJob is the operator-facing async job shape.
+type WorkerJob struct {
+	ID          string `json:"id"`
+	Type        string `json:"type"`
+	Payload     string `json:"payload"`
+	Status      string `json:"status"`
+	Attempts    int    `json:"attempts"`
+	LastError   string `json:"last_error,omitempty"`
+	ClaimedBy   string `json:"claimed_by,omitempty"`
+	CreatedAt   string `json:"created_at,omitempty"`
+	ClaimedAt   string `json:"claimed_at,omitempty"`
+	CompletedAt string `json:"completed_at,omitempty"`
+}
+
+// WorkerSnapshot aggregates async job queue state.
+type WorkerSnapshot struct {
+	Status string      `json:"status,omitempty"`
+	Type   string      `json:"type,omitempty"`
+	Count  int         `json:"count"`
+	Jobs   []WorkerJob `json:"jobs"`
+}
+
 // PresenceReader exposes the presence read boundary for ops.
 type PresenceReader interface {
 	GetPresence(ctx context.Context, playerID string) (PresenceRecord, *apperrors.Error)
@@ -70,19 +92,26 @@ type GuildReader interface {
 	GetGuildSnapshot(ctx context.Context, guildID string) (GuildSnapshot, *apperrors.Error)
 }
 
+// WorkerReader exposes the worker read boundary for ops.
+type WorkerReader interface {
+	GetWorkerSnapshot(ctx context.Context, status string, jobType string) (WorkerSnapshot, *apperrors.Error)
+}
+
 // OpsService provides operator-facing read aggregation.
 type OpsService struct {
 	presence PresenceReader
 	parties  PartyReader
 	guilds   GuildReader
+	worker   WorkerReader
 }
 
 // NewOpsService constructs the operator read service.
-func NewOpsService(presence PresenceReader, parties PartyReader, guilds GuildReader) *OpsService {
+func NewOpsService(presence PresenceReader, parties PartyReader, guilds GuildReader, worker WorkerReader) *OpsService {
 	return &OpsService{
 		presence: presence,
 		parties:  parties,
 		guilds:   guilds,
+		worker:   worker,
 	}
 }
 
@@ -113,6 +142,15 @@ func (s *OpsService) GetGuildSnapshot(ctx context.Context, guildID string) (Guil
 	return s.guilds.GetGuildSnapshot(ctx, guildID)
 }
 
+// GetWorkerSnapshot returns the operator-facing worker snapshot.
+func (s *OpsService) GetWorkerSnapshot(ctx context.Context, status string, jobType string) (WorkerSnapshot, *apperrors.Error) {
+	if s.worker == nil {
+		err := apperrors.New("dependency_missing", "worker reader is not configured", 500)
+		return WorkerSnapshot{}, &err
+	}
+	return s.worker.GetWorkerSnapshot(ctx, status, jobType)
+}
+
 func (s *OpsService) String() string {
-	return fmt.Sprintf("ops-service(presence=%t,party=%t,guild=%t)", s.presence != nil, s.parties != nil, s.guilds != nil)
+	return fmt.Sprintf("ops-service(presence=%t,party=%t,guild=%t,worker=%t)", s.presence != nil, s.parties != nil, s.guilds != nil, s.worker != nil)
 }

@@ -68,6 +68,7 @@ Chat also depends on `presence` for delivery planning in local runs.
 Party also depends on `presence` for runtime-ready checks in local runs.
 Guild also depends on `presence` for member runtime views in local runs.
 Ops depends on `presence`, `party`, and `guild` for operator read aggregation in local runs.
+Ops also depends on `worker` for queue visibility in local runs.
 Worker is standalone in the current prototype and can be started independently in local runs.
 
 - `make run-identity`
