@@ -1,6 +1,6 @@
 # Guild HTTP Contract
 
-Base purpose: guild creation, owner-scoped invite issuance, and join via accepted invite.
+Base purpose: guild creation, owner-scoped invite issuance, join via accepted invite, and basic owner governance.
 
 ## Health
 
@@ -96,3 +96,37 @@ Base purpose: guild creation, owner-scoped invite issuance, and join via accepte
 - Invite must belong to `domain = guild`
 - Invite must target this `guildID`
 - Invite must already be `accepted`
+
+## Kick Member
+
+- `POST /v1/guilds/{guildID}/kick`
+- Request
+
+```json
+{
+  "actor_player_id": "p1",
+  "target_player_id": "p2"
+}
+```
+
+- Response `200`: updated guild shape
+- Rules
+- Only `owner_id` can kick members in the current prototype
+- Owners cannot kick themselves through this endpoint; ownership must be transferred first
+
+## Transfer Owner
+
+- `POST /v1/guilds/{guildID}/transfer-owner`
+- Request
+
+```json
+{
+  "actor_player_id": "p1",
+  "target_player_id": "p2"
+}
+```
+
+- Response `200`: updated guild shape
+- Rules
+- Only the current `owner_id` can transfer ownership
+- The transfer target must already be a guild member

@@ -74,6 +74,15 @@ Base purpose: shared cross-domain invite lifecycle for party, guild, and future 
 - Request shape matches accept
 - Response `200`: invite shape with `status = declined`
 
+## Cancel Invite
+
+- `POST /v1/invites/{inviteID}/cancel`
+- Request shape matches accept
+- Response `200`: invite shape with `status = canceled`
+- Rules
+- Only `from_player_id` can cancel a pending invite
+- Accepted, declined, expired, or already canceled invites are not cancelable
+
 ## List Invites
 
 - `GET /v1/invites?player_id=p2&role=inbox&status=pending`

@@ -13,10 +13,10 @@ This directory is the source of truth for the current control-plane HTTP contrac
 - [identity](identity.md): login, refresh, introspection
 - [gateway](gateway.md): authenticated session query
 - [social](social.md): friend request, accept, list, block
-- [invite](invite.md): create, fetch, respond, list
+- [invite](invite.md): create, fetch, respond, cancel, list
 - [chat](chat.md): conversation create, list, send, ack, replay, delivery planning
-- [party](party.md): create, invite, join, ready
-- [guild](guild.md): create, invite, join
+- [party](party.md): create, invite, join, ready, leave, kick, transfer leader
+- [guild](guild.md): create, invite, join, kick, transfer owner
 - [presence](presence.md): connect, heartbeat, disconnect, lookup
 - [ops](ops.md): operator-facing read snapshots
 - [worker](worker.md): async job queue lifecycle

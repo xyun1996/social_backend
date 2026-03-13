@@ -1,5 +1,9 @@
 # 046 Integration Gateway Ack Compaction Flow
 
+## Status
+
+`done`
+
 ## Goal
 
 Cover the new gateway ack compaction behavior with a real cross-service local integration flow.
@@ -14,3 +18,8 @@ Cover the new gateway ack compaction behavior with a real cross-service local in
 
 - integration coverage proves `gateway -> chat ack -> gateway inbox compaction`
 - `go test ./services/integration/...` passes
+
+## Completion Notes
+
+- local integration coverage now drives identity, presence, chat, and gateway through a real ack compaction flow
+- the integration test verifies that a delivered chat event is buffered and then removed after the session-scoped ack succeeds

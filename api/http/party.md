@@ -1,6 +1,6 @@
 # Party HTTP Contract
 
-Base purpose: party creation, shared-invite-based joins, and ready state updates.
+Base purpose: party creation, shared-invite-based joins, ready state updates, and core leader/member management.
 
 ## Health
 
@@ -92,6 +92,57 @@ Base purpose: party creation, shared-invite-based joins, and ready state updates
 
 - Rules
 - Only online members can update ready state in the current prototype
+
+## Leave Party
+
+- `POST /v1/parties/{partyID}/leave`
+- Request
+
+```json
+{
+  "actor_player_id": "p2"
+}
+```
+
+- Response `200`: updated party shape
+- Rules
+- Only existing members can leave
+- If the current leader leaves and members remain, leadership transfers to the next remaining member
+
+## Kick Member
+
+- `POST /v1/parties/{partyID}/kick`
+- Request
+
+```json
+{
+  "actor_player_id": "p1",
+  "target_player_id": "p2"
+}
+```
+
+- Response `200`: updated party shape
+- Rules
+- Only `leader_id` can kick members
+- Leaders cannot kick themselves through this endpoint; use leave semantics instead
+- Kicked members have their ready state removed from the party snapshot
+
+## Transfer Leader
+
+- `POST /v1/parties/{partyID}/transfer-leader`
+- Request
+
+```json
+{
+  "actor_player_id": "p1",
+  "target_player_id": "p2"
+}
+```
+
+- Response `200`: updated party shape
+- Rules
+- Only the current `leader_id` can transfer leadership
+- The transfer target must already be a party member
 
 ## List Ready States
 
