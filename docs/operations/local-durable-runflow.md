@@ -30,9 +30,10 @@ Start the services that already have optional durable backends against the local
 
 - The MySQL-backed targets explicitly enable `*_AUTO_MIGRATE=true`.
 - `run-ops-durable` enables both `OPS_MYSQL_STATUS=true` and `OPS_REDIS_STATUS=true` so `ops` can inspect durable bootstrap and runtime state together.
-- `check-local-durable-status` calls the `ops` durable status endpoints and prints the current MySQL bootstrap and Redis runtime snapshots.
+- `check-local-durable-status` calls the `ops` durable summary endpoint, prints the current MySQL bootstrap and Redis runtime snapshots, and exits non-zero if the full local durable topology is not visible.
 - The owned MySQL bootstrap is now idempotent, so repeated local restarts do not fail just because tables already exist.
 - `verify-local-mysql-migrations` reads `schema_migrations` and checks that every MySQL-backed service recorded its owned migration ids.
 - `test-local-durable` runs the opt-in durable integration tests against local MySQL and Redis and leaves default `go test ./...` behavior unchanged.
 - `bootstrap-local-mysql` runs each MySQL-backed service once in `BOOTSTRAP_ONLY=true` mode and then verifies `schema_migrations`, so schema initialization is an explicit step instead of a side effect of starting long-lived processes.
+- The status script can still be relaxed for partial topologies by overriding `REQUIRE_MYSQL_SUMMARY`, `REQUIRE_REDIS_SUMMARY`, or `EXPECTED_MYSQL_SERVICES`.
 - These targets are for local iteration only; production startup should not assume inline schema bootstrap.
