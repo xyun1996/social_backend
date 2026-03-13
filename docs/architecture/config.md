@@ -56,3 +56,4 @@ Shared keys currently documented there:
 - Shared MySQL foundation currently reads `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, and `MYSQL_DATABASE`.
 - Shared Redis foundation currently reads `REDIS_ADDR`, `REDIS_USERNAME`, `REDIS_PASSWORD`, and `REDIS_DB`.
 - Service-local runtime selection currently uses `*_STORE` toggles, while owned schema bootstrap uses `*_AUTO_MIGRATE=true` for MySQL-backed services.
+- MySQL-backed bootstrap records service-owned progress in `schema_migrations`, so repeated local bootstrap skips already applied migration ids.

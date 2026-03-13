@@ -2,46 +2,38 @@ package mysql
 
 import (
 	"context"
-	"database/sql"
-	"errors"
+	"regexp"
 	"testing"
+
+	sqlmock "github.com/DATA-DOG/go-sqlmock"
+	"github.com/xyun1996/social_backend/pkg/db"
 )
 
-type fakeSchemaExecutor struct {
-	statements []string
-	errAt      int
-}
-
-func (f *fakeSchemaExecutor) ExecContext(_ context.Context, query string, _ ...any) (sql.Result, error) {
-	f.statements = append(f.statements, query)
-	if f.errAt > 0 && len(f.statements) == f.errAt {
-		return nil, errors.New("boom")
-	}
-	return nil, nil
-}
-
-func TestApplySchemaRunsAllStatementsInOrder(t *testing.T) {
+func TestBootstrapSchemaAppliesPendingMigration(t *testing.T) {
 	t.Parallel()
 
-	exec := &fakeSchemaExecutor{}
-	statements := []string{"stmt-1", "stmt-2"}
-	if err := applySchema(context.Background(), exec, statements); err != nil {
-		t.Fatalf("apply schema returned error: %v", err)
+	sqlDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock new: %v", err)
 	}
-	if len(exec.statements) != len(statements) || exec.statements[0] != "stmt-1" || exec.statements[1] != "stmt-2" {
-		t.Fatalf("unexpected executed statements: %+v", exec.statements)
-	}
-}
+	defer sqlDB.Close()
 
-func TestApplySchemaStopsOnStatementError(t *testing.T) {
-	t.Parallel()
-
-	exec := &fakeSchemaExecutor{errAt: 2}
-	err := applySchema(context.Background(), exec, []string{"stmt-1", "stmt-2", "stmt-3"})
-	if err == nil {
-		t.Fatalf("expected apply schema to fail")
+	repo := NewRepository(db.MySQLConfig{}, sqlDB)
+	mock.ExpectExec(regexp.QuoteMeta("CREATE TABLE IF NOT EXISTS schema_migrations")).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT 1 FROM schema_migrations WHERE service_name = ? AND migration_id = ? LIMIT 1")).
+		WithArgs("identity", "001_identity_core").
+		WillReturnRows(sqlmock.NewRows([]string{"1"}))
+	for _, statement := range repo.SchemaStatements() {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
 	}
-	if len(exec.statements) != 2 {
-		t.Fatalf("expected execution to stop at failing statement, got %+v", exec.statements)
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO schema_migrations (service_name, migration_id) VALUES (?, ?)")).
+		WithArgs("identity", "001_identity_core").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	if err := repo.BootstrapSchema(context.Background()); err != nil {
+		t.Fatalf("bootstrap schema: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("expectations: %v", err)
 	}
 }

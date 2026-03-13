@@ -39,33 +39,43 @@ func (r *Repository) DSN() string {
 	return r.config.DSN()
 }
 
+// Migrations returns the versioned social schema ownership.
+func (r *Repository) Migrations() []db.Migration {
+	return []db.Migration{
+		{
+			ID: "001_social_core",
+			Statements: []string{
+				`CREATE TABLE IF NOT EXISTS social_friend_requests (
+					request_id VARCHAR(64) PRIMARY KEY,
+					from_player_id VARCHAR(64) NOT NULL,
+					to_player_id VARCHAR(64) NOT NULL,
+					status VARCHAR(16) NOT NULL,
+					created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					UNIQUE KEY uq_social_friend_requests_pair (from_player_id, to_player_id),
+					INDEX idx_social_friend_requests_to_player (to_player_id, status)
+				);`,
+				`CREATE TABLE IF NOT EXISTS social_friendships (
+					player_id VARCHAR(64) NOT NULL,
+					friend_player_id VARCHAR(64) NOT NULL,
+					created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					PRIMARY KEY (player_id, friend_player_id),
+					INDEX idx_social_friendships_friend (friend_player_id)
+				);`,
+				`CREATE TABLE IF NOT EXISTS social_blocks (
+					player_id VARCHAR(64) NOT NULL,
+					blocked_player_id VARCHAR(64) NOT NULL,
+					created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					PRIMARY KEY (player_id, blocked_player_id),
+					INDEX idx_social_blocks_blocked (blocked_player_id)
+				);`,
+			},
+		},
+	}
+}
+
 // SchemaStatements returns the social-owned schema statements.
 func (r *Repository) SchemaStatements() []string {
-	return []string{
-		`CREATE TABLE IF NOT EXISTS social_friend_requests (
-			request_id VARCHAR(64) PRIMARY KEY,
-			from_player_id VARCHAR(64) NOT NULL,
-			to_player_id VARCHAR(64) NOT NULL,
-			status VARCHAR(16) NOT NULL,
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			UNIQUE KEY uq_social_friend_requests_pair (from_player_id, to_player_id),
-			INDEX idx_social_friend_requests_to_player (to_player_id, status)
-		);`,
-		`CREATE TABLE IF NOT EXISTS social_friendships (
-			player_id VARCHAR(64) NOT NULL,
-			friend_player_id VARCHAR(64) NOT NULL,
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			PRIMARY KEY (player_id, friend_player_id),
-			INDEX idx_social_friendships_friend (friend_player_id)
-		);`,
-		`CREATE TABLE IF NOT EXISTS social_blocks (
-			player_id VARCHAR(64) NOT NULL,
-			blocked_player_id VARCHAR(64) NOT NULL,
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			PRIMARY KEY (player_id, blocked_player_id),
-			INDEX idx_social_blocks_blocked (blocked_player_id)
-		);`,
-	}
+	return db.FlattenMigrations(r.Migrations())
 }
 
 // BootstrapSchema applies the social-owned schema against the configured MySQL connection.
@@ -73,7 +83,7 @@ func (r *Repository) BootstrapSchema(ctx context.Context) error {
 	if r == nil || r.sqlDB == nil {
 		return errors.New("mysql repository is not configured")
 	}
-	return applySchema(ctx, r.sqlDB, r.SchemaStatements())
+	return db.ApplyMySQLMigrations(ctx, r.sqlDB, "social", r.Migrations())
 }
 
 // ListFriendRequests returns all persisted requests ordered by created time then id.
@@ -296,13 +306,4 @@ func (r *Repository) SaveBlock(block domain.BlockRelationship) error {
 		block.CreatedAt.UTC(),
 	)
 	return err
-}
-
-func applySchema(ctx context.Context, exec schemaExecutor, statements []string) error {
-	for _, statement := range statements {
-		if _, err := exec.ExecContext(ctx, statement); err != nil {
-			return err
-		}
-	}
-	return nil
 }

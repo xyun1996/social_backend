@@ -41,42 +41,52 @@ func (r *Repository) DSN() string {
 	return r.config.DSN()
 }
 
+// Migrations returns the versioned chat schema ownership.
+func (r *Repository) Migrations() []db.Migration {
+	return []db.Migration{
+		{
+			ID: "001_chat_core",
+			Statements: []string{
+				`CREATE TABLE IF NOT EXISTS chat_conversations (
+					conversation_id VARCHAR(64) PRIMARY KEY,
+					kind VARCHAR(32) NOT NULL,
+					resource_id VARCHAR(64) NULL,
+					last_seq BIGINT NOT NULL DEFAULT 0,
+					created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					INDEX idx_chat_conversations_resource (kind, resource_id)
+				);`,
+				`CREATE TABLE IF NOT EXISTS chat_conversation_members (
+					conversation_id VARCHAR(64) NOT NULL,
+					player_id VARCHAR(64) NOT NULL,
+					PRIMARY KEY (conversation_id, player_id),
+					INDEX idx_chat_conversation_members_player (player_id)
+				);`,
+				`CREATE TABLE IF NOT EXISTS chat_messages (
+					message_id VARCHAR(64) PRIMARY KEY,
+					conversation_id VARCHAR(64) NOT NULL,
+					seq BIGINT NOT NULL,
+					sender_player_id VARCHAR(64) NOT NULL,
+					body TEXT NOT NULL,
+					created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					UNIQUE KEY uq_chat_messages_conversation_seq (conversation_id, seq),
+					INDEX idx_chat_messages_conversation_created (conversation_id, created_at)
+				);`,
+				`CREATE TABLE IF NOT EXISTS chat_read_cursors (
+					conversation_id VARCHAR(64) NOT NULL,
+					player_id VARCHAR(64) NOT NULL,
+					ack_seq BIGINT NOT NULL DEFAULT 0,
+					updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					PRIMARY KEY (conversation_id, player_id),
+					INDEX idx_chat_read_cursors_player (player_id)
+				);`,
+			},
+		},
+	}
+}
+
 // SchemaStatements returns the first-round chat schema ownership.
 func (r *Repository) SchemaStatements() []string {
-	return []string{
-		`CREATE TABLE IF NOT EXISTS chat_conversations (
-			conversation_id VARCHAR(64) PRIMARY KEY,
-			kind VARCHAR(32) NOT NULL,
-			resource_id VARCHAR(64) NULL,
-			last_seq BIGINT NOT NULL DEFAULT 0,
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			INDEX idx_chat_conversations_resource (kind, resource_id)
-		);`,
-		`CREATE TABLE IF NOT EXISTS chat_conversation_members (
-			conversation_id VARCHAR(64) NOT NULL,
-			player_id VARCHAR(64) NOT NULL,
-			PRIMARY KEY (conversation_id, player_id),
-			INDEX idx_chat_conversation_members_player (player_id)
-		);`,
-		`CREATE TABLE IF NOT EXISTS chat_messages (
-			message_id VARCHAR(64) PRIMARY KEY,
-			conversation_id VARCHAR(64) NOT NULL,
-			seq BIGINT NOT NULL,
-			sender_player_id VARCHAR(64) NOT NULL,
-			body TEXT NOT NULL,
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			UNIQUE KEY uq_chat_messages_conversation_seq (conversation_id, seq),
-			INDEX idx_chat_messages_conversation_created (conversation_id, created_at)
-		);`,
-		`CREATE TABLE IF NOT EXISTS chat_read_cursors (
-			conversation_id VARCHAR(64) NOT NULL,
-			player_id VARCHAR(64) NOT NULL,
-			ack_seq BIGINT NOT NULL DEFAULT 0,
-			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			PRIMARY KEY (conversation_id, player_id),
-			INDEX idx_chat_read_cursors_player (player_id)
-		);`,
-	}
+	return db.FlattenMigrations(r.Migrations())
 }
 
 // BootstrapSchema applies the chat-owned schema statements against the configured MySQL connection.
@@ -84,7 +94,7 @@ func (r *Repository) BootstrapSchema(ctx context.Context) error {
 	if r == nil || r.sqlDB == nil {
 		return errors.New("mysql repository is not configured")
 	}
-	return applySchema(ctx, r.sqlDB, r.SchemaStatements())
+	return db.ApplyMySQLMigrations(ctx, r.sqlDB, "chat", r.Migrations())
 }
 
 // ListConversations returns all persisted conversations with their member scopes.
@@ -328,13 +338,4 @@ func nullString(value string) any {
 		return nil
 	}
 	return value
-}
-
-func applySchema(ctx context.Context, exec schemaExecutor, statements []string) error {
-	for _, statement := range statements {
-		if _, err := exec.ExecContext(ctx, statement); err != nil {
-			return err
-		}
-	}
-	return nil
 }

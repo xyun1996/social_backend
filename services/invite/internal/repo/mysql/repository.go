@@ -36,23 +36,33 @@ func (r *Repository) DSN() string {
 	return r.config.DSN()
 }
 
+// Migrations returns the versioned invite schema ownership.
+func (r *Repository) Migrations() []db.Migration {
+	return []db.Migration{
+		{
+			ID: "001_invite_core",
+			Statements: []string{
+				`CREATE TABLE IF NOT EXISTS invites (
+					invite_id VARCHAR(64) PRIMARY KEY,
+					domain_name VARCHAR(32) NOT NULL,
+					resource_id VARCHAR(64) NOT NULL,
+					from_player_id VARCHAR(64) NOT NULL,
+					to_player_id VARCHAR(64) NOT NULL,
+					status VARCHAR(16) NOT NULL,
+					created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					expires_at TIMESTAMP NOT NULL,
+					responded_at TIMESTAMP NULL,
+					INDEX idx_invites_to_player (to_player_id, status),
+					INDEX idx_invites_resource (domain_name, resource_id, status)
+				);`,
+			},
+		},
+	}
+}
+
 // SchemaStatements returns the first-round invite schema ownership.
 func (r *Repository) SchemaStatements() []string {
-	return []string{
-		`CREATE TABLE IF NOT EXISTS invites (
-			invite_id VARCHAR(64) PRIMARY KEY,
-			domain_name VARCHAR(32) NOT NULL,
-			resource_id VARCHAR(64) NOT NULL,
-			from_player_id VARCHAR(64) NOT NULL,
-			to_player_id VARCHAR(64) NOT NULL,
-			status VARCHAR(16) NOT NULL,
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			expires_at TIMESTAMP NOT NULL,
-			responded_at TIMESTAMP NULL,
-			INDEX idx_invites_to_player (to_player_id, status),
-			INDEX idx_invites_resource (domain_name, resource_id, status)
-		);`,
-	}
+	return db.FlattenMigrations(r.Migrations())
 }
 
 // BootstrapSchema applies the invite-owned schema statements against the configured MySQL connection.
@@ -60,7 +70,7 @@ func (r *Repository) BootstrapSchema(ctx context.Context) error {
 	if r == nil || r.sqlDB == nil {
 		return errors.New("mysql repository is not configured")
 	}
-	return applySchema(ctx, r.sqlDB, r.SchemaStatements())
+	return db.ApplyMySQLMigrations(ctx, r.sqlDB, "invite", r.Migrations())
 }
 
 // ListInvites returns all persisted invites ordered by created time then id.
@@ -210,13 +220,4 @@ func nullTime(value *time.Time) any {
 		return nil
 	}
 	return value.UTC()
-}
-
-func applySchema(ctx context.Context, exec schemaExecutor, statements []string) error {
-	for _, statement := range statements {
-		if _, err := exec.ExecContext(ctx, statement); err != nil {
-			return err
-		}
-	}
-	return nil
 }

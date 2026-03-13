@@ -36,26 +36,36 @@ func (r *Repository) DSN() string {
 	return r.config.DSN()
 }
 
+// Migrations returns the versioned identity schema ownership.
+func (r *Repository) Migrations() []db.Migration {
+	return []db.Migration{
+		{
+			ID: "001_identity_core",
+			Statements: []string{
+				`CREATE TABLE IF NOT EXISTS identity_accounts (
+					account_id VARCHAR(64) PRIMARY KEY,
+					player_id VARCHAR(64) NOT NULL,
+					created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+				);`,
+				`CREATE TABLE IF NOT EXISTS identity_refresh_tokens (
+					token_id VARCHAR(64) PRIMARY KEY,
+					account_id VARCHAR(64) NOT NULL,
+					player_id VARCHAR(64) NOT NULL,
+					access_token VARCHAR(255) NOT NULL UNIQUE,
+					refresh_token VARCHAR(255) NOT NULL,
+					access_expires_at TIMESTAMP NOT NULL,
+					created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					expires_at TIMESTAMP NULL,
+					INDEX idx_identity_refresh_tokens_account (account_id)
+				);`,
+			},
+		},
+	}
+}
+
 // SchemaStatements returns the first-round identity schema ownership.
 func (r *Repository) SchemaStatements() []string {
-	return []string{
-		`CREATE TABLE IF NOT EXISTS identity_accounts (
-			account_id VARCHAR(64) PRIMARY KEY,
-			player_id VARCHAR(64) NOT NULL,
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-		);`,
-		`CREATE TABLE IF NOT EXISTS identity_refresh_tokens (
-			token_id VARCHAR(64) PRIMARY KEY,
-			account_id VARCHAR(64) NOT NULL,
-			player_id VARCHAR(64) NOT NULL,
-			access_token VARCHAR(255) NOT NULL UNIQUE,
-			refresh_token VARCHAR(255) NOT NULL,
-			access_expires_at TIMESTAMP NOT NULL,
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			expires_at TIMESTAMP NULL,
-			INDEX idx_identity_refresh_tokens_account (account_id)
-		);`,
-	}
+	return db.FlattenMigrations(r.Migrations())
 }
 
 // BootstrapSchema applies the identity-owned schema statements against the configured MySQL connection.
@@ -64,7 +74,7 @@ func (r *Repository) BootstrapSchema(ctx context.Context) error {
 		return errors.New("mysql repository is not configured")
 	}
 
-	return applySchema(ctx, r.sqlDB, r.SchemaStatements())
+	return db.ApplyMySQLMigrations(ctx, r.sqlDB, "identity", r.Migrations())
 }
 
 // UpsertAccount persists the durable account-to-player mapping.
@@ -177,13 +187,4 @@ func (r *Repository) DeleteSessionByRefreshToken(refreshToken string) error {
 		refreshToken,
 	)
 	return err
-}
-
-func applySchema(ctx context.Context, exec schemaExecutor, statements []string) error {
-	for _, statement := range statements {
-		if _, err := exec.ExecContext(ctx, statement); err != nil {
-			return err
-		}
-	}
-	return nil
 }

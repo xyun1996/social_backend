@@ -33,30 +33,40 @@ func (r *Repository) DSN() string {
 	return r.config.DSN()
 }
 
-func (r *Repository) SchemaStatements() []string {
-	return []string{
-		`CREATE TABLE IF NOT EXISTS guild_guilds (
-			guild_id VARCHAR(64) PRIMARY KEY,
-			name VARCHAR(128) NOT NULL,
-			owner_id VARCHAR(64) NOT NULL,
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-		);`,
-		`CREATE TABLE IF NOT EXISTS guild_members (
-			guild_id VARCHAR(64) NOT NULL,
-			player_id VARCHAR(64) NOT NULL,
-			role VARCHAR(32) NOT NULL,
-			joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			PRIMARY KEY (guild_id, player_id),
-			INDEX idx_guild_members_player (player_id)
-		);`,
+// Migrations returns the versioned guild schema ownership.
+func (r *Repository) Migrations() []db.Migration {
+	return []db.Migration{
+		{
+			ID: "001_guild_core",
+			Statements: []string{
+				`CREATE TABLE IF NOT EXISTS guild_guilds (
+					guild_id VARCHAR(64) PRIMARY KEY,
+					name VARCHAR(128) NOT NULL,
+					owner_id VARCHAR(64) NOT NULL,
+					created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+				);`,
+				`CREATE TABLE IF NOT EXISTS guild_members (
+					guild_id VARCHAR(64) NOT NULL,
+					player_id VARCHAR(64) NOT NULL,
+					role VARCHAR(32) NOT NULL,
+					joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					PRIMARY KEY (guild_id, player_id),
+					INDEX idx_guild_members_player (player_id)
+				);`,
+			},
+		},
 	}
+}
+
+func (r *Repository) SchemaStatements() []string {
+	return db.FlattenMigrations(r.Migrations())
 }
 
 func (r *Repository) BootstrapSchema(ctx context.Context) error {
 	if r == nil || r.sqlDB == nil {
 		return errors.New("mysql repository is not configured")
 	}
-	return applySchema(ctx, r.sqlDB, r.SchemaStatements())
+	return db.ApplyMySQLMigrations(ctx, r.sqlDB, "guild", r.Migrations())
 }
 
 func (r *Repository) SaveGuild(guild domain.Guild) error {
@@ -213,13 +223,4 @@ func (r *Repository) listMembers(guildID string) ([]domain.GuildMember, error) {
 		}
 	})
 	return members, nil
-}
-
-func applySchema(ctx context.Context, exec schemaExecutor, statements []string) error {
-	for _, statement := range statements {
-		if _, err := exec.ExecContext(ctx, statement); err != nil {
-			return err
-		}
-	}
-	return nil
 }

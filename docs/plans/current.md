@@ -6,30 +6,28 @@
 
 ## Current Goal
 
-Extend the prototype layer with runtime-aware cross-service behavior, prioritizing presence-backed chat and party flows after contract and authority boundaries were established.
+Advance the prototype stack into durable local runtime shape by closing MySQL and Redis startup, migration, and cross-service integration gaps.
 
 ## Success Criteria
 
 - Existing prototype services remain runnable and documented.
-- Shared boundary decisions are explicit for API contracts and presence ownership.
-- `chat` and `party` now consume `presence` through explicit service boundaries.
-- The next implementation slice can expand runtime-aware behavior without re-deciding gateway or presence ownership.
+- Durable-backed services can bootstrap owned state safely on local MySQL and Redis.
+- Shared migration and bootstrap behavior is explicit instead of duplicated per service.
+- Cross-service local durable flows remain executable after storage wiring changes.
 
 ## In Scope
 
-- Presence-backed runtime behavior for chat and party
-- HTTP and error contract baseline documentation
-- Proto and realtime transport baseline documentation
-- Persistence boundary documentation for MySQL and Redis rollout
-- Documentation alignment between active plan, milestones, tasks, and ADRs
-- Continued prototype hardening through explicit service clients
+- Service-owned MySQL and Redis startup wiring
+- Shared bootstrap and migration behavior for durable-backed services
+- Local durable integration coverage for cross-service runtime flows
+- Documentation alignment between active plan, tasks, and architecture notes
 
 ## Out of Scope
 
-- Durable storage integrations
-- Production-ready service decomposition
+- Production-ready migration orchestration beyond local service-owned bootstrap
 - CI/CD pipelines beyond placeholder entrypoints
 - Full deployment manifests or runtime configs
+- Non-local infrastructure automation
 
 ## Active Milestones
 
@@ -43,11 +41,10 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 
 ## Current Risks
 
-- HTTP contracts are still baseline-level, so deeper per-service specs and future proto contracts remain to be written.
-- Guild and chat push behavior still need richer runtime rules beyond current prototype reads.
-- Internal proto coverage now spans all runnable control-plane services, but generated clients and transport binding are still deferred.
-- Storage integration is still design-only, so repo and migration work remain ahead of the current prototype layer.
-- Without disciplined updates, future plan drift could appear between `current`, milestones, tasks, and ADRs.
+- MySQL migration handling is still service-owned and local-first; there is no external promotion or rollback workflow yet.
+- Redis-backed runtime state still depends on service-local key ownership instead of a broader operational policy.
+- HTTP and proto contracts are ahead of generated bindings, so interface drift still needs discipline.
+- Without disciplined updates, future plan drift could appear between `current`, tasks, and architecture docs.
 
 ## Key Dependencies
 
@@ -122,6 +119,8 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/074-gateway-redis-session-store.md](v1/tasks/074-gateway-redis-session-store.md)
 - [docs/plans/v1/tasks/075-bootstrap-policy-and-tooling.md](v1/tasks/075-bootstrap-policy-and-tooling.md)
 - [docs/plans/v1/tasks/076-expand-durable-runtime-coverage.md](v1/tasks/076-expand-durable-runtime-coverage.md)
+- [docs/plans/v1/tasks/077-shared-mysql-migration-runner.md](v1/tasks/077-shared-mysql-migration-runner.md)
+- [docs/plans/v1/tasks/078-normalize-service-owned-mysql-migrations.md](v1/tasks/078-normalize-service-owned-mysql-migrations.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)
