@@ -30,3 +30,4 @@ Current proto baselines cover boundaries that already have explicit cross-servic
 - Code generation is not wired yet.
 - `api/proto/` now covers all currently executable control-plane service boundaries.
 - `worker.proto` now includes execution result semantics so executor and background-drain flows do not live only in HTTP docs.
+- `gateway.proto` now tracks the realtime prototype surface, including handshake, inbox delivery, ack, and replay handoff.

@@ -32,9 +32,132 @@ message ResolveSessionRequest {
   string access_token = 1;
 }
 
+message RealtimeSession {
+  string session_id = 1;
+  string account_id = 2;
+  string player_id = 3;
+  string realm_id = 4;
+  string location = 5;
+  string client_version = 6;
+  string state = 7;
+  string presence_state = 8;
+  string last_server_event_id = 9;
+  string connected_at = 10;
+  string last_heartbeat_at = 11;
+  string disconnected_at = 12;
+}
+
+message HandshakeRealtimeRequest {
+  string access_token = 1;
+  string session_id = 2;
+  string realm_id = 3;
+  string location = 4;
+  string client_version = 5;
+}
+
+message ResumeRealtimeRequest {
+  string access_token = 1;
+  string session_id = 2;
+  string last_server_event_id = 3;
+}
+
+message RealtimeSessionRequest {
+  string session_id = 1;
+}
+
+message ChatDeliveryTarget {
+  string player_id = 1;
+  string presence = 2;
+  string delivery_mode = 3;
+  string session_id = 4;
+  string realm_id = 5;
+  string location = 6;
+}
+
+message ChatMessageEnvelope {
+  string event_id = 1;
+  string stream = 2;
+  string kind = 3;
+  string conversation_id = 4;
+  string message_id = 5;
+  int64 seq = 6;
+  string sender_player_id = 7;
+  string body = 8;
+  string sent_at = 9;
+}
+
+message SessionEventInbox {
+  string session_id = 1;
+  repeated ChatMessageEnvelope events = 2;
+}
+
+message DispatchChatRequest {
+  string conversation_id = 1;
+  string sender_player_id = 2;
+  string message_id = 3;
+  int64 seq = 4;
+  string body = 5;
+  string sent_at = 6;
+}
+
+message DispatchChatResponse {
+  string conversation_id = 1;
+  string message_id = 2;
+  int32 pushed_count = 3;
+  int32 deferred_count = 4;
+  repeated string pushed_sessions = 5;
+  repeated ChatDeliveryTarget deferred = 6;
+  repeated ChatDeliveryTarget targets = 7;
+}
+
+message AckConversationRequest {
+  string session_id = 1;
+  string conversation_id = 2;
+  int64 ack_seq = 3;
+}
+
+message AckConversationResponse {
+  string session_id = 1;
+  string conversation_id = 2;
+  int64 ack_seq = 3;
+}
+
+message ReplayMessagesRequest {
+  string session_id = 1;
+  string conversation_id = 2;
+  int64 after_seq = 3;
+  int32 limit = 4;
+}
+
+message ChatReplayMessage {
+  string id = 1;
+  string conversation_id = 2;
+  int64 seq = 3;
+  string sender_player_id = 4;
+  string body = 5;
+  string created_at = 6;
+}
+
+message ReplayMessagesResponse {
+  string session_id = 1;
+  string conversation_id = 2;
+  string player_id = 3;
+  int64 after_seq = 4;
+  repeated ChatReplayMessage messages = 5;
+}
+
 service GatewayService {
   rpc ResolveSession(ResolveSessionRequest) returns (Subject);
   rpc ConnectPresence(SessionPresenceUpdate) returns (PresenceSnapshot);
   rpc HeartbeatPresence(SessionPresenceUpdate) returns (PresenceSnapshot);
   rpc DisconnectPresence(SessionPresenceUpdate) returns (PresenceSnapshot);
+  rpc HandshakeRealtime(HandshakeRealtimeRequest) returns (RealtimeSession);
+  rpc ResumeRealtime(ResumeRealtimeRequest) returns (RealtimeSession);
+  rpc HeartbeatRealtime(RealtimeSessionRequest) returns (RealtimeSession);
+  rpc CloseRealtime(RealtimeSessionRequest) returns (RealtimeSession);
+  rpc GetRealtimeSession(RealtimeSessionRequest) returns (RealtimeSession);
+  rpc GetRealtimeSessionEvents(RealtimeSessionRequest) returns (SessionEventInbox);
+  rpc DispatchChat(DispatchChatRequest) returns (DispatchChatResponse);
+  rpc AckConversation(AckConversationRequest) returns (AckConversationResponse);
+  rpc ReplayMessages(ReplayMessagesRequest) returns (ReplayMessagesResponse);
 }
