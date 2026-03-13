@@ -65,6 +65,7 @@ Example environment files live under [configs/examples](configs/examples).
 Gateway depends on both `identity` and `presence` base URLs in local runs.
 Shared local infrastructure defaults live in `configs/examples/local-infra.env.example`.
 Chat also depends on `presence` for delivery planning in local runs.
+Chat can optionally depend on `worker` for offline delivery job intent in local runs.
 Party also depends on `presence` for runtime-ready checks in local runs.
 Guild also depends on `presence` for member runtime views in local runs.
 Ops depends on `presence`, `party`, and `guild` for operator read aggregation in local runs.

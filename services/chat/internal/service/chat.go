@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"slices"
@@ -29,6 +30,7 @@ const (
 	deliveryModeReplay = "offline_replay"
 	presenceOnline     = "online"
 	presenceOffline    = "offline"
+	offlineJobType     = "chat.offline_delivery"
 )
 
 // PresenceSnapshot contains the subset of presence state chat uses for planning.
@@ -43,6 +45,11 @@ type PresenceSnapshot struct {
 // PresenceReader resolves current presence state for delivery planning.
 type PresenceReader interface {
 	GetPresence(ctx context.Context, playerID string) (PresenceSnapshot, *apperrors.Error)
+}
+
+// JobScheduler captures async scheduling intent for chat follow-up work.
+type JobScheduler interface {
+	EnqueueJob(ctx context.Context, jobType string, payload string) *apperrors.Error
 }
 
 // DeliveryTarget describes how chat would route a message to a member.
@@ -62,18 +69,20 @@ type ChatService struct {
 	messages          map[string][]domain.Message
 	readCursors       map[string]map[string]domain.ReadCursor
 	presence          PresenceReader
+	scheduler         JobScheduler
 	now               func() time.Time
 	newConversationID func() (string, error)
 	newMessageID      func() (string, error)
 }
 
 // NewChatService constructs an in-memory chat service.
-func NewChatService(presence PresenceReader) *ChatService {
+func NewChatService(presence PresenceReader, scheduler JobScheduler) *ChatService {
 	return &ChatService{
 		conversations: make(map[string]domain.Conversation),
 		messages:      make(map[string][]domain.Message),
 		readCursors:   make(map[string]map[string]domain.ReadCursor),
 		presence:      presence,
+		scheduler:     scheduler,
 		now:           time.Now,
 		newConversationID: func() (string, error) {
 			return idgen.Token(8)
@@ -173,20 +182,22 @@ func (s *ChatService) SendMessage(conversationID string, senderPlayerID string, 
 	}
 
 	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	conversation, ok := s.conversations[conversationID]
 	if !ok {
+		s.mu.Unlock()
 		err := apperrors.New("not_found", "conversation not found", http.StatusNotFound)
 		return domain.Message{}, &err
 	}
 
 	if appErr := validateSendPermission(conversation, senderPlayerID); appErr != nil {
+		s.mu.Unlock()
 		return domain.Message{}, appErr
 	}
 
 	messageID, idErr := s.newMessageID()
 	if idErr != nil {
+		s.mu.Unlock()
 		internal := apperrors.Internal()
 		return domain.Message{}, &internal
 	}
@@ -204,6 +215,15 @@ func (s *ChatService) SendMessage(conversationID string, senderPlayerID string, 
 	}
 
 	s.messages[conversation.ID] = append(s.messages[conversation.ID], message)
+	s.mu.Unlock()
+
+	if s.scheduler != nil {
+		targets, appErr := s.PlanDelivery(context.Background(), conversation.ID, senderPlayerID)
+		if appErr == nil {
+			s.enqueueOfflineDeliveries(context.Background(), conversation, message, targets)
+		}
+	}
+
 	return message, nil
 }
 
@@ -444,4 +464,28 @@ func isSupportedKind(kind string) bool {
 
 func (s *ChatService) String() string {
 	return fmt.Sprintf("chat-service(conversations=%d)", len(s.conversations))
+}
+
+func (s *ChatService) enqueueOfflineDeliveries(ctx context.Context, conversation domain.Conversation, message domain.Message, targets []DeliveryTarget) {
+	for _, target := range targets {
+		if target.DeliveryMode != deliveryModeReplay {
+			continue
+		}
+
+		payload, err := json.Marshal(map[string]any{
+			"conversation_id":   conversation.ID,
+			"conversation_kind": conversation.Kind,
+			"resource_id":       conversation.ResourceID,
+			"message_id":        message.ID,
+			"seq":               message.Seq,
+			"sender_player_id":  message.SenderPlayerID,
+			"recipient_player":  target.PlayerID,
+			"delivery_mode":     target.DeliveryMode,
+		})
+		if err != nil {
+			continue
+		}
+
+		_ = s.scheduler.EnqueueJob(ctx, offlineJobType, string(payload))
+	}
 }

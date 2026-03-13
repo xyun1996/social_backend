@@ -29,7 +29,7 @@ func (f *fakePresenceReader) GetPresence(_ context.Context, playerID string) (se
 func TestChatLifecycleEndpoints(t *testing.T) {
 	t.Parallel()
 
-	h := NewHTTPHandler(service.NewChatService(nil))
+	h := NewHTTPHandler(service.NewChatService(nil, nil))
 
 	createReq := httptest.NewRequest(http.MethodPost, "/v1/conversations", bytes.NewBufferString(`{"kind":"private","member_player_ids":["p1","p2"]}`))
 	createRec := httptest.NewRecorder()
@@ -74,7 +74,7 @@ func TestChatLifecycleEndpoints(t *testing.T) {
 func TestReplayRejectsInvalidQuery(t *testing.T) {
 	t.Parallel()
 
-	h := NewHTTPHandler(service.NewChatService(nil))
+	h := NewHTTPHandler(service.NewChatService(nil, nil))
 	req := httptest.NewRequest(http.MethodGet, "/v1/conversations/c1/messages?player_id=p1&after_seq=bad", nil)
 	rec := httptest.NewRecorder()
 	h.Routes().ServeHTTP(rec, req)
@@ -95,7 +95,7 @@ func TestDeliveryPlanEndpoint(t *testing.T) {
 				SessionID: "sess-2",
 			},
 		},
-	})
+	}, nil)
 	h := NewHTTPHandler(chat)
 
 	createReq := httptest.NewRequest(http.MethodPost, "/v1/conversations", bytes.NewBufferString(`{"kind":"private","member_player_ids":["p1","p2"]}`))

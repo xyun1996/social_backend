@@ -11,6 +11,17 @@ type fakePresenceReader struct {
 	snapshots map[string]PresenceSnapshot
 }
 
+type fakeJobScheduler struct {
+	jobTypes []string
+	payloads []string
+}
+
+func (f *fakeJobScheduler) EnqueueJob(_ context.Context, jobType string, payload string) *apperrors.Error {
+	f.jobTypes = append(f.jobTypes, jobType)
+	f.payloads = append(f.payloads, payload)
+	return nil
+}
+
 func (f *fakePresenceReader) GetPresence(_ context.Context, playerID string) (PresenceSnapshot, *apperrors.Error) {
 	snapshot, ok := f.snapshots[playerID]
 	if !ok {
@@ -24,7 +35,7 @@ func (f *fakePresenceReader) GetPresence(_ context.Context, playerID string) (Pr
 func TestConversationSendAckAndReplay(t *testing.T) {
 	t.Parallel()
 
-	svc := NewChatService(nil)
+	svc := NewChatService(nil, nil)
 	conversation, err := svc.CreateConversation(kindPrivate, "", []string{"p1", "p2"})
 	if err != nil {
 		t.Fatalf("create conversation returned error: %+v", err)
@@ -66,7 +77,7 @@ func TestConversationSendAckAndReplay(t *testing.T) {
 func TestPrivateConversationRequiresMembershipToSend(t *testing.T) {
 	t.Parallel()
 
-	svc := NewChatService(nil)
+	svc := NewChatService(nil, nil)
 	conversation, err := svc.CreateConversation(kindPrivate, "", []string{"p1", "p2"})
 	if err != nil {
 		t.Fatalf("create conversation returned error: %+v", err)
@@ -80,7 +91,7 @@ func TestPrivateConversationRequiresMembershipToSend(t *testing.T) {
 func TestSystemConversationOnlyAllowsSystemSender(t *testing.T) {
 	t.Parallel()
 
-	svc := NewChatService(nil)
+	svc := NewChatService(nil, nil)
 	conversation, err := svc.CreateConversation(kindSystem, "system-global", []string{"p1"})
 	if err != nil {
 		t.Fatalf("create conversation returned error: %+v", err)
@@ -108,7 +119,7 @@ func TestPlanDeliveryUsesPresenceForRouting(t *testing.T) {
 				Location:  "lobby",
 			},
 		},
-	})
+	}, nil)
 
 	conversation, err := svc.CreateConversation(kindPrivate, "", []string{"p1", "p2"})
 	if err != nil {
@@ -126,5 +137,69 @@ func TestPlanDeliveryUsesPresenceForRouting(t *testing.T) {
 
 	if targets[0].DeliveryMode != deliveryModePush {
 		t.Fatalf("unexpected delivery mode: %+v", targets[0])
+	}
+}
+
+func TestSendMessageEnqueuesOfflineDeliveryJobs(t *testing.T) {
+	t.Parallel()
+
+	scheduler := &fakeJobScheduler{}
+	svc := NewChatService(&fakePresenceReader{
+		snapshots: map[string]PresenceSnapshot{
+			"p2": {
+				PlayerID: "p2",
+				Status:   presenceOffline,
+			},
+		},
+	}, scheduler)
+
+	conversation, err := svc.CreateConversation(kindPrivate, "", []string{"p1", "p2"})
+	if err != nil {
+		t.Fatalf("create conversation returned error: %+v", err)
+	}
+
+	message, sendErr := svc.SendMessage(conversation.ID, "p1", "hello offline")
+	if sendErr != nil {
+		t.Fatalf("send message returned error: %+v", sendErr)
+	}
+
+	if message.Seq != 1 {
+		t.Fatalf("unexpected message seq: %d", message.Seq)
+	}
+
+	if len(scheduler.jobTypes) != 1 {
+		t.Fatalf("expected one offline delivery job, got %d", len(scheduler.jobTypes))
+	}
+
+	if scheduler.jobTypes[0] != offlineJobType {
+		t.Fatalf("unexpected job type: %q", scheduler.jobTypes[0])
+	}
+}
+
+func TestSendMessageDoesNotEnqueueOfflineJobsForOnlineRecipients(t *testing.T) {
+	t.Parallel()
+
+	scheduler := &fakeJobScheduler{}
+	svc := NewChatService(&fakePresenceReader{
+		snapshots: map[string]PresenceSnapshot{
+			"p2": {
+				PlayerID:  "p2",
+				Status:    presenceOnline,
+				SessionID: "sess-2",
+			},
+		},
+	}, scheduler)
+
+	conversation, err := svc.CreateConversation(kindPrivate, "", []string{"p1", "p2"})
+	if err != nil {
+		t.Fatalf("create conversation returned error: %+v", err)
+	}
+
+	if _, sendErr := svc.SendMessage(conversation.ID, "p1", "hello online"); sendErr != nil {
+		t.Fatalf("send message returned error: %+v", sendErr)
+	}
+
+	if len(scheduler.jobTypes) != 0 {
+		t.Fatalf("expected no offline delivery jobs, got %d", len(scheduler.jobTypes))
 	}
 }

@@ -79,6 +79,7 @@ Base purpose: conversation creation, message sequencing, read acknowledgement, a
 - `seq` is monotonic within a conversation
 - `system` conversations only allow sender `system`
 - Other kinds require sender membership
+- When the worker boundary is configured, offline recipients also enqueue `chat.offline_delivery` job intent
 
 ## Replay Messages
 
