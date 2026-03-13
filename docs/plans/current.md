@@ -77,6 +77,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/029-chat-realtime-delivery-prototype.md](v1/tasks/029-chat-realtime-delivery-prototype.md)
 - [docs/plans/v1/tasks/030-worker-job-executor-prototype.md](v1/tasks/030-worker-job-executor-prototype.md)
 - [docs/plans/v1/tasks/031-invite-worker-expiry-consumer.md](v1/tasks/031-invite-worker-expiry-consumer.md)
+- [docs/plans/v1/tasks/032-chat-offline-replay-delivery-consumer.md](v1/tasks/032-chat-offline-replay-delivery-consumer.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)

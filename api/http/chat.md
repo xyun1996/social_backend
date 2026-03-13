@@ -154,3 +154,19 @@ Base purpose: conversation creation, message sequencing, read acknowledgement, a
 - Only valid conversation senders can request delivery planning
 - Online members are marked `online_push`
 - Missing or offline presence falls back to `offline_replay`
+
+## Internal Offline Delivery Processing
+
+- `POST /v1/internal/offline-deliveries`
+- Request
+
+```json
+{
+  "conversation_id": "conv-1",
+  "message_id": "msg-1",
+  "recipient_player": "p2",
+  "delivery_mode": "offline_replay"
+}
+```
+
+- Response `200`: offline delivery receipt

@@ -62,12 +62,22 @@ type DeliveryTarget struct {
 	Location     string `json:"location,omitempty"`
 }
 
+// OfflineDeliveryReceipt records worker-side offline delivery processing.
+type OfflineDeliveryReceipt struct {
+	ConversationID  string `json:"conversation_id"`
+	MessageID       string `json:"message_id"`
+	RecipientPlayer string `json:"recipient_player"`
+	DeliveryMode    string `json:"delivery_mode"`
+	ProcessedAt     string `json:"processed_at"`
+}
+
 // ChatService provides an in-memory prototype for conversation, seq, ack, and replay flows.
 type ChatService struct {
 	mu                sync.RWMutex
 	conversations     map[string]domain.Conversation
 	messages          map[string][]domain.Message
 	readCursors       map[string]map[string]domain.ReadCursor
+	offlineDeliveries []OfflineDeliveryReceipt
 	presence          PresenceReader
 	scheduler         JobScheduler
 	now               func() time.Time
@@ -78,12 +88,13 @@ type ChatService struct {
 // NewChatService constructs an in-memory chat service.
 func NewChatService(presence PresenceReader, scheduler JobScheduler) *ChatService {
 	return &ChatService{
-		conversations: make(map[string]domain.Conversation),
-		messages:      make(map[string][]domain.Message),
-		readCursors:   make(map[string]map[string]domain.ReadCursor),
-		presence:      presence,
-		scheduler:     scheduler,
-		now:           time.Now,
+		conversations:     make(map[string]domain.Conversation),
+		messages:          make(map[string][]domain.Message),
+		readCursors:       make(map[string]map[string]domain.ReadCursor),
+		offlineDeliveries: make([]OfflineDeliveryReceipt, 0),
+		presence:          presence,
+		scheduler:         scheduler,
+		now:               time.Now,
 		newConversationID: func() (string, error) {
 			return idgen.Token(8)
 		},
@@ -384,6 +395,60 @@ func (s *ChatService) PlanDelivery(ctx context.Context, conversationID string, s
 	}
 
 	return targets, nil
+}
+
+// RecordOfflineDelivery stores worker-side offline delivery processing for observability.
+func (s *ChatService) RecordOfflineDelivery(payload map[string]any) (OfflineDeliveryReceipt, *apperrors.Error) {
+	conversationID, _ := payload["conversation_id"].(string)
+	messageID, _ := payload["message_id"].(string)
+	recipientPlayer, _ := payload["recipient_player"].(string)
+	deliveryMode, _ := payload["delivery_mode"].(string)
+
+	if conversationID == "" || messageID == "" || recipientPlayer == "" {
+		err := apperrors.New("invalid_request", "conversation_id, message_id, and recipient_player are required", http.StatusBadRequest)
+		return OfflineDeliveryReceipt{}, &err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	messages := s.messages[conversationID]
+	found := false
+	for _, message := range messages {
+		if message.ID == messageID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		err := apperrors.New("not_found", "message not found", http.StatusNotFound)
+		return OfflineDeliveryReceipt{}, &err
+	}
+
+	receipt := OfflineDeliveryReceipt{
+		ConversationID:  conversationID,
+		MessageID:       messageID,
+		RecipientPlayer: recipientPlayer,
+		DeliveryMode:    deliveryMode,
+		ProcessedAt:     s.now().UTC().Format(time.RFC3339Nano),
+	}
+	s.offlineDeliveries = append(s.offlineDeliveries, receipt)
+	return receipt, nil
+}
+
+// ListOfflineDeliveries returns the recorded offline delivery processing entries.
+func (s *ChatService) ListOfflineDeliveries(conversationID string) []OfflineDeliveryReceipt {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	receipts := make([]OfflineDeliveryReceipt, 0)
+	for _, receipt := range s.offlineDeliveries {
+		if conversationID != "" && receipt.ConversationID != conversationID {
+			continue
+		}
+		receipts = append(receipts, receipt)
+	}
+	return receipts
 }
 
 func normalizeMembers(kind string, members []string) ([]string, *apperrors.Error) {

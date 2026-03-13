@@ -120,3 +120,43 @@ func TestDeliveryPlanEndpoint(t *testing.T) {
 		t.Fatalf("unexpected delivery status: got %d want %d", planRec.Code, http.StatusOK)
 	}
 }
+
+func TestRecordOfflineDeliveryEndpoint(t *testing.T) {
+	t.Parallel()
+
+	chat := service.NewChatService(nil, nil)
+	h := NewHTTPHandler(chat)
+
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/conversations", bytes.NewBufferString(`{"kind":"private","member_player_ids":["p1","p2"]}`))
+	createRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(createRec, createReq)
+	if createRec.Code != http.StatusOK {
+		t.Fatalf("unexpected create status: got %d want %d", createRec.Code, http.StatusOK)
+	}
+
+	var conversation map[string]any
+	if err := json.Unmarshal(createRec.Body.Bytes(), &conversation); err != nil {
+		t.Fatalf("unmarshal create response: %v", err)
+	}
+	conversationID, _ := conversation["id"].(string)
+
+	sendReq := httptest.NewRequest(http.MethodPost, "/v1/conversations/"+conversationID+"/messages", bytes.NewBufferString(`{"sender_player_id":"p1","body":"hello"}`))
+	sendRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(sendRec, sendReq)
+	if sendRec.Code != http.StatusOK {
+		t.Fatalf("unexpected send status: got %d want %d", sendRec.Code, http.StatusOK)
+	}
+
+	var message map[string]any
+	if err := json.Unmarshal(sendRec.Body.Bytes(), &message); err != nil {
+		t.Fatalf("unmarshal send response: %v", err)
+	}
+	messageID, _ := message["id"].(string)
+
+	recordReq := httptest.NewRequest(http.MethodPost, "/v1/internal/offline-deliveries", bytes.NewBufferString(`{"conversation_id":"`+conversationID+`","message_id":"`+messageID+`","recipient_player":"p2","delivery_mode":"offline_replay"}`))
+	recordRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(recordRec, recordReq)
+	if recordRec.Code != http.StatusOK {
+		t.Fatalf("unexpected offline delivery status: got %d want %d", recordRec.Code, http.StatusOK)
+	}
+}

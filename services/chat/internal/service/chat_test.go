@@ -203,3 +203,31 @@ func TestSendMessageDoesNotEnqueueOfflineJobsForOnlineRecipients(t *testing.T) {
 		t.Fatalf("expected no offline delivery jobs, got %d", len(scheduler.jobTypes))
 	}
 }
+
+func TestRecordOfflineDelivery(t *testing.T) {
+	t.Parallel()
+
+	svc := NewChatService(nil, nil)
+	conversation, err := svc.CreateConversation(kindPrivate, "", []string{"p1", "p2"})
+	if err != nil {
+		t.Fatalf("create conversation returned error: %+v", err)
+	}
+
+	message, sendErr := svc.SendMessage(conversation.ID, "p1", "hello")
+	if sendErr != nil {
+		t.Fatalf("send message returned error: %+v", sendErr)
+	}
+
+	receipt, recordErr := svc.RecordOfflineDelivery(map[string]any{
+		"conversation_id":  conversation.ID,
+		"message_id":       message.ID,
+		"recipient_player": "p2",
+		"delivery_mode":    deliveryModeReplay,
+	})
+	if recordErr != nil {
+		t.Fatalf("record offline delivery returned error: %+v", recordErr)
+	}
+	if receipt.MessageID != message.ID {
+		t.Fatalf("unexpected receipt: %+v", receipt)
+	}
+}

@@ -36,6 +36,13 @@ type ackRequest struct {
 	AckSeq   int64  `json:"ack_seq"`
 }
 
+type offlineDeliveryRequest struct {
+	ConversationID  string `json:"conversation_id"`
+	MessageID       string `json:"message_id"`
+	RecipientPlayer string `json:"recipient_player"`
+	DeliveryMode    string `json:"delivery_mode"`
+}
+
 // Routes returns the chat HTTP routes.
 func (h *HTTPHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
@@ -46,6 +53,7 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("GET /v1/conversations/{conversationID}/messages", h.handleReplayMessages)
 	mux.HandleFunc("POST /v1/conversations/{conversationID}/ack", h.handleAckConversation)
 	mux.HandleFunc("GET /v1/conversations/{conversationID}/delivery", h.handleDeliveryPlan)
+	mux.HandleFunc("POST /v1/internal/offline-deliveries", h.handleRecordOfflineDelivery)
 	return mux
 }
 
@@ -162,6 +170,27 @@ func (h *HTTPHandler) handleDeliveryPlan(w http.ResponseWriter, r *http.Request)
 		"count":            len(targets),
 		"targets":          targets,
 	})
+}
+
+func (h *HTTPHandler) handleRecordOfflineDelivery(w http.ResponseWriter, r *http.Request) {
+	var request offlineDeliveryRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	receipt, appErr := h.chat.RecordOfflineDelivery(map[string]any{
+		"conversation_id":  request.ConversationID,
+		"message_id":       request.MessageID,
+		"recipient_player": request.RecipientPlayer,
+		"delivery_mode":    request.DeliveryMode,
+	})
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, receipt)
 }
 
 func invalidJSONError() apperrors.Error {
