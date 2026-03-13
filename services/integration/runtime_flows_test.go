@@ -147,6 +147,168 @@ func TestGatewayChatDeliverySessionInboxFlow(t *testing.T) {
 	}
 }
 
+func TestGatewayChatAckCompactsSessionInboxFlow(t *testing.T) {
+	t.Parallel()
+
+	identity := identitytestkit.NewServer()
+	defer identity.Close()
+
+	presence := presencetestkit.NewServer()
+	defer presence.Close()
+
+	chat := chattestkit.NewServer(presence.URL(), "")
+	defer chat.Close()
+
+	gateway := gatewaytestkit.NewServer(identity.URL(), presence.URL(), chat.URL())
+	defer gateway.Close()
+
+	var tokenPair struct {
+		AccessToken string `json:"access_token"`
+	}
+	postJSON(t, identity.URL()+"/v1/auth/login", map[string]any{
+		"account_id": "a2",
+		"player_id":  "p2",
+	}, &tokenPair)
+
+	var conversation struct {
+		ID string `json:"id"`
+	}
+	postJSON(t, chat.URL()+"/v1/conversations", map[string]any{
+		"kind":              "private",
+		"member_player_ids": []string{"p1", "p2"},
+	}, &conversation)
+
+	postJSON(t, gateway.URL()+"/v1/realtime/handshake", map[string]any{
+		"access_token": tokenPair.AccessToken,
+		"session_id":   "sess-2",
+	}, nil)
+
+	var message struct {
+		ID  string `json:"id"`
+		Seq int64  `json:"seq"`
+	}
+	postJSON(t, chat.URL()+"/v1/conversations/"+conversation.ID+"/messages", map[string]any{
+		"sender_player_id": "p1",
+		"body":             "hello",
+	}, &message)
+
+	postJSON(t, gateway.URL()+"/v1/realtime/chat/deliveries", map[string]any{
+		"conversation_id":  conversation.ID,
+		"sender_player_id": "p1",
+		"message_id":       message.ID,
+		"seq":              message.Seq,
+		"body":             "hello",
+		"sent_at":          "2026-03-13T10:00:00Z",
+	}, nil)
+
+	var ackResult struct {
+		PrunedCount int `json:"pruned_count"`
+	}
+	postJSON(t, gateway.URL()+"/v1/realtime/sessions/sess-2/acks", map[string]any{
+		"conversation_id": conversation.ID,
+		"ack_seq":         1,
+	}, &ackResult)
+	if ackResult.PrunedCount != 1 {
+		t.Fatalf("expected one pruned event, got %+v", ackResult)
+	}
+
+	var inbox struct {
+		Count int `json:"count"`
+	}
+	getJSON(t, gateway.URL()+"/v1/realtime/sessions/sess-2/events", &inbox)
+	if inbox.Count != 0 {
+		t.Fatalf("expected compacted inbox, got %+v", inbox)
+	}
+}
+
+func TestGatewayResumeTrimsBufferedInboxFlow(t *testing.T) {
+	t.Parallel()
+
+	identity := identitytestkit.NewServer()
+	defer identity.Close()
+
+	presence := presencetestkit.NewServer()
+	defer presence.Close()
+
+	chat := chattestkit.NewServer(presence.URL(), "")
+	defer chat.Close()
+
+	gateway := gatewaytestkit.NewServer(identity.URL(), presence.URL(), chat.URL())
+	defer gateway.Close()
+
+	var tokenPair struct {
+		AccessToken string `json:"access_token"`
+	}
+	postJSON(t, identity.URL()+"/v1/auth/login", map[string]any{
+		"account_id": "a2",
+		"player_id":  "p2",
+	}, &tokenPair)
+
+	var conversation struct {
+		ID string `json:"id"`
+	}
+	postJSON(t, chat.URL()+"/v1/conversations", map[string]any{
+		"kind":              "private",
+		"member_player_ids": []string{"p1", "p2"},
+	}, &conversation)
+
+	postJSON(t, gateway.URL()+"/v1/realtime/handshake", map[string]any{
+		"access_token": tokenPair.AccessToken,
+		"session_id":   "sess-2",
+	}, nil)
+
+	var message1 struct {
+		ID  string `json:"id"`
+		Seq int64  `json:"seq"`
+	}
+	postJSON(t, chat.URL()+"/v1/conversations/"+conversation.ID+"/messages", map[string]any{
+		"sender_player_id": "p1",
+		"body":             "hello",
+	}, &message1)
+	postJSON(t, gateway.URL()+"/v1/realtime/chat/deliveries", map[string]any{
+		"conversation_id":  conversation.ID,
+		"sender_player_id": "p1",
+		"message_id":       message1.ID,
+		"seq":              message1.Seq,
+		"body":             "hello",
+		"sent_at":          "2026-03-13T10:00:00Z",
+	}, nil)
+
+	var message2 struct {
+		ID  string `json:"id"`
+		Seq int64  `json:"seq"`
+	}
+	postJSON(t, chat.URL()+"/v1/conversations/"+conversation.ID+"/messages", map[string]any{
+		"sender_player_id": "p1",
+		"body":             "world",
+	}, &message2)
+	postJSON(t, gateway.URL()+"/v1/realtime/chat/deliveries", map[string]any{
+		"conversation_id":  conversation.ID,
+		"sender_player_id": "p1",
+		"message_id":       message2.ID,
+		"seq":              message2.Seq,
+		"body":             "world",
+		"sent_at":          "2026-03-13T10:00:01Z",
+	}, nil)
+
+	postJSON(t, gateway.URL()+"/v1/realtime/resume", map[string]any{
+		"access_token":         tokenPair.AccessToken,
+		"session_id":           "sess-2",
+		"last_server_event_id": message1.ID + ":1",
+	}, nil)
+
+	var inbox struct {
+		Count  int `json:"count"`
+		Events []struct {
+			EventID string `json:"event_id"`
+		} `json:"events"`
+	}
+	getJSON(t, gateway.URL()+"/v1/realtime/sessions/sess-2/events", &inbox)
+	if inbox.Count != 1 || inbox.Events[0].EventID != message2.ID+":2" {
+		t.Fatalf("expected only the newer buffered event after resume, got %+v", inbox)
+	}
+}
+
 func postJSON(t *testing.T, url string, payload any, out any) {
 	t.Helper()
 
