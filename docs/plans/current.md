@@ -114,6 +114,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/066-idempotent-mysql-bootstrap.md](v1/tasks/066-idempotent-mysql-bootstrap.md)
 - [docs/plans/v1/tasks/067-local-durable-run-targets.md](v1/tasks/067-local-durable-run-targets.md)
 - [docs/plans/v1/tasks/068-local-durable-integration-tests.md](v1/tasks/068-local-durable-integration-tests.md)
+- [docs/plans/v1/tasks/069-local-durable-gateway-auth-flow.md](v1/tasks/069-local-durable-gateway-auth-flow.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)

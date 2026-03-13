@@ -13,6 +13,8 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/xyun1996/social_backend/pkg/db"
 	chattestkit "github.com/xyun1996/social_backend/services/chat/testkit"
+	gatewaytestkit "github.com/xyun1996/social_backend/services/gateway/testkit"
+	identitytestkit "github.com/xyun1996/social_backend/services/identity/testkit"
 	invitetestkit "github.com/xyun1996/social_backend/services/invite/testkit"
 	presencetestkit "github.com/xyun1996/social_backend/services/presence/testkit"
 	socialtestkit "github.com/xyun1996/social_backend/services/social/testkit"
@@ -147,6 +149,46 @@ func TestLocalDurableSocialPresenceWorkerFlows(t *testing.T) {
 	getJSON(t, worker.URL()+"/v1/jobs", &jobs)
 	if jobs.Count != 1 {
 		t.Fatalf("unexpected durable job payload: %+v", jobs)
+	}
+}
+
+func TestLocalDurableGatewayHandshakeFlow(t *testing.T) {
+	requireLocalDurableTests(t)
+
+	mysqlConfig, sqlDB := newLocalMySQLTestDatabase(t)
+	identity := identitytestkit.NewDurableServer(mysqlConfig, sqlDB)
+	defer identity.Close()
+
+	redisConfig, redisClient := newLocalRedisTestClient(t)
+	presence := presencetestkit.NewDurableServer(redisConfig, redisClient)
+	defer presence.Close()
+
+	gateway := gatewaytestkit.NewServer(identity.URL(), presence.URL(), "")
+	defer gateway.Close()
+
+	var tokenPair struct {
+		AccessToken string `json:"access_token"`
+	}
+	postJSON(t, identity.URL()+"/v1/auth/login", map[string]any{
+		"account_id": "a1",
+		"player_id":  "p1",
+	}, &tokenPair)
+
+	postJSON(t, gateway.URL()+"/v1/realtime/handshake", map[string]any{
+		"access_token": tokenPair.AccessToken,
+		"session_id":   "sess-1",
+		"realm_id":     "realm-1",
+		"location":     "lobby",
+	}, nil)
+
+	var presencePayload struct {
+		PlayerID  string `json:"player_id"`
+		Status    string `json:"status"`
+		SessionID string `json:"session_id"`
+	}
+	getJSON(t, presence.URL()+"/v1/presence/p1", &presencePayload)
+	if presencePayload.PlayerID != "p1" || presencePayload.Status != "online" || presencePayload.SessionID != "sess-1" {
+		t.Fatalf("unexpected durable handshake presence payload: %+v", presencePayload)
 	}
 }
 
