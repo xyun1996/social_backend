@@ -100,6 +100,19 @@ type WorkerSnapshot struct {
 	Jobs   []WorkerJob `json:"jobs"`
 }
 
+// MySQLBootstrapService is the operator-facing MySQL migration state per service.
+type MySQLBootstrapService struct {
+	Service      string   `json:"service"`
+	Count        int      `json:"count"`
+	MigrationIDs []string `json:"migration_ids"`
+}
+
+// MySQLBootstrapSnapshot aggregates recorded MySQL migration state.
+type MySQLBootstrapSnapshot struct {
+	Count    int                     `json:"count"`
+	Services []MySQLBootstrapService `json:"services"`
+}
+
 // PresenceReader exposes the presence read boundary for ops.
 type PresenceReader interface {
 	GetPresence(ctx context.Context, playerID string) (PresenceRecord, *apperrors.Error)
@@ -125,23 +138,30 @@ type SocialReader interface {
 	GetSocialSnapshot(ctx context.Context, playerID string) (SocialSnapshot, *apperrors.Error)
 }
 
+// BootstrapReader exposes MySQL bootstrap state for ops.
+type BootstrapReader interface {
+	GetMySQLBootstrapSnapshot(ctx context.Context) (MySQLBootstrapSnapshot, *apperrors.Error)
+}
+
 // OpsService provides operator-facing read aggregation.
 type OpsService struct {
-	presence PresenceReader
-	parties  PartyReader
-	guilds   GuildReader
-	worker   WorkerReader
-	social   SocialReader
+	presence  PresenceReader
+	parties   PartyReader
+	guilds    GuildReader
+	worker    WorkerReader
+	social    SocialReader
+	bootstrap BootstrapReader
 }
 
 // NewOpsService constructs the operator read service.
-func NewOpsService(presence PresenceReader, parties PartyReader, guilds GuildReader, worker WorkerReader, social SocialReader) *OpsService {
+func NewOpsService(presence PresenceReader, parties PartyReader, guilds GuildReader, worker WorkerReader, social SocialReader, bootstrap BootstrapReader) *OpsService {
 	return &OpsService{
-		presence: presence,
-		parties:  parties,
-		guilds:   guilds,
-		worker:   worker,
-		social:   social,
+		presence:  presence,
+		parties:   parties,
+		guilds:    guilds,
+		worker:    worker,
+		social:    social,
+		bootstrap: bootstrap,
 	}
 }
 
@@ -181,6 +201,15 @@ func (s *OpsService) GetWorkerSnapshot(ctx context.Context, status string, jobTy
 	return s.worker.GetWorkerSnapshot(ctx, status, jobType)
 }
 
+// GetMySQLBootstrapSnapshot returns the operator-facing MySQL bootstrap state.
+func (s *OpsService) GetMySQLBootstrapSnapshot(ctx context.Context) (MySQLBootstrapSnapshot, *apperrors.Error) {
+	if s.bootstrap == nil {
+		err := apperrors.New("dependency_missing", "mysql bootstrap reader is not configured", 500)
+		return MySQLBootstrapSnapshot{}, &err
+	}
+	return s.bootstrap.GetMySQLBootstrapSnapshot(ctx)
+}
+
 // GetPlayerOverview returns the operator-facing player runtime overview.
 func (s *OpsService) GetPlayerOverview(ctx context.Context, playerID string) (PlayerOverview, *apperrors.Error) {
 	if s.presence == nil {
@@ -217,5 +246,5 @@ func (s *OpsService) GetPlayerOverview(ctx context.Context, playerID string) (Pl
 }
 
 func (s *OpsService) String() string {
-	return fmt.Sprintf("ops-service(presence=%t,party=%t,guild=%t,worker=%t,social=%t)", s.presence != nil, s.parties != nil, s.guilds != nil, s.worker != nil, s.social != nil)
+	return fmt.Sprintf("ops-service(presence=%t,party=%t,guild=%t,worker=%t,social=%t,bootstrap=%t)", s.presence != nil, s.parties != nil, s.guilds != nil, s.worker != nil, s.social != nil, s.bootstrap != nil)
 }

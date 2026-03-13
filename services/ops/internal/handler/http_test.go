@@ -40,10 +40,21 @@ func (f *fakeSocialReader) GetSocialSnapshot(context.Context, string) (opsservic
 	return opsservice.SocialSnapshot{PlayerID: "p1", Friends: []string{"p2"}, Blocks: []string{"p3"}}, nil
 }
 
+type fakeBootstrapReader struct{}
+
+func (f *fakeBootstrapReader) GetMySQLBootstrapSnapshot(context.Context) (opsservice.MySQLBootstrapSnapshot, *apperrors.Error) {
+	return opsservice.MySQLBootstrapSnapshot{
+		Count: 1,
+		Services: []opsservice.MySQLBootstrapService{
+			{Service: "chat", Count: 1, MigrationIDs: []string{"001_chat_core"}},
+		},
+	}, nil
+}
+
 func TestOpsEndpoints(t *testing.T) {
 	t.Parallel()
 
-	h := NewHTTPHandler(opsservice.NewOpsService(&fakePresenceReader{}, &fakePartyReader{}, &fakeGuildReader{}, &fakeWorkerReader{}, &fakeSocialReader{}))
+	h := NewHTTPHandler(opsservice.NewOpsService(&fakePresenceReader{}, &fakePartyReader{}, &fakeGuildReader{}, &fakeWorkerReader{}, &fakeSocialReader{}, &fakeBootstrapReader{}))
 
 	tests := []string{
 		"/v1/ops/players/p1/overview",
@@ -51,6 +62,7 @@ func TestOpsEndpoints(t *testing.T) {
 		"/v1/ops/parties/party-1",
 		"/v1/ops/guilds/guild-1",
 		"/v1/ops/jobs?status=queued",
+		"/v1/ops/bootstrap/mysql",
 	}
 
 	for _, path := range tests {

@@ -26,6 +26,7 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("GET /v1/ops/parties/{partyID}", h.handlePartySnapshot)
 	mux.HandleFunc("GET /v1/ops/guilds/{guildID}", h.handleGuildSnapshot)
 	mux.HandleFunc("GET /v1/ops/jobs", h.handleWorkerSnapshot)
+	mux.HandleFunc("GET /v1/ops/bootstrap/mysql", h.handleMySQLBootstrapSnapshot)
 	return mux
 }
 
@@ -74,6 +75,15 @@ func (h *HTTPHandler) handleGuildSnapshot(w http.ResponseWriter, r *http.Request
 
 func (h *HTTPHandler) handleWorkerSnapshot(w http.ResponseWriter, r *http.Request) {
 	record, appErr := h.ops.GetWorkerSnapshot(r.Context(), r.URL.Query().Get("status"), r.URL.Query().Get("type"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+	transport.WriteJSON(w, http.StatusOK, record)
+}
+
+func (h *HTTPHandler) handleMySQLBootstrapSnapshot(w http.ResponseWriter, r *http.Request) {
+	record, appErr := h.ops.GetMySQLBootstrapSnapshot(r.Context())
 	if appErr != nil {
 		transport.WriteError(w, *appErr)
 		return

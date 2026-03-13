@@ -17,6 +17,7 @@ import (
 	guildtestkit "github.com/xyun1996/social_backend/services/guild/testkit"
 	identitytestkit "github.com/xyun1996/social_backend/services/identity/testkit"
 	invitetestkit "github.com/xyun1996/social_backend/services/invite/testkit"
+	opstestkit "github.com/xyun1996/social_backend/services/ops/testkit"
 	partytestkit "github.com/xyun1996/social_backend/services/party/testkit"
 	presencetestkit "github.com/xyun1996/social_backend/services/presence/testkit"
 	socialtestkit "github.com/xyun1996/social_backend/services/social/testkit"
@@ -565,6 +566,44 @@ func TestLocalDurableMySQLBootstrapRegistersMigrations(t *testing.T) {
 		if len(migrations) != 1 || migrations[0] != migrationID {
 			t.Fatalf("unexpected recorded migrations for %s: %+v", service, migrations)
 		}
+	}
+}
+
+func TestLocalDurableOpsReadsMySQLBootstrapSnapshot(t *testing.T) {
+	requireLocalDurableTests(t)
+
+	mysqlConfig, sqlDB := newLocalMySQLTestDatabase(t)
+	redisConfig, redisClient := newLocalRedisTestClient(t)
+	presence := presencetestkit.NewDurableServer(redisConfig, redisClient)
+	defer presence.Close()
+
+	identity := identitytestkit.NewDurableServer(mysqlConfig, sqlDB)
+	defer identity.Close()
+	social := socialtestkit.NewDurableServer(mysqlConfig, sqlDB)
+	defer social.Close()
+	invite := invitetestkit.NewDurableServer(mysqlConfig, sqlDB, "")
+	defer invite.Close()
+	chat := chattestkit.NewDurableServer(mysqlConfig, sqlDB, "", "")
+	defer chat.Close()
+	party := partytestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL())
+	defer party.Close()
+	guild := guildtestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL())
+	defer guild.Close()
+
+	ops := opstestkit.NewDurableServer(mysqlConfig, sqlDB, presence.URL(), party.URL(), guild.URL(), "", social.URL())
+	defer ops.Close()
+
+	var snapshot struct {
+		Count    int `json:"count"`
+		Services []struct {
+			Service      string   `json:"service"`
+			Count        int      `json:"count"`
+			MigrationIDs []string `json:"migration_ids"`
+		} `json:"services"`
+	}
+	getJSON(t, ops.URL()+"/v1/ops/bootstrap/mysql", &snapshot)
+	if snapshot.Count != 6 {
+		t.Fatalf("unexpected mysql bootstrap snapshot count: %+v", snapshot)
 	}
 }
 

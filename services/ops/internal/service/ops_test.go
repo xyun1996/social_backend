@@ -52,12 +52,21 @@ func (f *fakeSocialReader) GetSocialSnapshot(context.Context, string) (SocialSna
 	return f.record, f.err
 }
 
+type fakeBootstrapReader struct {
+	record MySQLBootstrapSnapshot
+	err    *apperrors.Error
+}
+
+func (f *fakeBootstrapReader) GetMySQLBootstrapSnapshot(context.Context) (MySQLBootstrapSnapshot, *apperrors.Error) {
+	return f.record, f.err
+}
+
 func TestGetPlayerPresence(t *testing.T) {
 	t.Parallel()
 
 	svc := NewOpsService(&fakePresenceReader{
 		record: PresenceRecord{PlayerID: "p1", Status: "online"},
-	}, nil, nil, nil, nil)
+	}, nil, nil, nil, nil, nil)
 
 	record, err := svc.GetPlayerPresence(context.Background(), "p1")
 	if err != nil {
@@ -73,7 +82,7 @@ func TestGetPartySnapshot(t *testing.T) {
 
 	svc := NewOpsService(nil, &fakePartyReader{
 		record: PartySnapshot{PartyID: "party-1", Count: 1},
-	}, nil, nil, nil)
+	}, nil, nil, nil, nil)
 
 	record, err := svc.GetPartySnapshot(context.Background(), "party-1")
 	if err != nil {
@@ -89,7 +98,7 @@ func TestGetWorkerSnapshot(t *testing.T) {
 
 	svc := NewOpsService(nil, nil, nil, &fakeWorkerReader{
 		record: WorkerSnapshot{Count: 1},
-	}, nil)
+	}, nil, nil)
 
 	record, err := svc.GetWorkerSnapshot(context.Background(), "queued", "invite.expire")
 	if err != nil {
@@ -109,6 +118,7 @@ func TestGetPlayerOverview(t *testing.T) {
 		nil,
 		nil,
 		&fakeSocialReader{record: SocialSnapshot{PlayerID: "p1", Friends: []string{"p2"}, Blocks: []string{"p3"}, PendingInbox: []string{"p4"}, PendingOutbox: []string{"p5"}}},
+		nil,
 	)
 
 	record, err := svc.GetPlayerOverview(context.Background(), "p1")
@@ -117,5 +127,26 @@ func TestGetPlayerOverview(t *testing.T) {
 	}
 	if record.PlayerID != "p1" || record.FriendCnt != 1 || record.BlockCnt != 1 || record.PendingInboxCount != 1 || record.PendingOutboxCount != 1 {
 		t.Fatalf("unexpected player overview: %+v", record)
+	}
+}
+
+func TestGetMySQLBootstrapSnapshot(t *testing.T) {
+	t.Parallel()
+
+	svc := NewOpsService(nil, nil, nil, nil, nil, &fakeBootstrapReader{
+		record: MySQLBootstrapSnapshot{
+			Count: 1,
+			Services: []MySQLBootstrapService{
+				{Service: "chat", Count: 1, MigrationIDs: []string{"001_chat_core"}},
+			},
+		},
+	})
+
+	record, err := svc.GetMySQLBootstrapSnapshot(context.Background())
+	if err != nil {
+		t.Fatalf("get mysql bootstrap returned error: %+v", err)
+	}
+	if record.Count != 1 || len(record.Services) != 1 || record.Services[0].Service != "chat" {
+		t.Fatalf("unexpected mysql bootstrap snapshot: %+v", record)
 	}
 }

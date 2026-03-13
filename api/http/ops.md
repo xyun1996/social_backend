@@ -73,3 +73,26 @@ Base purpose: operator-facing read queries across runtime-aware service boundari
   "jobs": []
 }
 ```
+
+## MySQL Bootstrap Snapshot
+
+- `GET /v1/ops/bootstrap/mysql`
+- Response `200`
+
+```json
+{
+  "count": 2,
+  "services": [
+    {
+      "service": "chat",
+      "count": 1,
+      "migration_ids": ["001_chat_core"]
+    },
+    {
+      "service": "invite",
+      "count": 1,
+      "migration_ids": ["001_invite_core"]
+    }
+  ]
+}
+```
