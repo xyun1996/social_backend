@@ -1,5 +1,9 @@
 # 038 Chat Replay Resume Alignment
 
+## Status
+
+`done`
+
 ## Goal
 
 Turn the documented replay handoff between `gateway` and `chat` into an executable prototype so reconnecting sessions can request replay using gateway-owned session identity.
@@ -23,3 +27,8 @@ Turn the documented replay handoff between `gateway` and `chat` into an executab
 - gateway rejects replay on missing or inactive sessions
 - gateway never accepts caller-supplied `player_id` for replay
 - `go test ./services/gateway/...` passes
+
+## Completion Notes
+
+- gateway now exposes a session-scoped replay endpoint backed by active session identity
+- gateway handler tests cover successful replay forwarding and rejection of inactive or missing sessions

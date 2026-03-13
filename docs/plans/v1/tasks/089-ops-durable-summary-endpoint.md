@@ -1,5 +1,9 @@
 # 089 Ops Durable Summary Endpoint
 
+## Status
+
+`done`
+
 ## Goal
 
 Add a single operator endpoint that summarizes the currently enabled durable status readers instead of requiring multiple calls.
@@ -21,3 +25,8 @@ Add a single operator endpoint that summarizes the currently enabled durable sta
 - `ops` exposes one durable summary endpoint
 - local durable status script uses the summary endpoint
 - `go test ./...` remains green
+
+## Completion Notes
+
+- `GET /v1/ops/durable/summary` is live and exercised by both unit and durable integration coverage
+- `make check-local-durable-status` now reads the summary endpoint instead of stitching multiple calls together

@@ -16,7 +16,7 @@
   - MySQL `localhost:3306`, `root / 1234`, database `social_backend`
   - Redis `localhost:6379`, no username, no password, database `0`
 - Confirm MySQL is reachable:
-  - `go run ./scripts/dev/cmd/verify_mysql_migrations`
+  - `make verify-local-mysql-migrations`
 - Confirm Redis is reachable:
   - start one Redis-backed service such as `make run-presence-redis`
 - Confirm `ops` durable readers are enabled:
@@ -60,6 +60,11 @@
 - If the status gate is correct but too strict for the current session:
   - override `EXPECTED_MYSQL_SERVICES` to the subset you intentionally started
 
+## Windows Notes
+
+- Durable `make` targets now route through PowerShell wrappers in `scripts/dev/`, so you should prefer `make ...` over copying the raw environment-variable chains manually.
+- If a durable `make` target still behaves differently from the equivalent PowerShell script, pull the latest `main` first and confirm the wrapper script exists for that target.
+
 ## Signals to Watch
 
 - `mysql summary is required but missing`
@@ -70,3 +75,5 @@
   - one or more MySQL-backed services did not record migrations in `schema_migrations`
 - `redis: ... maint_notifications ... unknown subcommand`
   - local Redis does not support that optional client capability; the client falls back automatically and this warning is non-fatal
+- `Durable summary` shows Redis with zero counters
+  - this is valid when `ops` can read Redis but no runtime-producing Redis-backed services are currently active

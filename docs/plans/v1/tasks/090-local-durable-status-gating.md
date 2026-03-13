@@ -1,5 +1,9 @@
 # 090 Local Durable Status Gating
 
+## Status
+
+`done`
+
 ## Goal
 
 Turn the local durable status checker into a real gate that can fail fast when the expected MySQL and Redis topology is not visible through `ops`.
@@ -19,3 +23,8 @@ Turn the local durable status checker into a real gate that can fail fast when t
 - the status checker exits non-zero when expected MySQL services are absent from the bootstrap snapshot
 - `make check-local-durable-status` is opinionated for the full local topology but can still be relaxed with env overrides
 - `go test ./...` passes
+
+## Completion Notes
+
+- `make check-local-durable-status` now succeeds on the validated local setup and fails when durable readers or required MySQL services are absent
+- the gate is strict by default but still supports env overrides for partial topologies

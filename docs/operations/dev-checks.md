@@ -29,3 +29,4 @@ Provide one repository-local command that runs the default developer verificatio
 - `check-dev` is the default local verification path for repository structure, contracts, generated bindings, and tests.
 - `check-dev` does not require local MySQL or Redis by default.
 - The durable status gate remains opt-in because it depends on running local infrastructure.
+- `make check-dev` was verified successfully on Windows after the durable target wrapper update, so `make` is now the preferred entrypoint when available.
