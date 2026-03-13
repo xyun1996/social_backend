@@ -181,3 +181,93 @@ func TestPartyServiceWithInjectedStores(t *testing.T) {
 		t.Fatalf("unexpected stored ready states: %+v", readyStates)
 	}
 }
+
+func TestTransferLeaderAndLeaveParty(t *testing.T) {
+	t.Parallel()
+
+	invites := &fakeInviteClient{
+		get: Invite{
+			ID:         "inv-1",
+			Domain:     inviteDomainParty,
+			ResourceID: "party-1",
+			ToPlayerID: "p2",
+			Status:     "accepted",
+		},
+	}
+
+	svc := NewPartyService(invites, nil)
+	svc.newPartyID = func() (string, error) { return "party-1", nil }
+
+	party, err := svc.CreateParty("p1")
+	if err != nil {
+		t.Fatalf("create party returned error: %+v", err)
+	}
+	if _, joinErr := svc.JoinWithInvite(context.Background(), party.ID, "inv-1", "p2"); joinErr != nil {
+		t.Fatalf("join returned error: %+v", joinErr)
+	}
+
+	transferred, transferErr := svc.TransferLeader(party.ID, "p1", "p2")
+	if transferErr != nil {
+		t.Fatalf("transfer returned error: %+v", transferErr)
+	}
+	if transferred.LeaderID != "p2" {
+		t.Fatalf("unexpected leader after transfer: %+v", transferred)
+	}
+
+	left, leaveErr := svc.LeaveParty(party.ID, "p1")
+	if leaveErr != nil {
+		t.Fatalf("leave returned error: %+v", leaveErr)
+	}
+	if len(left.MemberIDs) != 1 || left.MemberIDs[0] != "p2" {
+		t.Fatalf("unexpected party after leave: %+v", left)
+	}
+}
+
+func TestKickMemberClearsReadyState(t *testing.T) {
+	t.Parallel()
+
+	invites := &fakeInviteClient{
+		get: Invite{
+			ID:         "inv-1",
+			Domain:     inviteDomainParty,
+			ResourceID: "party-1",
+			ToPlayerID: "p2",
+			Status:     "accepted",
+		},
+	}
+	presence := &fakePresenceReader{
+		snapshots: map[string]PresenceSnapshot{
+			"p2": {PlayerID: "p2", Status: presenceOnline},
+		},
+	}
+
+	svc := NewPartyService(invites, presence)
+	svc.newPartyID = func() (string, error) { return "party-1", nil }
+
+	party, err := svc.CreateParty("p1")
+	if err != nil {
+		t.Fatalf("create party returned error: %+v", err)
+	}
+	if _, joinErr := svc.JoinWithInvite(context.Background(), party.ID, "inv-1", "p2"); joinErr != nil {
+		t.Fatalf("join returned error: %+v", joinErr)
+	}
+	if _, readyErr := svc.SetReady(party.ID, "p2", true); readyErr != nil {
+		t.Fatalf("set ready returned error: %+v", readyErr)
+	}
+
+	kicked, kickErr := svc.KickMember(party.ID, "p1", "p2")
+	if kickErr != nil {
+		t.Fatalf("kick returned error: %+v", kickErr)
+	}
+	if len(kicked.MemberIDs) != 1 || kicked.MemberIDs[0] != "p1" {
+		t.Fatalf("unexpected party after kick: %+v", kicked)
+	}
+
+	readyStates, listErr := svc.ListReadyStates(party.ID)
+	if listErr != nil {
+		t.Fatalf("list ready states returned error: %+v", listErr)
+	}
+	if len(readyStates) != 1 || readyStates[0].PlayerID != "p1" {
+		t.Fatalf("unexpected ready states after kick: %+v", readyStates)
+	}
+}

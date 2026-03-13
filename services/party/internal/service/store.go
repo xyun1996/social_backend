@@ -18,6 +18,7 @@ type PartyStore interface {
 type ReadyStateStore interface {
 	SaveReadyState(state domain.ReadyState) error
 	ListReadyStates(partyID string) ([]domain.ReadyState, error)
+	DeleteReadyState(partyID string, playerID string) error
 }
 
 type memoryPartyStore struct {
@@ -113,4 +114,19 @@ func (s *memoryReadyStateStore) ListReadyStates(partyID string) ([]domain.ReadyS
 		}
 	})
 	return states, nil
+}
+
+func (s *memoryReadyStateStore) DeleteReadyState(partyID string, playerID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.states[partyID] == nil {
+		return nil
+	}
+
+	delete(s.states[partyID], playerID)
+	if len(s.states[partyID]) == 0 {
+		delete(s.states, partyID)
+	}
+	return nil
 }

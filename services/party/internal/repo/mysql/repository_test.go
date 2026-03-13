@@ -153,3 +153,26 @@ func TestRepositorySaveAndListReadyStates(t *testing.T) {
 		t.Fatalf("unmet sql expectations: %v", err)
 	}
 }
+
+func TestRepositoryDeleteReadyState(t *testing.T) {
+	t.Parallel()
+
+	sqlDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock.New failed: %v", err)
+	}
+	defer sqlDB.Close()
+
+	repo := NewRepository(db.MySQLConfig{}, sqlDB)
+	mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM party_ready_states WHERE party_id = ? AND player_id = ?`)).
+		WithArgs("party-1", "p2").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	if err := repo.DeleteReadyState("party-1", "p2"); err != nil {
+		t.Fatalf("DeleteReadyState returned error: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet sql expectations: %v", err)
+	}
+}

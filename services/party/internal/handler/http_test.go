@@ -129,3 +129,55 @@ func TestPartyLifecycleEndpoints(t *testing.T) {
 		t.Fatalf("unexpected members status: got %d want %d", memberRec.Code, http.StatusOK)
 	}
 }
+
+func TestPartyManagementEndpoints(t *testing.T) {
+	t.Parallel()
+
+	invites := &fakeInviteClient{}
+	presence := &fakePresenceReader{
+		snapshots: map[string]partyservice.PresenceSnapshot{
+			"p1": {PlayerID: "p1", Status: "online", SessionID: "sess-1"},
+			"p2": {PlayerID: "p2", Status: "online", SessionID: "sess-2"},
+		},
+	}
+	svc := partyservice.NewPartyService(invites, presence)
+	h := NewHTTPHandler(svc)
+
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/parties", bytes.NewBufferString(`{"leader_id":"p1"}`))
+	createRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(createRec, createReq)
+
+	var created map[string]any
+	if err := json.Unmarshal(createRec.Body.Bytes(), &created); err != nil {
+		t.Fatalf("unmarshal create response: %v", err)
+	}
+	partyID, _ := created["id"].(string)
+
+	inviteReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/invites", bytes.NewBufferString(`{"actor_player_id":"p1","to_player_id":"p2"}`))
+	inviteRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(inviteRec, inviteReq)
+	if inviteRec.Code != http.StatusOK {
+		t.Fatalf("unexpected invite status: got %d want %d", inviteRec.Code, http.StatusOK)
+	}
+
+	joinReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/join", bytes.NewBufferString(`{"invite_id":"inv-1","actor_player_id":"p2"}`))
+	joinRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(joinRec, joinReq)
+	if joinRec.Code != http.StatusOK {
+		t.Fatalf("unexpected join status: got %d want %d", joinRec.Code, http.StatusOK)
+	}
+
+	transferReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/transfer-leader", bytes.NewBufferString(`{"actor_player_id":"p1","target_player_id":"p2"}`))
+	transferRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(transferRec, transferReq)
+	if transferRec.Code != http.StatusOK {
+		t.Fatalf("unexpected transfer status: got %d want %d", transferRec.Code, http.StatusOK)
+	}
+
+	leaveReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/leave", bytes.NewBufferString(`{"actor_player_id":"p1"}`))
+	leaveRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(leaveRec, leaveReq)
+	if leaveRec.Code != http.StatusOK {
+		t.Fatalf("unexpected leave status: got %d want %d", leaveRec.Code, http.StatusOK)
+	}
+}

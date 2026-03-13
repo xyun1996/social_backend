@@ -38,6 +38,15 @@ type readyRequest struct {
 	IsReady       bool   `json:"is_ready"`
 }
 
+type leavePartyRequest struct {
+	ActorPlayerID string `json:"actor_player_id"`
+}
+
+type partyMemberActionRequest struct {
+	ActorPlayerID  string `json:"actor_player_id"`
+	TargetPlayerID string `json:"target_player_id"`
+}
+
 // Routes returns the party HTTP routes.
 func (h *HTTPHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
@@ -47,6 +56,9 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("POST /v1/parties/{partyID}/invites", h.handleCreateInvite)
 	mux.HandleFunc("POST /v1/parties/{partyID}/join", h.handleJoinParty)
 	mux.HandleFunc("POST /v1/parties/{partyID}/ready", h.handleSetReady)
+	mux.HandleFunc("POST /v1/parties/{partyID}/leave", h.handleLeaveParty)
+	mux.HandleFunc("POST /v1/parties/{partyID}/kick", h.handleKickMember)
+	mux.HandleFunc("POST /v1/parties/{partyID}/transfer-leader", h.handleTransferLeader)
 	mux.HandleFunc("GET /v1/parties/{partyID}/ready", h.handleListReady)
 	mux.HandleFunc("GET /v1/parties/{partyID}/members", h.handleListMembers)
 	return mux
@@ -131,6 +143,54 @@ func (h *HTTPHandler) handleSetReady(w http.ResponseWriter, r *http.Request) {
 	}
 
 	transport.WriteJSON(w, http.StatusOK, state)
+}
+
+func (h *HTTPHandler) handleLeaveParty(w http.ResponseWriter, r *http.Request) {
+	var request leavePartyRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	party, appErr := h.parties.LeaveParty(r.PathValue("partyID"), request.ActorPlayerID)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, party)
+}
+
+func (h *HTTPHandler) handleKickMember(w http.ResponseWriter, r *http.Request) {
+	var request partyMemberActionRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	party, appErr := h.parties.KickMember(r.PathValue("partyID"), request.ActorPlayerID, request.TargetPlayerID)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, party)
+}
+
+func (h *HTTPHandler) handleTransferLeader(w http.ResponseWriter, r *http.Request) {
+	var request partyMemberActionRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	party, appErr := h.parties.TransferLeader(r.PathValue("partyID"), request.ActorPlayerID, request.TargetPlayerID)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, party)
 }
 
 func (h *HTTPHandler) handleListReady(w http.ResponseWriter, r *http.Request) {

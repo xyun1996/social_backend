@@ -254,6 +254,20 @@ func (r *Repository) ListReadyStates(partyID string) ([]domain.ReadyState, error
 	return states, nil
 }
 
+func (r *Repository) DeleteReadyState(partyID string, playerID string) error {
+	if r == nil || r.sqlDB == nil {
+		return errors.New("mysql repository is not configured")
+	}
+
+	_, err := r.sqlDB.ExecContext(
+		context.Background(),
+		`DELETE FROM party_ready_states WHERE party_id = ? AND player_id = ?`,
+		partyID,
+		playerID,
+	)
+	return err
+}
+
 func (r *Repository) listMembers(partyID string) ([]string, error) {
 	rows, err := r.sqlDB.QueryContext(
 		context.Background(),

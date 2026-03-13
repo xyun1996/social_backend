@@ -263,6 +263,117 @@ func (s *PartyService) SetReady(partyID string, actorPlayerID string, isReady bo
 	return state, nil
 }
 
+// LeaveParty removes a non-leader member from the party and clears their ready state.
+func (s *PartyService) LeaveParty(partyID string, actorPlayerID string) (domain.Party, *apperrors.Error) {
+	if partyID == "" || actorPlayerID == "" {
+		err := apperrors.New("invalid_request", "party_id and actor_player_id are required", http.StatusBadRequest)
+		return domain.Party{}, &err
+	}
+
+	party, ok, err := s.parties.GetParty(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Party{}, &internal
+	}
+	if !ok {
+		err := apperrors.New("not_found", "party not found", http.StatusNotFound)
+		return domain.Party{}, &err
+	}
+	if !slices.Contains(party.MemberIDs, actorPlayerID) {
+		err := apperrors.New("forbidden", "only party members can leave", http.StatusForbidden)
+		return domain.Party{}, &err
+	}
+	if party.LeaderID == actorPlayerID {
+		err := apperrors.New("leader_must_transfer", "party leader must transfer leadership before leaving", http.StatusConflict)
+		return domain.Party{}, &err
+	}
+
+	party.MemberIDs = deleteMemberIDs(party.MemberIDs, actorPlayerID)
+	if err := s.parties.SaveParty(party); err != nil {
+		internal := apperrors.Internal()
+		return domain.Party{}, &internal
+	}
+	if err := s.ready.DeleteReadyState(partyID, actorPlayerID); err != nil {
+		internal := apperrors.Internal()
+		return domain.Party{}, &internal
+	}
+	return party, nil
+}
+
+// KickMember removes a member at the direction of the party leader.
+func (s *PartyService) KickMember(partyID string, actorPlayerID string, targetPlayerID string) (domain.Party, *apperrors.Error) {
+	if partyID == "" || actorPlayerID == "" || targetPlayerID == "" {
+		err := apperrors.New("invalid_request", "party_id, actor_player_id, and target_player_id are required", http.StatusBadRequest)
+		return domain.Party{}, &err
+	}
+
+	party, ok, err := s.parties.GetParty(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Party{}, &internal
+	}
+	if !ok {
+		err := apperrors.New("not_found", "party not found", http.StatusNotFound)
+		return domain.Party{}, &err
+	}
+	if party.LeaderID != actorPlayerID {
+		err := apperrors.New("forbidden", "only the party leader can kick members", http.StatusForbidden)
+		return domain.Party{}, &err
+	}
+	if targetPlayerID == party.LeaderID {
+		err := apperrors.New("invalid_request", "party leader cannot kick themselves", http.StatusBadRequest)
+		return domain.Party{}, &err
+	}
+	if !slices.Contains(party.MemberIDs, targetPlayerID) {
+		err := apperrors.New("not_found", "target member not found", http.StatusNotFound)
+		return domain.Party{}, &err
+	}
+
+	party.MemberIDs = deleteMemberIDs(party.MemberIDs, targetPlayerID)
+	if err := s.parties.SaveParty(party); err != nil {
+		internal := apperrors.Internal()
+		return domain.Party{}, &internal
+	}
+	if err := s.ready.DeleteReadyState(partyID, targetPlayerID); err != nil {
+		internal := apperrors.Internal()
+		return domain.Party{}, &internal
+	}
+	return party, nil
+}
+
+// TransferLeader assigns party leadership to another current member.
+func (s *PartyService) TransferLeader(partyID string, actorPlayerID string, targetPlayerID string) (domain.Party, *apperrors.Error) {
+	if partyID == "" || actorPlayerID == "" || targetPlayerID == "" {
+		err := apperrors.New("invalid_request", "party_id, actor_player_id, and target_player_id are required", http.StatusBadRequest)
+		return domain.Party{}, &err
+	}
+
+	party, ok, err := s.parties.GetParty(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Party{}, &internal
+	}
+	if !ok {
+		err := apperrors.New("not_found", "party not found", http.StatusNotFound)
+		return domain.Party{}, &err
+	}
+	if party.LeaderID != actorPlayerID {
+		err := apperrors.New("forbidden", "only the party leader can transfer leadership", http.StatusForbidden)
+		return domain.Party{}, &err
+	}
+	if !slices.Contains(party.MemberIDs, targetPlayerID) {
+		err := apperrors.New("not_found", "target member not found", http.StatusNotFound)
+		return domain.Party{}, &err
+	}
+
+	party.LeaderID = targetPlayerID
+	if err := s.parties.SaveParty(party); err != nil {
+		internal := apperrors.Internal()
+		return domain.Party{}, &internal
+	}
+	return party, nil
+}
+
 // ListReadyStates returns ready status for current party members.
 func (s *PartyService) ListReadyStates(partyID string) ([]domain.ReadyState, *apperrors.Error) {
 	if partyID == "" {
@@ -370,4 +481,15 @@ func (s *PartyService) String() string {
 		return "party-service(parties=unknown)"
 	}
 	return fmt.Sprintf("party-service(parties=%d)", len(parties))
+}
+
+func deleteMemberIDs(memberIDs []string, targetPlayerID string) []string {
+	filtered := memberIDs[:0]
+	for _, memberID := range memberIDs {
+		if memberID == targetPlayerID {
+			continue
+		}
+		filtered = append(filtered, memberID)
+	}
+	return filtered
 }

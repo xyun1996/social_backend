@@ -1,7 +1,7 @@
 # 009 Party HTTP Prototype
 
 - Title: Add an in-memory party prototype wired to the shared invite service
-- Status: `in-progress`
+- Status: `done`
 - Version: `v1`
 - Milestone: `06 Party Queue`
 
@@ -45,3 +45,8 @@ Add a local in-memory `party` service prototype that exercises party creation, l
 
 - [Current plan](../../current.md)
 - [Bounded contexts](../../../architecture/bounded-contexts.md)
+
+## Completion Notes
+
+- `party` now supports create, invite, join, ready, member-state reads, and presence-aware ready gating
+- durable flow coverage verifies invite-backed join and ready updates through the shared invite boundary
