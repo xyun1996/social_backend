@@ -84,6 +84,7 @@ Worker also supports an optional background drain loop via `WORKER_AUTO_RUN=true
 `guild` can now also optionally start with a MySQL-backed store via `GUILD_STORE=mysql`; `GUILD_AUTO_MIGRATE=true` applies owned schema on startup.
 `social` now has a service-local MySQL repo foundation, and `worker` now has a service-local Redis repo foundation for future queue claim and backlog state.
 `worker` can now also optionally start with a Redis-backed store via `WORKER_STORE=redis`.
+`gateway` can now also optionally start with a Redis-backed realtime session store via `GATEWAY_STORE=redis`.
 `pkg/db` now also includes a shared Redis foundation, and `presence` can optionally run with a Redis-backed store via `PRESENCE_STORE=redis`; startup now pings Redis before serving traffic.
 
 - `make run-identity`

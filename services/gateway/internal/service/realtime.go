@@ -66,8 +66,8 @@ type ResumeRequest struct {
 // RealtimeService owns gateway-side realtime session lifecycle.
 type RealtimeService struct {
 	mu         sync.RWMutex
-	sessions   map[string]RealtimeSession
-	events     map[string][]ChatMessageEnvelope
+	sessions   RealtimeSessionStore
+	events     SessionEventStore
 	introspect Introspector
 	presence   PresenceReporter
 	now        func() time.Time
@@ -75,9 +75,14 @@ type RealtimeService struct {
 
 // NewRealtimeService constructs the realtime session prototype.
 func NewRealtimeService(introspect Introspector, presence PresenceReporter) *RealtimeService {
+	return NewRealtimeServiceWithStores(newMemoryRealtimeSessionStore(), newMemorySessionEventStore(), introspect, presence)
+}
+
+// NewRealtimeServiceWithStores constructs the realtime service with injected persistence boundaries.
+func NewRealtimeServiceWithStores(sessions RealtimeSessionStore, events SessionEventStore, introspect Introspector, presence PresenceReporter) *RealtimeService {
 	return &RealtimeService{
-		sessions:   make(map[string]RealtimeSession),
-		events:     make(map[string][]ChatMessageEnvelope),
+		sessions:   sessions,
+		events:     events,
 		introspect: introspect,
 		presence:   presence,
 		now:        time.Now,
@@ -126,11 +131,22 @@ func (s *RealtimeService) Handshake(ctx context.Context, request HandshakeReques
 	}
 
 	s.mu.Lock()
-	s.sessions[session.SessionID] = session
-	if s.events[session.SessionID] == nil {
-		s.events[session.SessionID] = make([]ChatMessageEnvelope, 0)
+	defer s.mu.Unlock()
+	if err := s.sessions.SaveSession(session); err != nil {
+		internal := apperrors.Internal()
+		return RealtimeSession{}, &internal
 	}
-	s.mu.Unlock()
+	events, err := s.events.GetEvents(session.SessionID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return RealtimeSession{}, &internal
+	}
+	if events == nil {
+		if err := s.events.SaveEvents(session.SessionID, []ChatMessageEnvelope{}); err != nil {
+			internal := apperrors.Internal()
+			return RealtimeSession{}, &internal
+		}
+	}
 	return session, nil
 }
 
@@ -152,10 +168,13 @@ func (s *RealtimeService) Heartbeat(ctx context.Context, sessionID string) (Real
 	}
 
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	session.PresenceState = snapshot.Status
 	session.LastHeartbeatAt = snapshot.LastHeartbeatAt
-	s.sessions[sessionID] = session
-	s.mu.Unlock()
+	if err := s.sessions.SaveSession(session); err != nil {
+		internal := apperrors.Internal()
+		return RealtimeSession{}, &internal
+	}
 	return session, nil
 }
 
@@ -191,16 +210,27 @@ func (s *RealtimeService) Resume(ctx context.Context, request ResumeRequest) (Re
 	}
 
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	session.State = sessionStateActive
 	session.PresenceState = snapshot.Status
 	session.LastHeartbeatAt = snapshot.LastHeartbeatAt
 	session.DisconnectedAt = ""
 	session.LastServerEventID = request.LastServerEventID
 	if request.LastServerEventID != "" {
-		s.events[session.SessionID] = trimEventsThroughID(s.events[session.SessionID], request.LastServerEventID)
+		events, err := s.events.GetEvents(session.SessionID)
+		if err != nil {
+			internal := apperrors.Internal()
+			return RealtimeSession{}, &internal
+		}
+		if err := s.events.SaveEvents(session.SessionID, trimEventsThroughID(events, request.LastServerEventID)); err != nil {
+			internal := apperrors.Internal()
+			return RealtimeSession{}, &internal
+		}
 	}
-	s.sessions[session.SessionID] = session
-	s.mu.Unlock()
+	if err := s.sessions.SaveSession(session); err != nil {
+		internal := apperrors.Internal()
+		return RealtimeSession{}, &internal
+	}
 	return session, nil
 }
 
@@ -222,11 +252,14 @@ func (s *RealtimeService) Close(ctx context.Context, sessionID string) (Realtime
 	}
 
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	session.State = sessionStateClosed
 	session.PresenceState = snapshot.Status
 	session.DisconnectedAt = s.now().UTC().Format(time.RFC3339Nano)
-	s.sessions[session.SessionID] = session
-	s.mu.Unlock()
+	if err := s.sessions.SaveSession(session); err != nil {
+		internal := apperrors.Internal()
+		return RealtimeSession{}, &internal
+	}
 	return session, nil
 }
 
@@ -243,8 +276,17 @@ func (s *RealtimeService) EnqueueChatEvent(sessionID string, event ChatMessageEn
 	}
 
 	s.mu.Lock()
-	s.events[session.SessionID] = append(s.events[session.SessionID], event)
-	s.mu.Unlock()
+	defer s.mu.Unlock()
+	events, err := s.events.GetEvents(session.SessionID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return &internal
+	}
+	events = append(events, event)
+	if err := s.events.SaveEvents(session.SessionID, events); err != nil {
+		internal := apperrors.Internal()
+		return &internal
+	}
 	return nil
 }
 
@@ -254,9 +296,11 @@ func (s *RealtimeService) GetSessionEvents(sessionID string) (SessionEventInbox,
 		return SessionEventInbox{}, appErr
 	}
 
-	s.mu.RLock()
-	events := append([]ChatMessageEnvelope(nil), s.events[sessionID]...)
-	s.mu.RUnlock()
+	events, err := s.events.GetEvents(sessionID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return SessionEventInbox{}, &internal
+	}
 	return SessionEventInbox{
 		SessionID: sessionID,
 		Count:     len(events),
@@ -282,7 +326,11 @@ func (s *RealtimeService) AcknowledgeConversation(sessionID string, conversation
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	events := s.events[sessionID]
+	events, err := s.events.GetEvents(sessionID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return AckCompactionResult{}, &internal
+	}
 	kept := make([]ChatMessageEnvelope, 0, len(events))
 	lastAckedEventID := ""
 	prunedCount := 0
@@ -295,10 +343,16 @@ func (s *RealtimeService) AcknowledgeConversation(sessionID string, conversation
 		kept = append(kept, event)
 	}
 
-	s.events[sessionID] = kept
+	if err := s.events.SaveEvents(sessionID, kept); err != nil {
+		internal := apperrors.Internal()
+		return AckCompactionResult{}, &internal
+	}
 	if lastAckedEventID != "" {
 		session.LastServerEventID = lastAckedEventID
-		s.sessions[sessionID] = session
+		if err := s.sessions.SaveSession(session); err != nil {
+			internal := apperrors.Internal()
+			return AckCompactionResult{}, &internal
+		}
 	}
 
 	return AckCompactionResult{
@@ -329,8 +383,12 @@ func (s *RealtimeService) getSession(sessionID string) (RealtimeSession, *apperr
 	}
 
 	s.mu.RLock()
-	session, ok := s.sessions[sessionID]
+	session, ok, err := s.sessions.GetSession(sessionID)
 	s.mu.RUnlock()
+	if err != nil {
+		internal := apperrors.Internal()
+		return RealtimeSession{}, &internal
+	}
 	if !ok {
 		err := apperrors.New("not_found", "session not found", http.StatusNotFound)
 		return RealtimeSession{}, &err
@@ -339,7 +397,11 @@ func (s *RealtimeService) getSession(sessionID string) (RealtimeSession, *apperr
 }
 
 func (s *RealtimeService) String() string {
-	return fmt.Sprintf("gateway-realtime(sessions=%d)", len(s.sessions))
+	sessions, err := s.sessions.ListSessions()
+	if err != nil {
+		return "gateway-realtime(sessions=unknown)"
+	}
+	return fmt.Sprintf("gateway-realtime(sessions=%d)", len(sessions))
 }
 
 func trimEventsThroughID(events []ChatMessageEnvelope, lastServerEventID string) []ChatMessageEnvelope {

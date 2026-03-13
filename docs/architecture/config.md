@@ -47,6 +47,7 @@ Shared keys currently documented there:
 - `GUILD_STORE=memory`
 - `GUILD_AUTO_MIGRATE=false`
 - `PRESENCE_STORE=memory`
+- `GATEWAY_STORE=memory`
 - `WORKER_STORE=memory`
 
 ## Future Work

@@ -23,7 +23,11 @@ type HTTPHandler struct {
 
 // NewHTTPHandler constructs a gateway HTTP handler.
 func NewHTTPHandler(introspector gatewayservice.Introspector, reporter gatewayservice.PresenceReporter, chat gatewayservice.ChatRuntime) *HTTPHandler {
-	realtime := gatewayservice.NewRealtimeService(introspector, reporter)
+	return NewHTTPHandlerWithRealtime(introspector, reporter, chat, gatewayservice.NewRealtimeService(introspector, reporter))
+}
+
+// NewHTTPHandlerWithRealtime constructs a gateway HTTP handler with a prebuilt realtime service.
+func NewHTTPHandlerWithRealtime(introspector gatewayservice.Introspector, reporter gatewayservice.PresenceReporter, chat gatewayservice.ChatRuntime, realtime *gatewayservice.RealtimeService) *HTTPHandler {
 	return &HTTPHandler{
 		introspector: introspector,
 		reporter:     reporter,

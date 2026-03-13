@@ -45,5 +45,6 @@
 - `GUILD_AUTO_MIGRATE`: bootstrap owned MySQL schema on startup when `true`
 - `PRESENCE_STORE`: `memory` or `redis`
 - `WORKER_STORE`: `memory` or `redis`
+- `GATEWAY_STORE`: `memory` or `redis`
 - `WORKER_AUTO_RUN`: enable the worker background drain loop when `true`
 - `PRESENCE_AUTO_PING`: validate Redis connectivity on startup when `true`
