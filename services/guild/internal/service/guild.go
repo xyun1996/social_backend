@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	apperrors "github.com/xyun1996/social_backend/pkg/errors"
@@ -64,8 +63,7 @@ type MemberState struct {
 
 // GuildService provides an in-memory prototype for guild creation and joins.
 type GuildService struct {
-	mu         sync.RWMutex
-	guilds     map[string]domain.Guild
+	guilds     GuildStore
 	invites    InviteClient
 	presence   PresenceReader
 	now        func() time.Time
@@ -74,8 +72,13 @@ type GuildService struct {
 
 // NewGuildService constructs an in-memory guild service.
 func NewGuildService(invites InviteClient, presence PresenceReader) *GuildService {
+	return NewGuildServiceWithStore(newMemoryGuildStore(), invites, presence)
+}
+
+// NewGuildServiceWithStore constructs a guild service with injected persistence boundaries.
+func NewGuildServiceWithStore(guilds GuildStore, invites InviteClient, presence PresenceReader) *GuildService {
 	return &GuildService{
-		guilds:   make(map[string]domain.Guild),
+		guilds:   guilds,
 		invites:  invites,
 		presence: presence,
 		now:      time.Now,
@@ -92,9 +95,6 @@ func (s *GuildService) CreateGuild(name string, ownerID string) (domain.Guild, *
 		err := apperrors.New("invalid_request", "name and owner_id are required", http.StatusBadRequest)
 		return domain.Guild{}, &err
 	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	guildID, idErr := s.newGuildID()
 	if idErr != nil {
@@ -117,7 +117,10 @@ func (s *GuildService) CreateGuild(name string, ownerID string) (domain.Guild, *
 		CreatedAt: now,
 	}
 
-	s.guilds[guild.ID] = guild
+	if err := s.guilds.SaveGuild(guild); err != nil {
+		internal := apperrors.Internal()
+		return domain.Guild{}, &internal
+	}
 	return guild, nil
 }
 
@@ -128,9 +131,11 @@ func (s *GuildService) ListMemberStates(ctx context.Context, guildID string) ([]
 		return nil, &err
 	}
 
-	s.mu.RLock()
-	guild, ok := s.guilds[guildID]
-	s.mu.RUnlock()
+	guild, ok, err := s.guilds.GetGuild(guildID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
+	}
 	if !ok {
 		err := apperrors.New("not_found", "guild not found", http.StatusNotFound)
 		return nil, &err
@@ -170,10 +175,11 @@ func (s *GuildService) GetGuild(guildID string) (domain.Guild, *apperrors.Error)
 		return domain.Guild{}, &err
 	}
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	guild, ok := s.guilds[guildID]
+	guild, ok, err := s.guilds.GetGuild(guildID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Guild{}, &internal
+	}
 	if !ok {
 		err := apperrors.New("not_found", "guild not found", http.StatusNotFound)
 		return domain.Guild{}, &err
@@ -189,9 +195,11 @@ func (s *GuildService) CreateInvite(ctx context.Context, guildID string, actorPl
 		return Invite{}, &err
 	}
 
-	s.mu.RLock()
-	guild, ok := s.guilds[guildID]
-	s.mu.RUnlock()
+	guild, ok, err := s.guilds.GetGuild(guildID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return Invite{}, &internal
+	}
 	if !ok {
 		err := apperrors.New("not_found", "guild not found", http.StatusNotFound)
 		return Invite{}, &err
@@ -237,10 +245,11 @@ func (s *GuildService) JoinWithInvite(ctx context.Context, guildID string, invit
 		return domain.Guild{}, &err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	guild, ok := s.guilds[guildID]
+	guild, ok, err := s.guilds.GetGuild(guildID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Guild{}, &internal
+	}
 	if !ok {
 		err := apperrors.New("not_found", "guild not found", http.StatusNotFound)
 		return domain.Guild{}, &err
@@ -266,7 +275,10 @@ func (s *GuildService) JoinWithInvite(ctx context.Context, guildID string, invit
 		}
 	})
 
-	s.guilds[guild.ID] = guild
+	if err := s.guilds.SaveGuild(guild); err != nil {
+		internal := apperrors.Internal()
+		return domain.Guild{}, &internal
+	}
 	return guild, nil
 }
 
@@ -281,5 +293,9 @@ func hasMember(members []domain.GuildMember, playerID string) bool {
 }
 
 func (s *GuildService) String() string {
-	return fmt.Sprintf("guild-service(guilds=%d)", len(s.guilds))
+	guilds, err := s.guilds.ListGuilds()
+	if err != nil {
+		return "guild-service(guilds=unknown)"
+	}
+	return fmt.Sprintf("guild-service(guilds=%d)", len(guilds))
 }

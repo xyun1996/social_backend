@@ -44,6 +44,8 @@ Shared keys currently documented there:
 - `SOCIAL_AUTO_MIGRATE=false`
 - `PARTY_STORE=memory`
 - `PARTY_AUTO_MIGRATE=false`
+- `GUILD_STORE=memory`
+- `GUILD_AUTO_MIGRATE=false`
 - `PRESENCE_STORE=memory`
 - `WORKER_STORE=memory`
 

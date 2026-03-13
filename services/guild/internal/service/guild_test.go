@@ -108,3 +108,24 @@ func TestListMemberStatesIncludesPresence(t *testing.T) {
 		t.Fatalf("unexpected member states: %+v", states)
 	}
 }
+
+func TestGuildServiceWithInjectedStore(t *testing.T) {
+	t.Parallel()
+
+	guilds := newMemoryGuildStore()
+	svc := NewGuildServiceWithStore(guilds, &fakeInviteClient{}, nil)
+	svc.newGuildID = func() (string, error) { return "guild-1", nil }
+
+	guild, err := svc.CreateGuild("Guild", "p1")
+	if err != nil {
+		t.Fatalf("create guild returned error: %+v", err)
+	}
+
+	stored, ok, getErr := guilds.GetGuild(guild.ID)
+	if getErr != nil {
+		t.Fatalf("guild store get returned error: %v", getErr)
+	}
+	if !ok || stored.ID != guild.ID {
+		t.Fatalf("unexpected stored guild: %+v", stored)
+	}
+}
