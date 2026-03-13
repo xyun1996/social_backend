@@ -1,4 +1,4 @@
-.PHONY: help bootstrap test proto lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker run-identity-mysql run-social-mysql run-invite-mysql run-chat-mysql run-presence-redis run-worker-redis
+.PHONY: help bootstrap test proto lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker run-identity-mysql run-social-mysql run-invite-mysql run-chat-mysql run-presence-redis run-worker-redis test-local-durable
 
 help:
 	@echo "Available targets:"
@@ -24,6 +24,7 @@ help:
 	@echo "  run-chat-mysql     - start chat against local MySQL"
 	@echo "  run-presence-redis - start presence against local Redis"
 	@echo "  run-worker-redis   - start worker against local Redis"
+	@echo "  test-local-durable - run opt-in durable integration tests against local MySQL and Redis"
 
 bootstrap:
 	@echo "Repository scaffold is in place."
@@ -94,3 +95,6 @@ run-presence-redis:
 
 run-worker-redis:
 	set APP_ENV=local && set WORKER_STORE=redis && set REDIS_ADDR=localhost:6379 && set REDIS_USERNAME= && set REDIS_PASSWORD= && set REDIS_DB=0 && go run ./services/worker/cmd/worker
+
+test-local-durable:
+	set ENABLE_LOCAL_DURABLE_TESTS=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && set REDIS_ADDR=localhost:6379 && set REDIS_USERNAME= && set REDIS_PASSWORD= && go test ./services/integration -run TestLocalDurable -v

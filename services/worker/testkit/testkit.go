@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"net/http/httptest"
 
+	"github.com/redis/go-redis/v9"
+	"github.com/xyun1996/social_backend/pkg/db"
 	workerchatclient "github.com/xyun1996/social_backend/services/worker/internal/client/chat"
 	workerinviteclient "github.com/xyun1996/social_backend/services/worker/internal/client/invite"
 	workerhandler "github.com/xyun1996/social_backend/services/worker/internal/handler"
 	workerjobs "github.com/xyun1996/social_backend/services/worker/internal/jobs"
+	redisrepo "github.com/xyun1996/social_backend/services/worker/internal/repo/redis"
 	workerservice "github.com/xyun1996/social_backend/services/worker/internal/service"
 )
 
@@ -28,6 +31,14 @@ type ExecutionSummary struct {
 // NewServer constructs an in-memory worker HTTP server.
 func NewServer() *Server {
 	worker := workerservice.NewWorkerService()
+	server := httptest.NewServer(workerhandler.NewHTTPHandler(worker).Routes())
+	return &Server{server: server, worker: worker}
+}
+
+// NewDurableServer constructs a worker HTTP server backed by Redis queue state.
+func NewDurableServer(redisConfig db.RedisConfig, client *redis.Client) *Server {
+	repo := redisrepo.NewRepository(redisConfig, client)
+	worker := workerservice.NewWorkerServiceWithStore(repo)
 	server := httptest.NewServer(workerhandler.NewHTTPHandler(worker).Routes())
 	return &Server{server: server, worker: worker}
 }

@@ -100,6 +100,7 @@ Worker also supports an optional background drain loop via `WORKER_AUTO_RUN=true
 - `make run-chat-mysql`
 - `make run-presence-redis`
 - `make run-worker-redis`
+- `make test-local-durable`
 
 Starter service defaults:
 
@@ -127,3 +128,4 @@ Durable-mode shortcuts:
 - `make run-chat-mysql`
 - `make run-presence-redis`
 - `make run-worker-redis`
+- `make test-local-durable`

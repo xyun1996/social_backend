@@ -17,9 +17,11 @@ Start the services that already have optional durable backends against the local
 - `make run-chat-mysql`
 - `make run-presence-redis`
 - `make run-worker-redis`
+- `make test-local-durable`
 
 ## Notes
 
 - The MySQL-backed targets explicitly enable `*_AUTO_MIGRATE=true`.
 - The owned MySQL bootstrap is now idempotent, so repeated local restarts do not fail just because tables already exist.
+- `test-local-durable` runs the opt-in durable integration tests against local MySQL and Redis and leaves default `go test ./...` behavior unchanged.
 - These targets are for local iteration only; production startup should not assume inline schema bootstrap.
