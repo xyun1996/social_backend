@@ -88,6 +88,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/040-presence-redis-repo-integration.md](v1/tasks/040-presence-redis-repo-integration.md)
 - [docs/plans/v1/tasks/041-worker-proto-alignment.md](v1/tasks/041-worker-proto-alignment.md)
 - [docs/plans/v1/tasks/042-gateway-proto-alignment.md](v1/tasks/042-gateway-proto-alignment.md)
+- [docs/plans/v1/tasks/043-integration-local-flow-tests.md](v1/tasks/043-integration-local-flow-tests.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)
