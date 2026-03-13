@@ -9,6 +9,7 @@
 ## Local MySQL Bootstrap
 
 - Preferred command: `make bootstrap-local-mysql`
+- Verification command: `make verify-local-mysql-migrations`
 - Under the hood this runs `scripts/dev/bootstrap-local-mysql.ps1`
 - The script first ensures `MYSQL_DATABASE` exists before invoking service-owned schema bootstrap
 - Each MySQL-backed service records `(service_name, migration_id)` progress in `schema_migrations`

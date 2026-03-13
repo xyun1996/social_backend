@@ -27,4 +27,7 @@ foreach ($service in $services) {
     go run $service.Path
 }
 
+Write-Host "Verifying recorded schema migrations..."
+go run ./scripts/dev/cmd/verify_mysql_migrations
+
 Write-Host "Local MySQL bootstrap completed."

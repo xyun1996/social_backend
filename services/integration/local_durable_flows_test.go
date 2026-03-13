@@ -446,6 +446,73 @@ func TestLocalDurableGatewayRedisPersistsSessionAcrossRestart(t *testing.T) {
 	}
 }
 
+func TestLocalDurableMySQLBootstrapRegistersMigrations(t *testing.T) {
+	requireLocalDurableTests(t)
+
+	mysqlConfig, sqlDB := newLocalMySQLTestDatabase(t)
+	redisConfig, redisClient := newLocalRedisTestClient(t)
+	presence := presencetestkit.NewDurableServer(redisConfig, redisClient)
+	defer presence.Close()
+
+	startDurableMySQLBootstrappedServers := func() func() {
+		identity := identitytestkit.NewDurableServer(mysqlConfig, sqlDB)
+		social := socialtestkit.NewDurableServer(mysqlConfig, sqlDB)
+		invite := invitetestkit.NewDurableServer(mysqlConfig, sqlDB, "")
+		chat := chattestkit.NewDurableServer(mysqlConfig, sqlDB, "", "")
+		party := partytestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL())
+		guild := guildtestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL())
+		return func() {
+			guild.Close()
+			party.Close()
+			chat.Close()
+			invite.Close()
+			social.Close()
+			identity.Close()
+		}
+	}
+
+	closeFirstPass := startDurableMySQLBootstrappedServers()
+	closeFirstPass()
+	closeSecondPass := startDurableMySQLBootstrappedServers()
+	closeSecondPass()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	rows, err := sqlDB.QueryContext(ctx, `SELECT service_name, migration_id FROM schema_migrations ORDER BY service_name, migration_id`)
+	if err != nil {
+		t.Fatalf("query schema migrations: %v", err)
+	}
+	defer rows.Close()
+
+	recorded := make(map[string][]string)
+	for rows.Next() {
+		var service string
+		var migrationID string
+		if err := rows.Scan(&service, &migrationID); err != nil {
+			t.Fatalf("scan schema migration: %v", err)
+		}
+		recorded[service] = append(recorded[service], migrationID)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate schema migrations: %v", err)
+	}
+
+	expected := map[string]string{
+		"identity": "001_identity_core",
+		"social":   "001_social_core",
+		"invite":   "001_invite_core",
+		"chat":     "001_chat_core",
+		"party":    "001_party_core",
+		"guild":    "001_guild_core",
+	}
+	for service, migrationID := range expected {
+		migrations := recorded[service]
+		if len(migrations) != 1 || migrations[0] != migrationID {
+			t.Fatalf("unexpected recorded migrations for %s: %+v", service, migrations)
+		}
+	}
+}
+
 func requireLocalDurableTests(t *testing.T) {
 	t.Helper()
 	if !strings.EqualFold(strings.TrimSpace(os.Getenv("ENABLE_LOCAL_DURABLE_TESTS")), "true") {

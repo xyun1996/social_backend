@@ -1,4 +1,4 @@
-.PHONY: help bootstrap test proto lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker run-identity-mysql run-social-mysql run-invite-mysql run-chat-mysql run-presence-redis run-worker-redis test-local-durable bootstrap-local-mysql
+.PHONY: help bootstrap test proto lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker run-identity-mysql run-social-mysql run-invite-mysql run-chat-mysql run-presence-redis run-worker-redis test-local-durable bootstrap-local-mysql verify-local-mysql-migrations
 
 help:
 	@echo "Available targets:"
@@ -26,6 +26,7 @@ help:
 	@echo "  run-worker-redis   - start worker against local Redis"
 	@echo "  test-local-durable - run opt-in durable integration tests against local MySQL and Redis"
 	@echo "  bootstrap-local-mysql - bootstrap owned MySQL schemas without serving traffic"
+	@echo "  verify-local-mysql-migrations - inspect required schema_migrations rows on local MySQL"
 
 bootstrap:
 	@echo "Repository scaffold is in place."
@@ -102,3 +103,6 @@ test-local-durable:
 
 bootstrap-local-mysql:
 	powershell -ExecutionPolicy Bypass -File ./scripts/dev/bootstrap-local-mysql.ps1
+
+verify-local-mysql-migrations:
+	set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && go run ./scripts/dev/cmd/verify_mysql_migrations
