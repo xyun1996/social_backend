@@ -123,3 +123,29 @@ func TestExpireInviteEndpoint(t *testing.T) {
 		t.Fatalf("unexpected expire status: got %d want %d", expireRec.Code, http.StatusOK)
 	}
 }
+
+func TestCancelInviteEndpoint(t *testing.T) {
+	t.Parallel()
+
+	h := NewHTTPHandler(service.NewInviteService(nil))
+
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/invites", bytes.NewBufferString(`{"domain":"party","resource_id":"party-1","from_player_id":"p1","to_player_id":"p2","ttl_seconds":60}`))
+	createRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(createRec, createReq)
+	if createRec.Code != http.StatusOK {
+		t.Fatalf("unexpected create status: got %d want %d", createRec.Code, http.StatusOK)
+	}
+
+	var created map[string]any
+	if err := json.Unmarshal(createRec.Body.Bytes(), &created); err != nil {
+		t.Fatalf("unmarshal create response: %v", err)
+	}
+
+	inviteID, _ := created["id"].(string)
+	cancelReq := httptest.NewRequest(http.MethodPost, "/v1/invites/"+inviteID+"/cancel", bytes.NewBufferString(`{"actor_player_id":"p1"}`))
+	cancelRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(cancelRec, cancelReq)
+	if cancelRec.Code != http.StatusOK {
+		t.Fatalf("unexpected cancel status: got %d want %d", cancelRec.Code, http.StatusOK)
+	}
+}

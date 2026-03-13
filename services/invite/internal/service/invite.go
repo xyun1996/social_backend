@@ -18,9 +18,11 @@ const (
 	inviteStatusAccepted = "accepted"
 	inviteStatusDeclined = "declined"
 	inviteStatusExpired  = "expired"
+	inviteStatusCanceled = "canceled"
 
 	inviteActionAccept  = "accept"
 	inviteActionDecline = "decline"
+	inviteActionCancel  = "cancel"
 
 	defaultInviteTTL = 15 * time.Minute
 	expireJobType    = "invite.expire"
@@ -262,6 +264,45 @@ func (s *InviteService) RespondInvite(inviteID string, actorPlayerID string, act
 		invite.Status = inviteStatusDeclined
 	}
 
+	if err := s.invites.SaveInvite(invite); err != nil {
+		internal := apperrors.Internal()
+		return domain.Invite{}, &internal
+	}
+	return invite, nil
+}
+
+// CancelInvite cancels a pending invite at the direction of the sender.
+func (s *InviteService) CancelInvite(inviteID string, actorPlayerID string) (domain.Invite, *apperrors.Error) {
+	if inviteID == "" || actorPlayerID == "" {
+		err := apperrors.New("invalid_request", "invite_id and actor_player_id are required", http.StatusBadRequest)
+		return domain.Invite{}, &err
+	}
+
+	invite, ok, err := s.invites.GetInvite(inviteID)
+	if !ok {
+		err := apperrors.New("not_found", "invite not found", http.StatusNotFound)
+		return domain.Invite{}, &err
+	}
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Invite{}, &internal
+	}
+	if invite.FromPlayerID != actorPlayerID {
+		err := apperrors.New("forbidden", "only the invite sender can cancel", http.StatusForbidden)
+		return domain.Invite{}, &err
+	}
+
+	switch invite.Status {
+	case inviteStatusAccepted, inviteStatusDeclined, inviteStatusExpired:
+		err := apperrors.New("invite_not_pending", "only pending invites can be canceled", http.StatusConflict)
+		return invite, &err
+	case inviteStatusCanceled:
+		return invite, nil
+	}
+
+	invite.Status = inviteStatusCanceled
+	now := s.now()
+	invite.RespondedAt = &now
 	if err := s.invites.SaveInvite(invite); err != nil {
 		internal := apperrors.Internal()
 		return domain.Invite{}, &internal

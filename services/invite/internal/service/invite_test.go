@@ -223,3 +223,21 @@ func TestInviteServiceUsesInjectedStore(t *testing.T) {
 		t.Fatalf("unexpected stored invite status: %+v", stored)
 	}
 }
+
+func TestCancelInviteBySender(t *testing.T) {
+	t.Parallel()
+
+	svc := NewInviteService(nil)
+	invite, err := svc.CreateInvite("party", "party-1", "p1", "p2", time.Minute)
+	if err != nil {
+		t.Fatalf("create invite returned error: %+v", err)
+	}
+
+	canceled, cancelErr := svc.CancelInvite(invite.ID, "p1")
+	if cancelErr != nil {
+		t.Fatalf("cancel invite returned error: %+v", cancelErr)
+	}
+	if canceled.Status != inviteStatusCanceled {
+		t.Fatalf("unexpected canceled status: %q", canceled.Status)
+	}
+}

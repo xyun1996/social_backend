@@ -40,6 +40,7 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("GET /v1/invites/{inviteID}", h.handleGetInvite)
 	mux.HandleFunc("POST /v1/invites/{inviteID}/accept", h.handleAcceptInvite)
 	mux.HandleFunc("POST /v1/invites/{inviteID}/decline", h.handleDeclineInvite)
+	mux.HandleFunc("POST /v1/invites/{inviteID}/cancel", h.handleCancelInvite)
 	mux.HandleFunc("GET /v1/invites", h.handleListInvites)
 	mux.HandleFunc("POST /v1/internal/invites/{inviteID}/expire", h.handleExpireInvite)
 	return mux
@@ -100,6 +101,22 @@ func (h *HTTPHandler) handleAcceptInvite(w http.ResponseWriter, r *http.Request)
 
 func (h *HTTPHandler) handleDeclineInvite(w http.ResponseWriter, r *http.Request) {
 	h.handleRespondInvite(w, r, "decline")
+}
+
+func (h *HTTPHandler) handleCancelInvite(w http.ResponseWriter, r *http.Request) {
+	var request respondInviteRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	result, appErr := h.invites.CancelInvite(r.PathValue("inviteID"), request.ActorPlayerID)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, result)
 }
 
 func (h *HTTPHandler) handleRespondInvite(w http.ResponseWriter, r *http.Request, action string) {
