@@ -67,6 +67,7 @@ Shared local infrastructure defaults live in `configs/examples/local-infra.env.e
 Chat also depends on `presence` for delivery planning in local runs.
 Party also depends on `presence` for runtime-ready checks in local runs.
 Guild also depends on `presence` for member runtime views in local runs.
+Ops depends on `presence`, `party`, and `guild` for operator read aggregation in local runs.
 
 - `make run-identity`
 - `make run-gateway`
@@ -76,6 +77,7 @@ Guild also depends on `presence` for member runtime views in local runs.
 - `make run-party`
 - `make run-guild`
 - `make run-presence`
+- `make run-ops`
 
 Starter service defaults:
 
@@ -87,6 +89,7 @@ Starter service defaults:
 - `party` listens on `:8085`
 - `guild` listens on `:8086`
 - `presence` listens on `:8087`
+- `ops` listens on `:8088`
 
 Local infrastructure defaults:
 

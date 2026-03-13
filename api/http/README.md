@@ -18,3 +18,4 @@ This directory is the source of truth for the current control-plane HTTP contrac
 - [party](party.md): create, invite, join, ready
 - [guild](guild.md): create, invite, join
 - [presence](presence.md): connect, heartbeat, disconnect, lookup
+- [ops](ops.md): operator-facing read snapshots

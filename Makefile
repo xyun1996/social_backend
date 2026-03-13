@@ -1,4 +1,4 @@
-.PHONY: help bootstrap test proto lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence
+.PHONY: help bootstrap test proto lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops
 
 help:
 	@echo "Available targets:"
@@ -16,6 +16,7 @@ help:
 	@echo "  run-party    - start the party starter service"
 	@echo "  run-guild    - start the guild starter service"
 	@echo "  run-presence - start the presence starter service"
+	@echo "  run-ops      - start the ops starter service"
 
 bootstrap:
 	@echo "Repository scaffold is in place."
@@ -62,3 +63,6 @@ run-guild:
 
 run-presence:
 	go run ./services/presence/cmd/presence
+
+run-ops:
+	go run ./services/ops/cmd/ops
