@@ -129,3 +129,44 @@ func TestGuildServiceWithInjectedStore(t *testing.T) {
 		t.Fatalf("unexpected stored guild: %+v", stored)
 	}
 }
+
+func TestTransferOwnershipAndKickMember(t *testing.T) {
+	t.Parallel()
+
+	invites := &fakeInviteClient{
+		get: Invite{
+			ID:         "inv-1",
+			Domain:     inviteDomainGuild,
+			ResourceID: "guild-1",
+			ToPlayerID: "p2",
+			Status:     "accepted",
+		},
+	}
+
+	svc := NewGuildService(invites, nil)
+	svc.newGuildID = func() (string, error) { return "guild-1", nil }
+
+	guild, err := svc.CreateGuild("Guild", "p1")
+	if err != nil {
+		t.Fatalf("create guild returned error: %+v", err)
+	}
+	if _, joinErr := svc.JoinWithInvite(context.Background(), guild.ID, "inv-1", "p2"); joinErr != nil {
+		t.Fatalf("join returned error: %+v", joinErr)
+	}
+
+	transferred, transferErr := svc.TransferOwnership(guild.ID, "p1", "p2")
+	if transferErr != nil {
+		t.Fatalf("transfer ownership returned error: %+v", transferErr)
+	}
+	if transferred.OwnerID != "p2" {
+		t.Fatalf("unexpected owner after transfer: %+v", transferred)
+	}
+
+	kicked, kickErr := svc.KickMember(guild.ID, "p2", "p1")
+	if kickErr != nil {
+		t.Fatalf("kick member returned error: %+v", kickErr)
+	}
+	if len(kicked.Members) != 1 || kicked.Members[0].PlayerID != "p2" || kicked.Members[0].Role != roleOwner {
+		t.Fatalf("unexpected guild after kick: %+v", kicked)
+	}
+}

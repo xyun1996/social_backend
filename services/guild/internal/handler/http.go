@@ -34,6 +34,11 @@ type joinGuildRequest struct {
 	ActorPlayerID string `json:"actor_player_id"`
 }
 
+type guildMemberActionRequest struct {
+	ActorPlayerID  string `json:"actor_player_id"`
+	TargetPlayerID string `json:"target_player_id"`
+}
+
 // Routes returns the guild HTTP routes.
 func (h *HTTPHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
@@ -43,6 +48,8 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("GET /v1/guilds/{guildID}/members", h.handleListMembers)
 	mux.HandleFunc("POST /v1/guilds/{guildID}/invites", h.handleCreateInvite)
 	mux.HandleFunc("POST /v1/guilds/{guildID}/join", h.handleJoinGuild)
+	mux.HandleFunc("POST /v1/guilds/{guildID}/kick", h.handleKickMember)
+	mux.HandleFunc("POST /v1/guilds/{guildID}/transfer-owner", h.handleTransferOwner)
 	return mux
 }
 
@@ -117,6 +124,38 @@ func (h *HTTPHandler) handleJoinGuild(w http.ResponseWriter, r *http.Request) {
 	}
 
 	guild, appErr := h.guilds.JoinWithInvite(r.Context(), r.PathValue("guildID"), request.InviteID, request.ActorPlayerID)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, guild)
+}
+
+func (h *HTTPHandler) handleKickMember(w http.ResponseWriter, r *http.Request) {
+	var request guildMemberActionRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	guild, appErr := h.guilds.KickMember(r.PathValue("guildID"), request.ActorPlayerID, request.TargetPlayerID)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, guild)
+}
+
+func (h *HTTPHandler) handleTransferOwner(w http.ResponseWriter, r *http.Request) {
+	var request guildMemberActionRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	guild, appErr := h.guilds.TransferOwnership(r.PathValue("guildID"), request.ActorPlayerID, request.TargetPlayerID)
 	if appErr != nil {
 		transport.WriteError(w, *appErr)
 		return

@@ -282,6 +282,84 @@ func (s *GuildService) JoinWithInvite(ctx context.Context, guildID string, invit
 	return guild, nil
 }
 
+// KickMember removes a non-owner member at the direction of the guild owner.
+func (s *GuildService) KickMember(guildID string, actorPlayerID string, targetPlayerID string) (domain.Guild, *apperrors.Error) {
+	if guildID == "" || actorPlayerID == "" || targetPlayerID == "" {
+		err := apperrors.New("invalid_request", "guild_id, actor_player_id, and target_player_id are required", http.StatusBadRequest)
+		return domain.Guild{}, &err
+	}
+
+	guild, ok, err := s.guilds.GetGuild(guildID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Guild{}, &internal
+	}
+	if !ok {
+		err := apperrors.New("not_found", "guild not found", http.StatusNotFound)
+		return domain.Guild{}, &err
+	}
+	if guild.OwnerID != actorPlayerID {
+		err := apperrors.New("forbidden", "only the guild owner can kick members", http.StatusForbidden)
+		return domain.Guild{}, &err
+	}
+	if targetPlayerID == guild.OwnerID {
+		err := apperrors.New("invalid_request", "guild owner cannot kick themselves", http.StatusBadRequest)
+		return domain.Guild{}, &err
+	}
+	if !hasMember(guild.Members, targetPlayerID) {
+		err := apperrors.New("not_found", "target member not found", http.StatusNotFound)
+		return domain.Guild{}, &err
+	}
+
+	guild.Members = deleteGuildMember(guild.Members, targetPlayerID)
+	if err := s.guilds.SaveGuild(guild); err != nil {
+		internal := apperrors.Internal()
+		return domain.Guild{}, &internal
+	}
+	return guild, nil
+}
+
+// TransferOwnership transfers guild ownership to another current member.
+func (s *GuildService) TransferOwnership(guildID string, actorPlayerID string, targetPlayerID string) (domain.Guild, *apperrors.Error) {
+	if guildID == "" || actorPlayerID == "" || targetPlayerID == "" {
+		err := apperrors.New("invalid_request", "guild_id, actor_player_id, and target_player_id are required", http.StatusBadRequest)
+		return domain.Guild{}, &err
+	}
+
+	guild, ok, err := s.guilds.GetGuild(guildID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Guild{}, &internal
+	}
+	if !ok {
+		err := apperrors.New("not_found", "guild not found", http.StatusNotFound)
+		return domain.Guild{}, &err
+	}
+	if guild.OwnerID != actorPlayerID {
+		err := apperrors.New("forbidden", "only the guild owner can transfer ownership", http.StatusForbidden)
+		return domain.Guild{}, &err
+	}
+	if !hasMember(guild.Members, targetPlayerID) {
+		err := apperrors.New("not_found", "target member not found", http.StatusNotFound)
+		return domain.Guild{}, &err
+	}
+
+	for i := range guild.Members {
+		switch guild.Members[i].PlayerID {
+		case actorPlayerID:
+			guild.Members[i].Role = roleMember
+		case targetPlayerID:
+			guild.Members[i].Role = roleOwner
+		}
+	}
+	guild.OwnerID = targetPlayerID
+	if err := s.guilds.SaveGuild(guild); err != nil {
+		internal := apperrors.Internal()
+		return domain.Guild{}, &internal
+	}
+	return guild, nil
+}
+
 func hasMember(members []domain.GuildMember, playerID string) bool {
 	for _, member := range members {
 		if member.PlayerID == playerID {
@@ -290,6 +368,17 @@ func hasMember(members []domain.GuildMember, playerID string) bool {
 	}
 
 	return false
+}
+
+func deleteGuildMember(members []domain.GuildMember, playerID string) []domain.GuildMember {
+	filtered := members[:0]
+	for _, member := range members {
+		if member.PlayerID == playerID {
+			continue
+		}
+		filtered = append(filtered, member)
+	}
+	return filtered
 }
 
 func (s *GuildService) String() string {

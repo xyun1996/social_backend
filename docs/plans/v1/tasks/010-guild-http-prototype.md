@@ -1,7 +1,7 @@
 # 010 Guild HTTP Prototype
 
 - Title: Add an in-memory guild prototype wired to the shared invite service
-- Status: `in-progress`
+- Status: `done`
 - Version: `v1`
 - Milestone: `05 Guild`
 
@@ -45,3 +45,8 @@ Add a local in-memory `guild` service prototype that exercises guild creation, o
 
 - [Current plan](../../current.md)
 - [Bounded contexts](../../../architecture/bounded-contexts.md)
+
+## Completion Notes
+
+- `guild` now supports create, invite, join, member-state reads, and presence-aware member views
+- durable flow coverage verifies invite-backed join and member reads through the shared invite boundary
