@@ -44,10 +44,15 @@ func (s *stubPresenceReporter) Disconnect(_ context.Context, update gatewayservi
 
 type stubChatPlanner struct {
 	targets             []gatewayservice.ChatDeliveryTarget
+	messages            []gatewayservice.ChatReplayMessage
 	err                 *apperrors.Error
 	ackedConversationID string
 	ackedPlayerID       string
 	ackedSeq            int64
+	replayedPlayerID    string
+	replayedAfterSeq    int64
+	replayedLimit       int
+	replayedConvID      string
 }
 
 func (s stubChatPlanner) PlanDelivery(context.Context, string, string) ([]gatewayservice.ChatDeliveryTarget, *apperrors.Error) {
@@ -59,6 +64,14 @@ func (s *stubChatPlanner) AckConversation(_ context.Context, conversationID stri
 	s.ackedPlayerID = playerID
 	s.ackedSeq = ackSeq
 	return s.err
+}
+
+func (s *stubChatPlanner) ReplayMessages(_ context.Context, conversationID string, playerID string, afterSeq int64, limit int) ([]gatewayservice.ChatReplayMessage, *apperrors.Error) {
+	s.replayedConvID = conversationID
+	s.replayedPlayerID = playerID
+	s.replayedAfterSeq = afterSeq
+	s.replayedLimit = limit
+	return s.messages, s.err
 }
 
 func TestSessionMeRequiresBearerToken(t *testing.T) {
@@ -248,5 +261,43 @@ func TestRealtimeChatAckUsesSessionPlayerIdentity(t *testing.T) {
 	}
 	if planner.ackedConversationID != "conv-1" || planner.ackedPlayerID != "p2" || planner.ackedSeq != 3 {
 		t.Fatalf("unexpected ack forwarding: %+v", planner)
+	}
+}
+
+func TestRealtimeChatReplayUsesSessionPlayerIdentity(t *testing.T) {
+	t.Parallel()
+
+	reporter := &stubPresenceReporter{
+		snapshot: gatewayservice.PresenceSnapshot{
+			PlayerID:        "p2",
+			Status:          "online",
+			SessionID:       "sess-2",
+			LastHeartbeatAt: "2026-03-13T10:00:00Z",
+		},
+	}
+	planner := &stubChatPlanner{
+		messages: []gatewayservice.ChatReplayMessage{
+			{ID: "msg-2", ConversationID: "conv-1", Seq: 2, SenderPlayerID: "p1", Body: "world"},
+		},
+	}
+	h := NewHTTPHandler(stubIntrospector{
+		subject: gatewayservice.Subject{AccountID: "a2", PlayerID: "p2"},
+	}, reporter, planner)
+
+	handshakeReq := httptest.NewRequest(http.MethodPost, "/v1/realtime/handshake", bytes.NewBufferString(`{"access_token":"token-2","session_id":"sess-2"}`))
+	handshakeRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(handshakeRec, handshakeReq)
+	if handshakeRec.Code != http.StatusOK {
+		t.Fatalf("unexpected handshake status: got %d want %d", handshakeRec.Code, http.StatusOK)
+	}
+
+	replayReq := httptest.NewRequest(http.MethodGet, "/v1/realtime/sessions/sess-2/replay?conversation_id=conv-1&after_seq=1&limit=20", nil)
+	replayRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(replayRec, replayReq)
+	if replayRec.Code != http.StatusOK {
+		t.Fatalf("unexpected replay status: got %d want %d", replayRec.Code, http.StatusOK)
+	}
+	if planner.replayedConvID != "conv-1" || planner.replayedPlayerID != "p2" || planner.replayedAfterSeq != 1 || planner.replayedLimit != 20 {
+		t.Fatalf("unexpected replay forwarding: %+v", planner)
 	}
 }

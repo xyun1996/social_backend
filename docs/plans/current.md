@@ -83,6 +83,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/035-redis-presence-repo-foundation.md](v1/tasks/035-redis-presence-repo-foundation.md)
 - [docs/plans/v1/tasks/036-worker-background-runner.md](v1/tasks/036-worker-background-runner.md)
 - [docs/plans/v1/tasks/037-gateway-chat-ack-prototype.md](v1/tasks/037-gateway-chat-ack-prototype.md)
+- [docs/plans/v1/tasks/038-chat-replay-resume-alignment.md](v1/tasks/038-chat-replay-resume-alignment.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)

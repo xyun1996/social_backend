@@ -32,6 +32,7 @@ type ChatPlanner interface {
 type ChatRuntime interface {
 	ChatPlanner
 	ChatAcker
+	ChatReplayer
 }
 
 // ChatMessageEnvelope is the gateway-owned realtime event shape for chat delivery.

@@ -171,3 +171,23 @@ Authorization: Bearer <access_token>
 - Response `200`
 - Rules
 - Gateway resolves the `player_id` from the active session before forwarding the ack to chat
+
+## Realtime Chat Replay Prototype
+
+- `GET /v1/realtime/sessions/{sessionID}/replay?conversation_id=conv-1&after_seq=3&limit=50`
+- Response `200`
+
+```json
+{
+  "session_id": "sess-2",
+  "conversation_id": "conv-1",
+  "player_id": "p2",
+  "after_seq": 3,
+  "count": 1,
+  "messages": []
+}
+```
+
+- Rules
+- Gateway resolves the `player_id` from the active session before requesting replay from chat
+- Replay remains chat-owned; gateway only scopes and forwards the request

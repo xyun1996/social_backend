@@ -102,6 +102,50 @@ func (c *HTTPClient) AckConversation(ctx context.Context, conversationID string,
 	return nil
 }
 
+// ReplayMessages fetches conversation replay data from the chat HTTP API.
+func (c *HTTPClient) ReplayMessages(ctx context.Context, conversationID string, playerID string, afterSeq int64, limit int) ([]gatewayservice.ChatReplayMessage, *apperrors.Error) {
+	endpoint := fmt.Sprintf(
+		"%s/v1/conversations/%s/messages?player_id=%s&after_seq=%d&limit=%d",
+		c.baseURL,
+		url.PathEscape(conversationID),
+		url.QueryEscape(playerID),
+		afterSeq,
+		limit,
+	)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		badGateway := apperrors.New("chat_unavailable", "chat service is unavailable", http.StatusBadGateway)
+		return nil, &badGateway
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var appErr apperrors.Error
+		if decodeErr := json.NewDecoder(resp.Body).Decode(&appErr); decodeErr != nil {
+			badGateway := apperrors.New("chat_invalid_response", "chat service returned an invalid response", http.StatusBadGateway)
+			return nil, &badGateway
+		}
+		appErr.Status = resp.StatusCode
+		return nil, &appErr
+	}
+
+	var payload struct {
+		Messages []gatewayservice.ChatReplayMessage `json:"messages"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		badGateway := apperrors.New("chat_invalid_response", "chat service returned an invalid response", http.StatusBadGateway)
+		return nil, &badGateway
+	}
+
+	return payload.Messages, nil
+}
+
 func (c *HTTPClient) String() string {
 	return fmt.Sprintf("chat-http-client(%s)", c.baseURL)
 }

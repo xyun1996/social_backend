@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 
 	apperrors "github.com/xyun1996/social_backend/pkg/errors"
@@ -17,6 +18,7 @@ type HTTPHandler struct {
 	realtime     *gatewayservice.RealtimeService
 	delivery     *gatewayservice.DeliveryService
 	acks         *gatewayservice.AckService
+	replay       *gatewayservice.ReplayService
 }
 
 // NewHTTPHandler constructs a gateway HTTP handler.
@@ -28,6 +30,7 @@ func NewHTTPHandler(introspector gatewayservice.Introspector, reporter gatewayse
 		realtime:     realtime,
 		delivery:     gatewayservice.NewDeliveryService(realtime, chat),
 		acks:         gatewayservice.NewAckService(realtime, chat),
+		replay:       gatewayservice.NewReplayService(realtime, chat),
 	}
 }
 
@@ -81,6 +84,7 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("GET /v1/realtime/sessions/{sessionID}/events", h.handleRealtimeGetSessionEvents)
 	mux.HandleFunc("POST /v1/realtime/chat/deliveries", h.handleRealtimeChatDelivery)
 	mux.HandleFunc("POST /v1/realtime/sessions/{sessionID}/acks", h.handleRealtimeChatAck)
+	mux.HandleFunc("GET /v1/realtime/sessions/{sessionID}/replay", h.handleRealtimeChatReplay)
 	return mux
 }
 
@@ -248,6 +252,33 @@ func (h *HTTPHandler) handleRealtimeChatAck(w http.ResponseWriter, r *http.Reque
 	})
 }
 
+func (h *HTTPHandler) handleRealtimeChatReplay(w http.ResponseWriter, r *http.Request) {
+	afterSeq, err := parseInt64Query(r, "after_seq")
+	if err != nil {
+		transport.WriteError(w, invalidQueryError("after_seq must be an integer"))
+		return
+	}
+
+	limit, err := parseIntQuery(r, "limit")
+	if err != nil {
+		transport.WriteError(w, invalidQueryError("limit must be an integer"))
+		return
+	}
+
+	result, appErr := h.replay.ReplayConversation(r.Context(), gatewayservice.ReplayRequest{
+		SessionID:      r.PathValue("sessionID"),
+		ConversationID: r.URL.Query().Get("conversation_id"),
+		AfterSeq:       afterSeq,
+		Limit:          limit,
+	})
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, result)
+}
+
 func (h *HTTPHandler) handlePresenceUpdate(w http.ResponseWriter, r *http.Request, action string) {
 	token, appErr := bearerToken(r.Header.Get("Authorization"))
 	if appErr != nil {
@@ -313,4 +344,26 @@ func bearerToken(header string) (string, *apperrors.Error) {
 
 func invalidJSONError() apperrors.Error {
 	return apperrors.New("invalid_json", "request body must be valid json", http.StatusBadRequest)
+}
+
+func invalidQueryError(message string) apperrors.Error {
+	return apperrors.New("invalid_query", message, http.StatusBadRequest)
+}
+
+func parseInt64Query(r *http.Request, key string) (int64, error) {
+	raw := r.URL.Query().Get(key)
+	if raw == "" {
+		return 0, nil
+	}
+
+	return strconv.ParseInt(raw, 10, 64)
+}
+
+func parseIntQuery(r *http.Request, key string) (int, error) {
+	raw := r.URL.Query().Get(key)
+	if raw == "" {
+		return 0, nil
+	}
+
+	return strconv.Atoi(raw)
 }
