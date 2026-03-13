@@ -103,3 +103,8 @@ Base purpose: async job queue inspection and lifecycle transitions for prototype
 ```
 
 - Response `200`: execution summary across processed jobs
+
+## Background Runner
+
+- Process-level option controlled by `WORKER_AUTO_RUN=true`
+- `WORKER_AUTO_RUN_INTERVAL_MS` controls the drain loop interval

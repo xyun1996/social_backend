@@ -26,6 +26,14 @@ type ExecutionResult struct {
 	LastJob   *domain.Job `json:"last_job,omitempty"`
 }
 
+// BackgroundRunConfig controls the optional worker background drain loop.
+type BackgroundRunConfig struct {
+	WorkerID string
+	Type     string
+	Limit    int
+	Interval time.Duration
+}
+
 const (
 	jobQueued    = "queued"
 	jobClaimed   = "claimed"
@@ -257,6 +265,35 @@ func (s *WorkerService) ExecuteUntilEmpty(ctx context.Context, workerID string, 
 	}
 
 	return result, nil
+}
+
+// RunBackground drains jobs on a ticker until the context is cancelled.
+func (s *WorkerService) RunBackground(ctx context.Context, cfg BackgroundRunConfig) *apperrors.Error {
+	if cfg.WorkerID == "" {
+		err := apperrors.New("invalid_request", "worker_id is required", http.StatusBadRequest)
+		return &err
+	}
+	if cfg.Interval <= 0 {
+		cfg.Interval = 250 * time.Millisecond
+	}
+	if cfg.Limit <= 0 {
+		cfg.Limit = 100
+	}
+
+	ticker := time.NewTicker(cfg.Interval)
+	defer ticker.Stop()
+
+	for {
+		if _, appErr := s.ExecuteUntilEmpty(ctx, cfg.WorkerID, cfg.Type, cfg.Limit); appErr != nil {
+			return appErr
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+		}
+	}
 }
 
 func (s *WorkerService) transition(jobID string, workerID string, targetStatus string, lastError string) (domain.Job, *apperrors.Error) {

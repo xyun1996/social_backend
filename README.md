@@ -75,6 +75,7 @@ Ops also depends on `worker` for queue visibility in local runs.
 Ops also depends on `social` for player overview aggregation in local runs.
 Invite can optionally depend on `worker` for async expiry job intent in local runs.
 Worker can depend on `invite` and `chat` for executable async job handling in local runs.
+Worker also supports an optional background drain loop via `WORKER_AUTO_RUN=true`.
 `pkg/db` now includes a shared MySQL foundation, and `identity` has the first service-local repo/mysql skeleton.
 `pkg/db` now also includes a shared Redis foundation, and `presence` has the first service-local repo/redis skeleton.
 

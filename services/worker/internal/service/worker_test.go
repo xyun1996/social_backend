@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"testing"
+	"time"
 
 	apperrors "github.com/xyun1996/social_backend/pkg/errors"
 	"github.com/xyun1996/social_backend/services/worker/internal/domain"
@@ -108,5 +109,39 @@ func TestExecuteNextFailsHandlerError(t *testing.T) {
 	}
 	if result.Failed != 1 || result.LastJob == nil || result.LastJob.Status != jobFailed {
 		t.Fatalf("unexpected execution result: %+v", result)
+	}
+}
+
+func TestRunBackgroundProcessesQueuedJobs(t *testing.T) {
+	t.Parallel()
+
+	svc := NewWorkerService()
+	done := make(chan struct{}, 1)
+	svc.RegisterHandler("invite.expire", func(context.Context, domain.Job) *apperrors.Error {
+		select {
+		case done <- struct{}{}:
+		default:
+		}
+		return nil
+	})
+
+	if _, err := svc.Enqueue("invite.expire", `{}`); err != nil {
+		t.Fatalf("enqueue returned error: %+v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		_ = svc.RunBackground(ctx, BackgroundRunConfig{
+			WorkerID: "worker-a",
+			Type:     "invite.expire",
+			Interval: 10 * time.Millisecond,
+		})
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(500 * time.Millisecond):
+		t.Fatalf("background runner did not process queued job in time")
 	}
 }

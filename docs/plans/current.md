@@ -81,6 +81,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/033-social-request-reads-and-ops-expansion.md](v1/tasks/033-social-request-reads-and-ops-expansion.md)
 - [docs/plans/v1/tasks/034-mysql-repo-foundation.md](v1/tasks/034-mysql-repo-foundation.md)
 - [docs/plans/v1/tasks/035-redis-presence-repo-foundation.md](v1/tasks/035-redis-presence-repo-foundation.md)
+- [docs/plans/v1/tasks/036-worker-background-runner.md](v1/tasks/036-worker-background-runner.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)

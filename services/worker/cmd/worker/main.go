@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/xyun1996/social_backend/pkg/app"
 	"github.com/xyun1996/social_backend/pkg/config"
@@ -29,6 +31,18 @@ func main() {
 		worker.RegisterHandler("chat.offline_delivery", chatJobs.Handle)
 	}
 
+	backgroundEnabled := os.Getenv("WORKER_AUTO_RUN") == "true"
+	if backgroundEnabled {
+		interval := intervalFromEnv(os.Getenv("WORKER_AUTO_RUN_INTERVAL_MS"), 250*time.Millisecond)
+		go func() {
+			_ = worker.RunBackground(context.Background(), service.BackgroundRunConfig{
+				WorkerID: "worker-bg",
+				Interval: interval,
+				Limit:    100,
+			})
+		}()
+	}
+
 	mux := handler.NewHTTPHandler(worker).Routes()
 
 	service := app.NewHTTPService(cfg.Name, cfg.Addr, logger, mux)
@@ -36,4 +50,15 @@ func main() {
 		logger.Error("service exited with error", "error", err)
 		panic(err)
 	}
+}
+
+func intervalFromEnv(raw string, fallback time.Duration) time.Duration {
+	if raw == "" {
+		return fallback
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil || value <= 0 {
+		return fallback
+	}
+	return time.Duration(value) * time.Millisecond
 }
