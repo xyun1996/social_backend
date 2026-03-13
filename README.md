@@ -79,6 +79,7 @@ Worker also supports an optional background drain loop via `WORKER_AUTO_RUN=true
 `pkg/db` now includes a shared MySQL foundation, and `identity` can optionally run with a MySQL-backed store via `IDENTITY_STORE=mysql`; `IDENTITY_AUTO_MIGRATE=true` applies the owned schema at startup.
 `invite` and `chat` now also have service-local MySQL repo foundations with explicit schema ownership, ready for later durable-path integration.
 `chat` and `invite` can now optionally start with MySQL-backed stores via `CHAT_STORE=mysql` / `INVITE_STORE=mysql`; `*_AUTO_MIGRATE=true` applies owned schema on startup.
+`social` can now also optionally start with a MySQL-backed store via `SOCIAL_STORE=mysql`; `SOCIAL_AUTO_MIGRATE=true` applies owned schema on startup.
 `social` now has a service-local MySQL repo foundation, and `worker` now has a service-local Redis repo foundation for future queue claim and backlog state.
 `pkg/db` now also includes a shared Redis foundation, and `presence` can optionally run with a Redis-backed store via `PRESENCE_STORE=redis`; startup now pings Redis before serving traffic.
 

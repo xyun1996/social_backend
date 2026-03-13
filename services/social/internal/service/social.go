@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"slices"
-	"sync"
 	"time"
 
 	apperrors "github.com/xyun1996/social_backend/pkg/errors"
@@ -18,20 +17,28 @@ const (
 
 // SocialService provides an in-memory prototype of friendship and blocklist flows.
 type SocialService struct {
-	mu           sync.RWMutex
-	requests     map[string]domain.FriendRequest
-	friendships  map[string]map[string]struct{}
-	blocks       map[string]map[string]domain.BlockRelationship
+	requests     FriendRequestStore
+	friendships  FriendshipStore
+	blocks       BlockStore
 	now          func() time.Time
 	newRequestID func() (string, error)
 }
 
 // NewSocialService constructs an in-memory social graph service.
 func NewSocialService() *SocialService {
+	return NewSocialServiceWithStores(
+		newMemoryFriendRequestStore(),
+		newMemoryFriendshipStore(),
+		newMemoryBlockStore(),
+	)
+}
+
+// NewSocialServiceWithStores constructs the service with injected persistence boundaries.
+func NewSocialServiceWithStores(requests FriendRequestStore, friendships FriendshipStore, blocks BlockStore) *SocialService {
 	return &SocialService{
-		requests:    make(map[string]domain.FriendRequest),
-		friendships: make(map[string]map[string]struct{}),
-		blocks:      make(map[string]map[string]domain.BlockRelationship),
+		requests:    requests,
+		friendships: friendships,
+		blocks:      blocks,
 		now:         time.Now,
 		newRequestID: func() (string, error) {
 			return idgen.Token(8)
@@ -51,20 +58,22 @@ func (s *SocialService) SendFriendRequest(fromPlayerID string, toPlayerID string
 		return domain.FriendRequest{}, &err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.isBlockedLocked(fromPlayerID, toPlayerID) || s.isBlockedLocked(toPlayerID, fromPlayerID) {
+	if s.isBlocked(fromPlayerID, toPlayerID) || s.isBlocked(toPlayerID, fromPlayerID) {
 		err := apperrors.New("blocked", "friend request is blocked by relationship settings", 403)
 		return domain.FriendRequest{}, &err
 	}
 
-	if s.isFriendLocked(fromPlayerID, toPlayerID) {
+	if s.isFriend(fromPlayerID, toPlayerID) {
 		err := apperrors.New("already_friends", "players are already friends", 409)
 		return domain.FriendRequest{}, &err
 	}
 
-	for _, request := range s.requests {
+	requests, err := s.requests.ListFriendRequests()
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.FriendRequest{}, &internal
+	}
+	for _, request := range requests {
 		if request.FromPlayerID == fromPlayerID && request.ToPlayerID == toPlayerID && request.Status == friendRequestPending {
 			return request, nil
 		}
@@ -84,7 +93,10 @@ func (s *SocialService) SendFriendRequest(fromPlayerID string, toPlayerID string
 		CreatedAt:    s.now(),
 	}
 
-	s.requests[request.ID] = request
+	if err := s.requests.SaveFriendRequest(request); err != nil {
+		internal := apperrors.Internal()
+		return domain.FriendRequest{}, &internal
+	}
 	return request, nil
 }
 
@@ -95,10 +107,11 @@ func (s *SocialService) AcceptFriendRequest(requestID string, actorPlayerID stri
 		return domain.FriendRequest{}, &err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	request, ok := s.requests[requestID]
+	request, ok, err := s.requests.GetFriendRequest(requestID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.FriendRequest{}, &internal
+	}
 	if !ok {
 		err := apperrors.New("not_found", "friend request not found", 404)
 		return domain.FriendRequest{}, &err
@@ -114,9 +127,24 @@ func (s *SocialService) AcceptFriendRequest(requestID string, actorPlayerID stri
 	}
 
 	request.Status = friendRequestAccepted
-	s.requests[requestID] = request
-	s.addFriendLocked(request.FromPlayerID, request.ToPlayerID)
-	s.addFriendLocked(request.ToPlayerID, request.FromPlayerID)
+	if err := s.requests.SaveFriendRequest(request); err != nil {
+		internal := apperrors.Internal()
+		return domain.FriendRequest{}, &internal
+	}
+	if err := s.friendships.SaveFriendship(domain.FriendRelationship{
+		PlayerID: request.FromPlayerID,
+		FriendID: request.ToPlayerID,
+	}); err != nil {
+		internal := apperrors.Internal()
+		return domain.FriendRequest{}, &internal
+	}
+	if err := s.friendships.SaveFriendship(domain.FriendRelationship{
+		PlayerID: request.ToPlayerID,
+		FriendID: request.FromPlayerID,
+	}); err != nil {
+		internal := apperrors.Internal()
+		return domain.FriendRequest{}, &internal
+	}
 	return request, nil
 }
 
@@ -134,21 +162,24 @@ func (s *SocialService) ListFriendRequests(playerID string, role string, status 
 		return nil, &err
 	}
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	requests, err := s.requests.ListFriendRequests()
+	if err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
+	}
 
-	requests := make([]domain.FriendRequest, 0)
-	for _, request := range s.requests {
+	filtered := make([]domain.FriendRequest, 0)
+	for _, request := range requests {
 		if !matchesRequestRole(request, playerID, role) {
 			continue
 		}
 		if status != "" && request.Status != status {
 			continue
 		}
-		requests = append(requests, request)
+		filtered = append(filtered, request)
 	}
 
-	slices.SortFunc(requests, func(a domain.FriendRequest, b domain.FriendRequest) int {
+	slices.SortFunc(filtered, func(a domain.FriendRequest, b domain.FriendRequest) int {
 		if !a.CreatedAt.Equal(b.CreatedAt) {
 			if a.CreatedAt.Before(b.CreatedAt) {
 				return -1
@@ -165,7 +196,7 @@ func (s *SocialService) ListFriendRequests(playerID string, role string, status 
 		}
 	})
 
-	return requests, nil
+	return filtered, nil
 }
 
 // ListFriends returns a stable friend list for a player.
@@ -175,14 +206,11 @@ func (s *SocialService) ListFriends(playerID string) ([]string, *apperrors.Error
 		return nil, &err
 	}
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	friends := make([]string, 0, len(s.friendships[playerID]))
-	for friendID := range s.friendships[playerID] {
-		friends = append(friends, friendID)
+	friends, err := s.friendships.ListFriends(playerID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
 	}
-	slices.Sort(friends)
 	return friends, nil
 }
 
@@ -198,20 +226,16 @@ func (s *SocialService) BlockPlayer(playerID string, blockedID string) (domain.B
 		return domain.BlockRelationship{}, &err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.blocks[playerID] == nil {
-		s.blocks[playerID] = make(map[string]domain.BlockRelationship)
-	}
-
 	block := domain.BlockRelationship{
 		PlayerID:  playerID,
 		BlockedID: blockedID,
 		CreatedAt: s.now(),
 	}
 
-	s.blocks[playerID][blockedID] = block
+	if err := s.blocks.SaveBlock(block); err != nil {
+		internal := apperrors.Internal()
+		return domain.BlockRelationship{}, &internal
+	}
 	return block, nil
 }
 
@@ -222,38 +246,28 @@ func (s *SocialService) ListBlocks(playerID string) ([]string, *apperrors.Error)
 		return nil, &err
 	}
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	blocked := make([]string, 0, len(s.blocks[playerID]))
-	for blockedID := range s.blocks[playerID] {
-		blocked = append(blocked, blockedID)
+	blocked, err := s.blocks.ListBlocks(playerID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
 	}
-	slices.Sort(blocked)
 	return blocked, nil
 }
 
-func (s *SocialService) addFriendLocked(playerID string, friendID string) {
-	if s.friendships[playerID] == nil {
-		s.friendships[playerID] = make(map[string]struct{})
-	}
-
-	s.friendships[playerID][friendID] = struct{}{}
-}
-
-func (s *SocialService) isFriendLocked(playerID string, friendID string) bool {
-	_, ok := s.friendships[playerID][friendID]
-	return ok
-}
-
-func (s *SocialService) isBlockedLocked(playerID string, blockedID string) bool {
-	blocked := s.blocks[playerID]
-	if blocked == nil {
+func (s *SocialService) isFriend(playerID string, friendID string) bool {
+	friends, err := s.friendships.ListFriends(playerID)
+	if err != nil {
 		return false
 	}
+	return slices.Contains(friends, friendID)
+}
 
-	_, ok := blocked[blockedID]
-	return ok
+func (s *SocialService) isBlocked(playerID string, blockedID string) bool {
+	blocked, err := s.blocks.ListBlocks(playerID)
+	if err != nil {
+		return false
+	}
+	return slices.Contains(blocked, blockedID)
 }
 
 func matchesRequestRole(request domain.FriendRequest, playerID string, role string) bool {
@@ -268,5 +282,9 @@ func matchesRequestRole(request domain.FriendRequest, playerID string, role stri
 }
 
 func (s *SocialService) String() string {
-	return fmt.Sprintf("social-service(requests=%d)", len(s.requests))
+	requests, err := s.requests.ListFriendRequests()
+	if err != nil {
+		return "social-service(requests=unknown)"
+	}
+	return fmt.Sprintf("social-service(requests=%d)", len(requests))
 }

@@ -37,6 +37,8 @@
 - `INVITE_AUTO_MIGRATE`: bootstrap owned MySQL schema on startup when `true`
 - `CHAT_STORE`: `memory` or `mysql`
 - `CHAT_AUTO_MIGRATE`: bootstrap owned MySQL schema on startup when `true`
+- `SOCIAL_STORE`: `memory` or `mysql`
+- `SOCIAL_AUTO_MIGRATE`: bootstrap owned MySQL schema on startup when `true`
 - `PRESENCE_STORE`: `memory` or `redis`
 - `WORKER_STORE`: `memory` or `redis`
 - `PRESENCE_AUTO_PING`: validate Redis connectivity on startup when `true`

@@ -66,3 +66,29 @@ func TestListFriendRequests(t *testing.T) {
 		t.Fatalf("unexpected inbox size: %d", len(inbox))
 	}
 }
+
+func TestSocialServiceWithInjectedStores(t *testing.T) {
+	t.Parallel()
+
+	requests := newMemoryFriendRequestStore()
+	friendships := newMemoryFriendshipStore()
+	blocks := newMemoryBlockStore()
+	svc := NewSocialServiceWithStores(requests, friendships, blocks)
+
+	request, err := svc.SendFriendRequest("p1", "p2")
+	if err != nil {
+		t.Fatalf("send request returned error: %+v", err)
+	}
+
+	if _, acceptErr := svc.AcceptFriendRequest(request.ID, "p2"); acceptErr != nil {
+		t.Fatalf("accept returned error: %+v", acceptErr)
+	}
+
+	friends, listErr := friendships.ListFriends("p1")
+	if listErr != nil {
+		t.Fatalf("friendship store list failed: %v", listErr)
+	}
+	if len(friends) != 1 || friends[0] != "p2" {
+		t.Fatalf("unexpected stored friends: %+v", friends)
+	}
+}

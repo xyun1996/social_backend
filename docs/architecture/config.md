@@ -40,6 +40,8 @@ Shared keys currently documented there:
 - `INVITE_AUTO_MIGRATE=false`
 - `CHAT_STORE=memory`
 - `CHAT_AUTO_MIGRATE=false`
+- `SOCIAL_STORE=memory`
+- `SOCIAL_AUTO_MIGRATE=false`
 - `PRESENCE_STORE=memory`
 
 ## Future Work
