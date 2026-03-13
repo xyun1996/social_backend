@@ -50,6 +50,21 @@ Base purpose: friend request, acceptance, friend listing, block creation, and bl
 - Rules
 - Only `to_player_id` can accept
 
+## List Friend Requests
+
+- `GET /v1/friends/requests?player_id=p2&role=inbox&status=pending`
+- Response `200`
+
+```json
+{
+  "player_id": "p2",
+  "role": "inbox",
+  "status": "pending",
+  "count": 1,
+  "requests": []
+}
+```
+
 ## List Friends
 
 - `GET /v1/friends?player_id=p1`

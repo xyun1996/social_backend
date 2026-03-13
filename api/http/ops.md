@@ -25,8 +25,12 @@ Base purpose: operator-facing read queries across runtime-aware service boundari
   },
   "friends": ["p2"],
   "blocks": ["p3"],
+  "pending_inbox": ["p4"],
+  "pending_outbox": ["p5"],
   "friend_count": 1,
-  "block_count": 1
+  "block_count": 1,
+  "pending_inbox_count": 1,
+  "pending_outbox_count": 1
 }
 ```
 

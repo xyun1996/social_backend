@@ -22,19 +22,25 @@ type PresenceRecord struct {
 
 // SocialSnapshot aggregates current social relationship state for a player.
 type SocialSnapshot struct {
-	PlayerID string   `json:"player_id"`
-	Friends  []string `json:"friends"`
-	Blocks   []string `json:"blocks"`
+	PlayerID      string   `json:"player_id"`
+	Friends       []string `json:"friends"`
+	Blocks        []string `json:"blocks"`
+	PendingInbox  []string `json:"pending_inbox"`
+	PendingOutbox []string `json:"pending_outbox"`
 }
 
 // PlayerOverview aggregates the operator-facing player runtime state.
 type PlayerOverview struct {
-	PlayerID  string         `json:"player_id"`
-	Presence  PresenceRecord `json:"presence"`
-	Friends   []string       `json:"friends"`
-	Blocks    []string       `json:"blocks"`
-	FriendCnt int            `json:"friend_count"`
-	BlockCnt  int            `json:"block_count"`
+	PlayerID           string         `json:"player_id"`
+	Presence           PresenceRecord `json:"presence"`
+	Friends            []string       `json:"friends"`
+	Blocks             []string       `json:"blocks"`
+	PendingInbox       []string       `json:"pending_inbox"`
+	PendingOutbox      []string       `json:"pending_outbox"`
+	FriendCnt          int            `json:"friend_count"`
+	BlockCnt           int            `json:"block_count"`
+	PendingInboxCount  int            `json:"pending_inbox_count"`
+	PendingOutboxCount int            `json:"pending_outbox_count"`
 }
 
 // PartyMemberState is the operator-facing party member runtime shape.
@@ -197,12 +203,16 @@ func (s *OpsService) GetPlayerOverview(ctx context.Context, playerID string) (Pl
 	}
 
 	return PlayerOverview{
-		PlayerID:  playerID,
-		Presence:  presence,
-		Friends:   social.Friends,
-		Blocks:    social.Blocks,
-		FriendCnt: len(social.Friends),
-		BlockCnt:  len(social.Blocks),
+		PlayerID:           playerID,
+		Presence:           presence,
+		Friends:            social.Friends,
+		Blocks:             social.Blocks,
+		PendingInbox:       social.PendingInbox,
+		PendingOutbox:      social.PendingOutbox,
+		FriendCnt:          len(social.Friends),
+		BlockCnt:           len(social.Blocks),
+		PendingInboxCount:  len(social.PendingInbox),
+		PendingOutboxCount: len(social.PendingOutbox),
 	}, nil
 }
 

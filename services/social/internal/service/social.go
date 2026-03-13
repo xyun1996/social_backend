@@ -120,6 +120,54 @@ func (s *SocialService) AcceptFriendRequest(requestID string, actorPlayerID stri
 	return request, nil
 }
 
+// ListFriendRequests returns friend requests visible to a player.
+func (s *SocialService) ListFriendRequests(playerID string, role string, status string) ([]domain.FriendRequest, *apperrors.Error) {
+	if playerID == "" {
+		err := apperrors.New("invalid_request", "player_id is required", 400)
+		return nil, &err
+	}
+	if role == "" {
+		role = "all"
+	}
+	if role != "all" && role != "inbox" && role != "outbox" {
+		err := apperrors.New("invalid_request", "role must be all, inbox, or outbox", 400)
+		return nil, &err
+	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	requests := make([]domain.FriendRequest, 0)
+	for _, request := range s.requests {
+		if !matchesRequestRole(request, playerID, role) {
+			continue
+		}
+		if status != "" && request.Status != status {
+			continue
+		}
+		requests = append(requests, request)
+	}
+
+	slices.SortFunc(requests, func(a domain.FriendRequest, b domain.FriendRequest) int {
+		if !a.CreatedAt.Equal(b.CreatedAt) {
+			if a.CreatedAt.Before(b.CreatedAt) {
+				return -1
+			}
+			return 1
+		}
+		switch {
+		case a.ID < b.ID:
+			return -1
+		case a.ID > b.ID:
+			return 1
+		default:
+			return 0
+		}
+	})
+
+	return requests, nil
+}
+
 // ListFriends returns a stable friend list for a player.
 func (s *SocialService) ListFriends(playerID string) ([]string, *apperrors.Error) {
 	if playerID == "" {
@@ -206,6 +254,17 @@ func (s *SocialService) isBlockedLocked(playerID string, blockedID string) bool 
 
 	_, ok := blocked[blockedID]
 	return ok
+}
+
+func matchesRequestRole(request domain.FriendRequest, playerID string, role string) bool {
+	switch role {
+	case "inbox":
+		return request.ToPlayerID == playerID
+	case "outbox":
+		return request.FromPlayerID == playerID
+	default:
+		return request.FromPlayerID == playerID || request.ToPlayerID == playerID
+	}
 }
 
 func (s *SocialService) String() string {

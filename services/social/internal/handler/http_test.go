@@ -59,3 +59,23 @@ func TestBlockEndpointPreventsFutureFriendRequest(t *testing.T) {
 		t.Fatalf("unexpected send status after block: got %d want %d", sendRec.Code, http.StatusForbidden)
 	}
 }
+
+func TestListFriendRequestsEndpoint(t *testing.T) {
+	t.Parallel()
+
+	h := NewHTTPHandler(service.NewSocialService())
+
+	sendReq := httptest.NewRequest(http.MethodPost, "/v1/friends/requests", bytes.NewBufferString(`{"from_player_id":"p1","to_player_id":"p2"}`))
+	sendRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(sendRec, sendReq)
+	if sendRec.Code != http.StatusOK {
+		t.Fatalf("unexpected send status: got %d want %d", sendRec.Code, http.StatusOK)
+	}
+
+	listReq := httptest.NewRequest(http.MethodGet, "/v1/friends/requests?player_id=p2&role=inbox&status=pending", nil)
+	listRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(listRec, listReq)
+	if listRec.Code != http.StatusOK {
+		t.Fatalf("unexpected list status: got %d want %d", listRec.Code, http.StatusOK)
+	}
+}

@@ -108,14 +108,14 @@ func TestGetPlayerOverview(t *testing.T) {
 		nil,
 		nil,
 		nil,
-		&fakeSocialReader{record: SocialSnapshot{PlayerID: "p1", Friends: []string{"p2"}, Blocks: []string{"p3"}}},
+		&fakeSocialReader{record: SocialSnapshot{PlayerID: "p1", Friends: []string{"p2"}, Blocks: []string{"p3"}, PendingInbox: []string{"p4"}, PendingOutbox: []string{"p5"}}},
 	)
 
 	record, err := svc.GetPlayerOverview(context.Background(), "p1")
 	if err != nil {
 		t.Fatalf("get player overview returned error: %+v", err)
 	}
-	if record.PlayerID != "p1" || record.FriendCnt != 1 || record.BlockCnt != 1 {
+	if record.PlayerID != "p1" || record.FriendCnt != 1 || record.BlockCnt != 1 || record.PendingInboxCount != 1 || record.PendingOutboxCount != 1 {
 		t.Fatalf("unexpected player overview: %+v", record)
 	}
 }

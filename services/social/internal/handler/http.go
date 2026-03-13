@@ -38,11 +38,32 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", h.handleHealth)
 	mux.HandleFunc("POST /v1/friends/requests", h.handleSendFriendRequest)
+	mux.HandleFunc("GET /v1/friends/requests", h.handleListFriendRequests)
 	mux.HandleFunc("POST /v1/friends/requests/{requestID}/accept", h.handleAcceptFriendRequest)
 	mux.HandleFunc("GET /v1/friends", h.handleListFriends)
 	mux.HandleFunc("POST /v1/blocks", h.handleBlockPlayer)
 	mux.HandleFunc("GET /v1/blocks", h.handleListBlocks)
 	return mux
+}
+
+func (h *HTTPHandler) handleListFriendRequests(w http.ResponseWriter, r *http.Request) {
+	playerID := r.URL.Query().Get("player_id")
+	role := r.URL.Query().Get("role")
+	status := r.URL.Query().Get("status")
+
+	requests, appErr := h.social.ListFriendRequests(playerID, role, status)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, map[string]any{
+		"player_id": playerID,
+		"role":      role,
+		"status":    status,
+		"count":     len(requests),
+		"requests":  requests,
+	})
 }
 
 func (h *HTTPHandler) handleHealth(w http.ResponseWriter, _ *http.Request) {

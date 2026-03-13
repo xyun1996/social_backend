@@ -46,3 +46,23 @@ func TestBlockPreventsFriendRequest(t *testing.T) {
 		t.Fatalf("expected blocked relationship to reject friend request")
 	}
 }
+
+func TestListFriendRequests(t *testing.T) {
+	t.Parallel()
+
+	svc := NewSocialService()
+	if _, err := svc.SendFriendRequest("p1", "p2"); err != nil {
+		t.Fatalf("send request returned error: %+v", err)
+	}
+	if _, err := svc.SendFriendRequest("p3", "p2"); err != nil {
+		t.Fatalf("send request returned error: %+v", err)
+	}
+
+	inbox, err := svc.ListFriendRequests("p2", "inbox", friendRequestPending)
+	if err != nil {
+		t.Fatalf("list friend requests returned error: %+v", err)
+	}
+	if len(inbox) != 2 {
+		t.Fatalf("unexpected inbox size: %d", len(inbox))
+	}
+}

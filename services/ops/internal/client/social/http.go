@@ -37,11 +37,21 @@ func (c *HTTPClient) GetSocialSnapshot(ctx context.Context, playerID string) (op
 	if appErr != nil {
 		return opsservice.SocialSnapshot{}, appErr
 	}
+	inbox, appErr := c.getRequestPlayers(ctx, playerID, "inbox")
+	if appErr != nil {
+		return opsservice.SocialSnapshot{}, appErr
+	}
+	outbox, appErr := c.getRequestPlayers(ctx, playerID, "outbox")
+	if appErr != nil {
+		return opsservice.SocialSnapshot{}, appErr
+	}
 
 	return opsservice.SocialSnapshot{
-		PlayerID: playerID,
-		Friends:  friends,
-		Blocks:   blocks,
+		PlayerID:      playerID,
+		Friends:       friends,
+		Blocks:        blocks,
+		PendingInbox:  inbox,
+		PendingOutbox: outbox,
 	}, nil
 }
 
@@ -86,6 +96,53 @@ func (c *HTTPClient) getStringList(ctx context.Context, path string, playerID st
 	}
 
 	return items, nil
+}
+
+func (c *HTTPClient) getRequestPlayers(ctx context.Context, playerID string, role string) ([]string, *apperrors.Error) {
+	endpoint := fmt.Sprintf("%s/v1/friends/requests?player_id=%s&role=%s&status=pending", c.baseURL, url.QueryEscape(playerID), url.QueryEscape(role))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		badGateway := apperrors.New("social_unavailable", "social service is unavailable", http.StatusBadGateway)
+		return nil, &badGateway
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var appErr apperrors.Error
+		if decodeErr := json.NewDecoder(resp.Body).Decode(&appErr); decodeErr != nil {
+			badGateway := apperrors.New("social_invalid_response", "social service returned an invalid response", http.StatusBadGateway)
+			return nil, &badGateway
+		}
+		appErr.Status = resp.StatusCode
+		return nil, &appErr
+	}
+
+	var payload struct {
+		Requests []struct {
+			FromPlayerID string `json:"from_player_id"`
+			ToPlayerID   string `json:"to_player_id"`
+		} `json:"requests"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		badGateway := apperrors.New("social_invalid_response", "social service returned an invalid response", http.StatusBadGateway)
+		return nil, &badGateway
+	}
+
+	players := make([]string, 0, len(payload.Requests))
+	for _, request := range payload.Requests {
+		if role == "inbox" {
+			players = append(players, request.FromPlayerID)
+		} else {
+			players = append(players, request.ToPlayerID)
+		}
+	}
+	return players, nil
 }
 
 func (c *HTTPClient) String() string {
