@@ -94,6 +94,12 @@ Worker also supports an optional background drain loop via `WORKER_AUTO_RUN=true
 - `make run-presence`
 - `make run-ops`
 - `make run-worker`
+- `make run-identity-mysql`
+- `make run-social-mysql`
+- `make run-invite-mysql`
+- `make run-chat-mysql`
+- `make run-presence-redis`
+- `make run-worker-redis`
 
 Starter service defaults:
 
@@ -112,3 +118,12 @@ Local infrastructure defaults:
 
 - MySQL: `localhost:3306`, user `root`, password `1234`, database `social_backend`
 - Redis: `localhost:6379`, no username, no password, database `0`
+
+Durable-mode shortcuts:
+
+- `make run-identity-mysql`
+- `make run-social-mysql`
+- `make run-invite-mysql`
+- `make run-chat-mysql`
+- `make run-presence-redis`
+- `make run-worker-redis`

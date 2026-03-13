@@ -1,4 +1,4 @@
-.PHONY: help bootstrap test proto lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker
+.PHONY: help bootstrap test proto lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker run-identity-mysql run-social-mysql run-invite-mysql run-chat-mysql run-presence-redis run-worker-redis
 
 help:
 	@echo "Available targets:"
@@ -18,6 +18,12 @@ help:
 	@echo "  run-presence - start the presence starter service"
 	@echo "  run-ops      - start the ops starter service"
 	@echo "  run-worker   - start the worker starter service"
+	@echo "  run-identity-mysql - start identity against local MySQL"
+	@echo "  run-social-mysql   - start social against local MySQL"
+	@echo "  run-invite-mysql   - start invite against local MySQL"
+	@echo "  run-chat-mysql     - start chat against local MySQL"
+	@echo "  run-presence-redis - start presence against local Redis"
+	@echo "  run-worker-redis   - start worker against local Redis"
 
 bootstrap:
 	@echo "Repository scaffold is in place."
@@ -70,3 +76,21 @@ run-ops:
 
 run-worker:
 	go run ./services/worker/cmd/worker
+
+run-identity-mysql:
+	set APP_ENV=local && set IDENTITY_STORE=mysql && set IDENTITY_AUTO_MIGRATE=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && go run ./services/identity/cmd/identity
+
+run-social-mysql:
+	set APP_ENV=local && set SOCIAL_STORE=mysql && set SOCIAL_AUTO_MIGRATE=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && go run ./services/social/cmd/social
+
+run-invite-mysql:
+	set APP_ENV=local && set INVITE_STORE=mysql && set INVITE_AUTO_MIGRATE=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && go run ./services/invite/cmd/invite
+
+run-chat-mysql:
+	set APP_ENV=local && set CHAT_STORE=mysql && set CHAT_AUTO_MIGRATE=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && go run ./services/chat/cmd/chat
+
+run-presence-redis:
+	set APP_ENV=local && set PRESENCE_STORE=redis && set REDIS_ADDR=localhost:6379 && set REDIS_USERNAME= && set REDIS_PASSWORD= && set REDIS_DB=0 && go run ./services/presence/cmd/presence
+
+run-worker-redis:
+	set APP_ENV=local && set WORKER_STORE=redis && set REDIS_ADDR=localhost:6379 && set REDIS_USERNAME= && set REDIS_PASSWORD= && set REDIS_DB=0 && go run ./services/worker/cmd/worker
