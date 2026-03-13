@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	apperrors "github.com/xyun1996/social_backend/pkg/errors"
+	"github.com/xyun1996/social_backend/services/chat/internal/domain"
 )
 
 type fakePresenceReader struct {
@@ -14,6 +15,73 @@ type fakePresenceReader struct {
 type fakeJobScheduler struct {
 	jobTypes []string
 	payloads []string
+}
+
+type recordingConversationStore struct {
+	conversations map[string]domain.Conversation
+}
+
+func newRecordingConversationStore() *recordingConversationStore {
+	return &recordingConversationStore{conversations: make(map[string]domain.Conversation)}
+}
+
+func (s *recordingConversationStore) ListConversations() ([]domain.Conversation, error) {
+	conversations := make([]domain.Conversation, 0, len(s.conversations))
+	for _, conversation := range s.conversations {
+		conversations = append(conversations, conversation)
+	}
+	return conversations, nil
+}
+
+func (s *recordingConversationStore) SaveConversation(conversation domain.Conversation) error {
+	s.conversations[conversation.ID] = conversation
+	return nil
+}
+
+func (s *recordingConversationStore) GetConversation(conversationID string) (domain.Conversation, bool, error) {
+	conversation, ok := s.conversations[conversationID]
+	return conversation, ok, nil
+}
+
+type recordingMessageStore struct {
+	messages map[string][]domain.Message
+}
+
+func newRecordingMessageStore() *recordingMessageStore {
+	return &recordingMessageStore{messages: make(map[string][]domain.Message)}
+}
+
+func (s *recordingMessageStore) ListMessages(conversationID string) ([]domain.Message, error) {
+	return append([]domain.Message(nil), s.messages[conversationID]...), nil
+}
+
+func (s *recordingMessageStore) AppendMessage(message domain.Message) error {
+	s.messages[message.ConversationID] = append(s.messages[message.ConversationID], message)
+	return nil
+}
+
+type recordingReadCursorStore struct {
+	cursors map[string]map[string]domain.ReadCursor
+}
+
+func newRecordingReadCursorStore() *recordingReadCursorStore {
+	return &recordingReadCursorStore{cursors: make(map[string]map[string]domain.ReadCursor)}
+}
+
+func (s *recordingReadCursorStore) GetCursor(conversationID string, playerID string) (domain.ReadCursor, bool, error) {
+	if s.cursors[conversationID] == nil {
+		return domain.ReadCursor{}, false, nil
+	}
+	cursor, ok := s.cursors[conversationID][playerID]
+	return cursor, ok, nil
+}
+
+func (s *recordingReadCursorStore) SaveCursor(cursor domain.ReadCursor) error {
+	if s.cursors[cursor.ConversationID] == nil {
+		s.cursors[cursor.ConversationID] = make(map[string]domain.ReadCursor)
+	}
+	s.cursors[cursor.ConversationID][cursor.PlayerID] = cursor
+	return nil
 }
 
 func (f *fakeJobScheduler) EnqueueJob(_ context.Context, jobType string, payload string) *apperrors.Error {
@@ -229,5 +297,37 @@ func TestRecordOfflineDelivery(t *testing.T) {
 	}
 	if receipt.MessageID != message.ID {
 		t.Fatalf("unexpected receipt: %+v", receipt)
+	}
+}
+
+func TestChatServiceUsesInjectedStores(t *testing.T) {
+	t.Parallel()
+
+	conversations := newRecordingConversationStore()
+	messages := newRecordingMessageStore()
+	cursors := newRecordingReadCursorStore()
+	svc := NewChatServiceWithStores(conversations, messages, cursors, nil, nil)
+
+	conversation, err := svc.CreateConversation(kindPrivate, "", []string{"p1", "p2"})
+	if err != nil {
+		t.Fatalf("create conversation returned error: %+v", err)
+	}
+	message, err := svc.SendMessage(conversation.ID, "p1", "hello")
+	if err != nil {
+		t.Fatalf("send message returned error: %+v", err)
+	}
+	cursor, err := svc.AckConversation(conversation.ID, "p2", 1)
+	if err != nil {
+		t.Fatalf("ack returned error: %+v", err)
+	}
+
+	if _, ok := conversations.conversations[conversation.ID]; !ok {
+		t.Fatalf("expected conversation to be saved in injected store")
+	}
+	if len(messages.messages[conversation.ID]) != 1 || messages.messages[conversation.ID][0].ID != message.ID {
+		t.Fatalf("expected message to be saved in injected store: %+v", messages.messages)
+	}
+	if cursors.cursors[conversation.ID]["p2"].AckSeq != cursor.AckSeq {
+		t.Fatalf("expected cursor to be saved in injected store: %+v", cursors.cursors)
 	}
 }

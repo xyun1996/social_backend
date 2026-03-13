@@ -73,11 +73,11 @@ type OfflineDeliveryReceipt struct {
 
 // ChatService provides an in-memory prototype for conversation, seq, ack, and replay flows.
 type ChatService struct {
-	mu                sync.RWMutex
-	conversations     map[string]domain.Conversation
-	messages          map[string][]domain.Message
-	readCursors       map[string]map[string]domain.ReadCursor
+	offlineMu         sync.RWMutex
 	offlineDeliveries []OfflineDeliveryReceipt
+	conversations     ConversationStore
+	messages          MessageStore
+	readCursors       ReadCursorStore
 	presence          PresenceReader
 	scheduler         JobScheduler
 	now               func() time.Time
@@ -88,9 +88,9 @@ type ChatService struct {
 // NewChatService constructs an in-memory chat service.
 func NewChatService(presence PresenceReader, scheduler JobScheduler) *ChatService {
 	return &ChatService{
-		conversations:     make(map[string]domain.Conversation),
-		messages:          make(map[string][]domain.Message),
-		readCursors:       make(map[string]map[string]domain.ReadCursor),
+		conversations:     newMemoryConversationStore(),
+		messages:          newMemoryMessageStore(),
+		readCursors:       newMemoryReadCursorStore(),
 		offlineDeliveries: make([]OfflineDeliveryReceipt, 0),
 		presence:          presence,
 		scheduler:         scheduler,
@@ -104,6 +104,25 @@ func NewChatService(presence PresenceReader, scheduler JobScheduler) *ChatServic
 	}
 }
 
+// NewChatServiceWithStores constructs a chat service with custom durable stores.
+func NewChatServiceWithStores(conversations ConversationStore, messages MessageStore, readCursors ReadCursorStore, presence PresenceReader, scheduler JobScheduler) *ChatService {
+	if conversations == nil || messages == nil || readCursors == nil {
+		return NewChatService(presence, scheduler)
+	}
+
+	return &ChatService{
+		conversations:     conversations,
+		messages:          messages,
+		readCursors:       readCursors,
+		offlineDeliveries: make([]OfflineDeliveryReceipt, 0),
+		presence:          presence,
+		scheduler:         scheduler,
+		now:               time.Now,
+		newConversationID: func() (string, error) { return idgen.Token(8) },
+		newMessageID:      func() (string, error) { return idgen.Token(10) },
+	}
+}
+
 // CreateConversation creates a conversation with explicit member scope.
 func (s *ChatService) CreateConversation(kind string, resourceID string, memberPlayerIDs []string) (domain.Conversation, *apperrors.Error) {
 	normalizedMembers, err := normalizeMembers(kind, memberPlayerIDs)
@@ -111,10 +130,13 @@ func (s *ChatService) CreateConversation(kind string, resourceID string, memberP
 		return domain.Conversation{}, err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	conversations, storeErr := s.conversations.ListConversations()
+	if storeErr != nil {
+		internal := apperrors.Internal()
+		return domain.Conversation{}, &internal
+	}
 
-	for _, conversation := range s.conversations {
+	for _, conversation := range conversations {
 		if conversation.Kind == kind &&
 			conversation.ResourceID == resourceID &&
 			slices.Equal(conversation.MemberPlayerIDs, normalizedMembers) {
@@ -137,7 +159,10 @@ func (s *ChatService) CreateConversation(kind string, resourceID string, memberP
 		CreatedAt:       s.now(),
 	}
 
-	s.conversations[conversation.ID] = conversation
+	if err := s.conversations.SaveConversation(conversation); err != nil {
+		internal := apperrors.Internal()
+		return domain.Conversation{}, &internal
+	}
 	return conversation, nil
 }
 
@@ -148,11 +173,13 @@ func (s *ChatService) ListConversations(playerID string) ([]domain.Conversation,
 		return nil, &err
 	}
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
+	allConversations, storeErr := s.conversations.ListConversations()
+	if storeErr != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
+	}
 	conversations := make([]domain.Conversation, 0)
-	for _, conversation := range s.conversations {
+	for _, conversation := range allConversations {
 		if hasMember(conversation.MemberPlayerIDs, playerID) || conversation.Kind == kindSystem {
 			conversations = append(conversations, conversation)
 		}
@@ -192,29 +219,31 @@ func (s *ChatService) SendMessage(conversationID string, senderPlayerID string, 
 		return domain.Message{}, &err
 	}
 
-	s.mu.Lock()
-
-	conversation, ok := s.conversations[conversationID]
+	conversation, ok, err := s.conversations.GetConversation(conversationID)
 	if !ok {
-		s.mu.Unlock()
 		err := apperrors.New("not_found", "conversation not found", http.StatusNotFound)
 		return domain.Message{}, &err
 	}
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Message{}, &internal
+	}
 
 	if appErr := validateSendPermission(conversation, senderPlayerID); appErr != nil {
-		s.mu.Unlock()
 		return domain.Message{}, appErr
 	}
 
 	messageID, idErr := s.newMessageID()
 	if idErr != nil {
-		s.mu.Unlock()
 		internal := apperrors.Internal()
 		return domain.Message{}, &internal
 	}
 
 	conversation.LastSeq++
-	s.conversations[conversation.ID] = conversation
+	if err := s.conversations.SaveConversation(conversation); err != nil {
+		internal := apperrors.Internal()
+		return domain.Message{}, &internal
+	}
 
 	message := domain.Message{
 		ID:             messageID,
@@ -225,8 +254,10 @@ func (s *ChatService) SendMessage(conversationID string, senderPlayerID string, 
 		CreatedAt:      s.now(),
 	}
 
-	s.messages[conversation.ID] = append(s.messages[conversation.ID], message)
-	s.mu.Unlock()
+	if err := s.messages.AppendMessage(message); err != nil {
+		internal := apperrors.Internal()
+		return domain.Message{}, &internal
+	}
 
 	if s.scheduler != nil {
 		targets, appErr := s.PlanDelivery(context.Background(), conversation.ID, senderPlayerID)
@@ -250,13 +281,14 @@ func (s *ChatService) AckConversation(conversationID string, playerID string, ac
 		return domain.ReadCursor{}, &err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	conversation, ok := s.conversations[conversationID]
+	conversation, ok, err := s.conversations.GetConversation(conversationID)
 	if !ok {
 		err := apperrors.New("not_found", "conversation not found", http.StatusNotFound)
 		return domain.ReadCursor{}, &err
+	}
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.ReadCursor{}, &internal
 	}
 
 	if !hasMember(conversation.MemberPlayerIDs, playerID) && conversation.Kind != kindSystem {
@@ -269,11 +301,11 @@ func (s *ChatService) AckConversation(conversationID string, playerID string, ac
 		return domain.ReadCursor{}, &err
 	}
 
-	if s.readCursors[conversationID] == nil {
-		s.readCursors[conversationID] = make(map[string]domain.ReadCursor)
+	cursor, _, err := s.readCursors.GetCursor(conversationID, playerID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.ReadCursor{}, &internal
 	}
-
-	cursor := s.readCursors[conversationID][playerID]
 	if ackSeq < cursor.AckSeq {
 		ackSeq = cursor.AckSeq
 	}
@@ -285,7 +317,10 @@ func (s *ChatService) AckConversation(conversationID string, playerID string, ac
 		UpdatedAt:      s.now(),
 	}
 
-	s.readCursors[conversationID][playerID] = cursor
+	if err := s.readCursors.SaveCursor(cursor); err != nil {
+		internal := apperrors.Internal()
+		return domain.ReadCursor{}, &internal
+	}
 	return cursor, nil
 }
 
@@ -308,13 +343,14 @@ func (s *ChatService) ReplayMessages(conversationID string, playerID string, aft
 		limit = maxReplayLimit
 	}
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	conversation, ok := s.conversations[conversationID]
+	conversation, ok, err := s.conversations.GetConversation(conversationID)
 	if !ok {
 		err := apperrors.New("not_found", "conversation not found", http.StatusNotFound)
 		return nil, &err
+	}
+	if err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
 	}
 
 	if !hasMember(conversation.MemberPlayerIDs, playerID) && conversation.Kind != kindSystem {
@@ -322,7 +358,11 @@ func (s *ChatService) ReplayMessages(conversationID string, playerID string, aft
 		return nil, &err
 	}
 
-	messages := s.messages[conversationID]
+	messages, err := s.messages.ListMessages(conversationID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
+	}
 	replay := make([]domain.Message, 0, min(limit, len(messages)))
 	for _, message := range messages {
 		if message.Seq <= afterSeq {
@@ -345,12 +385,14 @@ func (s *ChatService) PlanDelivery(ctx context.Context, conversationID string, s
 		return nil, &err
 	}
 
-	s.mu.RLock()
-	conversation, ok := s.conversations[conversationID]
-	s.mu.RUnlock()
+	conversation, ok, err := s.conversations.GetConversation(conversationID)
 	if !ok {
 		err := apperrors.New("not_found", "conversation not found", http.StatusNotFound)
 		return nil, &err
+	}
+	if err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
 	}
 
 	if appErr := validateSendPermission(conversation, senderPlayerID); appErr != nil {
@@ -409,10 +451,11 @@ func (s *ChatService) RecordOfflineDelivery(payload map[string]any) (OfflineDeli
 		return OfflineDeliveryReceipt{}, &err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	messages := s.messages[conversationID]
+	messages, err := s.messages.ListMessages(conversationID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return OfflineDeliveryReceipt{}, &internal
+	}
 	found := false
 	for _, message := range messages {
 		if message.ID == messageID {
@@ -432,14 +475,16 @@ func (s *ChatService) RecordOfflineDelivery(payload map[string]any) (OfflineDeli
 		DeliveryMode:    deliveryMode,
 		ProcessedAt:     s.now().UTC().Format(time.RFC3339Nano),
 	}
+	s.offlineMu.Lock()
+	defer s.offlineMu.Unlock()
 	s.offlineDeliveries = append(s.offlineDeliveries, receipt)
 	return receipt, nil
 }
 
 // ListOfflineDeliveries returns the recorded offline delivery processing entries.
 func (s *ChatService) ListOfflineDeliveries(conversationID string) []OfflineDeliveryReceipt {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.offlineMu.RLock()
+	defer s.offlineMu.RUnlock()
 
 	receipts := make([]OfflineDeliveryReceipt, 0)
 	for _, receipt := range s.offlineDeliveries {
@@ -528,7 +573,11 @@ func isSupportedKind(kind string) bool {
 }
 
 func (s *ChatService) String() string {
-	return fmt.Sprintf("chat-service(conversations=%d)", len(s.conversations))
+	conversations, err := s.conversations.ListConversations()
+	if err != nil {
+		return "chat-service(conversations=unknown)"
+	}
+	return fmt.Sprintf("chat-service(conversations=%d)", len(conversations))
 }
 
 func (s *ChatService) enqueueOfflineDeliveries(ctx context.Context, conversation domain.Conversation, message domain.Message, targets []DeliveryTarget) {
