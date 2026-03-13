@@ -15,7 +15,7 @@ This directory is the source of truth for the current control-plane HTTP contrac
 - [social](social.md): friend request, accept, list, block
 - [invite](invite.md): create, fetch, respond, cancel, list
 - [chat](chat.md): conversation create, list, send, ack, replay, delivery planning
-- [party](party.md): create, invite, join, ready, leave, kick, transfer leader
+- [party](party.md): create, invite, join, ready, leave, kick, transfer leader, queue join/leave
 - [guild](guild.md): create, invite, join, kick, transfer owner
 - [presence](presence.md): connect, heartbeat, disconnect, lookup
 - [ops](ops.md): operator-facing read snapshots

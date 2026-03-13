@@ -47,6 +47,11 @@ type partyMemberActionRequest struct {
 	TargetPlayerID string `json:"target_player_id"`
 }
 
+type queueJoinRequest struct {
+	ActorPlayerID string `json:"actor_player_id"`
+	QueueName     string `json:"queue_name"`
+}
+
 // Routes returns the party HTTP routes.
 func (h *HTTPHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
@@ -59,6 +64,9 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("POST /v1/parties/{partyID}/leave", h.handleLeaveParty)
 	mux.HandleFunc("POST /v1/parties/{partyID}/kick", h.handleKickMember)
 	mux.HandleFunc("POST /v1/parties/{partyID}/transfer-leader", h.handleTransferLeader)
+	mux.HandleFunc("POST /v1/parties/{partyID}/queue/join", h.handleJoinQueue)
+	mux.HandleFunc("POST /v1/parties/{partyID}/queue/leave", h.handleLeaveQueue)
+	mux.HandleFunc("GET /v1/parties/{partyID}/queue", h.handleGetQueue)
 	mux.HandleFunc("GET /v1/parties/{partyID}/ready", h.handleListReady)
 	mux.HandleFunc("GET /v1/parties/{partyID}/members", h.handleListMembers)
 	return mux
@@ -191,6 +199,48 @@ func (h *HTTPHandler) handleTransferLeader(w http.ResponseWriter, r *http.Reques
 	}
 
 	transport.WriteJSON(w, http.StatusOK, party)
+}
+
+func (h *HTTPHandler) handleJoinQueue(w http.ResponseWriter, r *http.Request) {
+	var request queueJoinRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	state, appErr := h.parties.JoinQueue(r.Context(), r.PathValue("partyID"), request.ActorPlayerID, request.QueueName)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, state)
+}
+
+func (h *HTTPHandler) handleLeaveQueue(w http.ResponseWriter, r *http.Request) {
+	var request leavePartyRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	result, appErr := h.parties.LeaveQueue(r.PathValue("partyID"), request.ActorPlayerID)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h *HTTPHandler) handleGetQueue(w http.ResponseWriter, r *http.Request) {
+	state, appErr := h.parties.GetQueueState(r.PathValue("partyID"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, state)
 }
 
 func (h *HTTPHandler) handleListReady(w http.ResponseWriter, r *http.Request) {

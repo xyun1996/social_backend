@@ -17,3 +17,20 @@ type ReadyState struct {
 	IsReady   bool      `json:"is_ready"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
+
+// QueueState tracks the current social queue enrollment for a party.
+type QueueState struct {
+	PartyID   string    `json:"party_id"`
+	QueueName string    `json:"queue_name"`
+	Status    string    `json:"status"`
+	JoinedBy  string    `json:"joined_by"`
+	JoinedAt  time.Time `json:"joined_at"`
+}
+
+// QueueLeaveResult describes a successful queue exit.
+type QueueLeaveResult struct {
+	PartyID   string    `json:"party_id"`
+	QueueName string    `json:"queue_name"`
+	Status    string    `json:"status"`
+	LeftAt    time.Time `json:"left_at"`
+}

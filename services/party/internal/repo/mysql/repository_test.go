@@ -25,11 +25,20 @@ func TestRepositoryBootstrapSchema(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT 1 FROM schema_migrations WHERE service_name = ? AND migration_id = ? LIMIT 1")).
 		WithArgs("party", "001_party_core").
 		WillReturnRows(sqlmock.NewRows([]string{"1"}))
-	for _, statement := range repo.SchemaStatements() {
+	for _, statement := range repo.Migrations()[0].Statements {
 		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
 	}
 	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO schema_migrations (service_name, migration_id) VALUES (?, ?)")).
 		WithArgs("party", "001_party_core").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT 1 FROM schema_migrations WHERE service_name = ? AND migration_id = ? LIMIT 1")).
+		WithArgs("party", "002_party_queue").
+		WillReturnRows(sqlmock.NewRows([]string{"1"}))
+	for _, statement := range repo.Migrations()[1].Statements {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO schema_migrations (service_name, migration_id) VALUES (?, ?)")).
+		WithArgs("party", "002_party_queue").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	if err := repo.BootstrapSchema(context.Background()); err != nil {
@@ -170,6 +179,67 @@ func TestRepositoryDeleteReadyState(t *testing.T) {
 
 	if err := repo.DeleteReadyState("party-1", "p2"); err != nil {
 		t.Fatalf("DeleteReadyState returned error: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet sql expectations: %v", err)
+	}
+}
+
+func TestRepositorySaveAndDeleteQueueState(t *testing.T) {
+	t.Parallel()
+
+	sqlDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock.New failed: %v", err)
+	}
+	defer sqlDB.Close()
+
+	repo := NewRepository(db.MySQLConfig{}, sqlDB)
+	state := domain.QueueState{
+		PartyID:   "party-1",
+		QueueName: "casual-2v2",
+		Status:    "queued",
+		JoinedBy:  "p1",
+		JoinedAt:  time.Date(2026, 3, 13, 12, 0, 0, 0, time.UTC),
+	}
+
+	mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO party_queue_states (party_id, queue_name, status, joined_by, joined_at)
+		 VALUES (?, ?, ?, ?, ?)
+		 ON DUPLICATE KEY UPDATE
+		   queue_name = VALUES(queue_name),
+		   status = VALUES(status),
+		   joined_by = VALUES(joined_by),
+		   joined_at = VALUES(joined_at)`)).
+		WithArgs(state.PartyID, state.QueueName, state.Status, state.JoinedBy, state.JoinedAt.UTC()).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	if err := repo.SaveQueueState(state); err != nil {
+		t.Fatalf("SaveQueueState returned error: %v", err)
+	}
+
+	rows := sqlmock.NewRows([]string{"party_id", "queue_name", "status", "joined_by", "joined_at"}).
+		AddRow(state.PartyID, state.QueueName, state.Status, state.JoinedBy, state.JoinedAt)
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT party_id, queue_name, status, joined_by, joined_at
+		 FROM party_queue_states
+		 WHERE party_id = ?`)).
+		WithArgs(state.PartyID).
+		WillReturnRows(rows)
+
+	loaded, ok, err := repo.GetQueueState(state.PartyID)
+	if err != nil {
+		t.Fatalf("GetQueueState returned error: %v", err)
+	}
+	if !ok || loaded.QueueName != state.QueueName || loaded.JoinedBy != state.JoinedBy {
+		t.Fatalf("unexpected loaded queue state: %+v", loaded)
+	}
+
+	mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM party_queue_states WHERE party_id = ?`)).
+		WithArgs(state.PartyID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	if err := repo.DeleteQueueState(state.PartyID); err != nil {
+		t.Fatalf("DeleteQueueState returned error: %v", err)
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {

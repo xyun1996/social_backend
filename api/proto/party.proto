@@ -21,6 +21,21 @@ message ReadyState {
   google.protobuf.Timestamp updated_at = 4;
 }
 
+message QueueState {
+  string party_id = 1;
+  string queue_name = 2;
+  string status = 3;
+  string joined_by = 4;
+  google.protobuf.Timestamp joined_at = 5;
+}
+
+message QueueLeaveResult {
+  string party_id = 1;
+  string queue_name = 2;
+  string status = 3;
+  google.protobuf.Timestamp left_at = 4;
+}
+
 message MemberState {
   string player_id = 1;
   bool is_leader = 2;
@@ -57,6 +72,17 @@ message SetReadyRequest {
   bool is_ready = 3;
 }
 
+message JoinQueueRequest {
+  string party_id = 1;
+  string actor_player_id = 2;
+  string queue_name = 3;
+}
+
+message LeaveQueueRequest {
+  string party_id = 1;
+  string actor_player_id = 2;
+}
+
 message ListReadyStatesResponse {
   string party_id = 1;
   repeated ReadyState ready_states = 2;
@@ -73,6 +99,9 @@ service PartyService {
   rpc CreatePartyInvite(CreatePartyInviteRequest) returns (social_backend.invite.v1.Invite);
   rpc JoinParty(JoinPartyRequest) returns (Party);
   rpc SetReady(SetReadyRequest) returns (ReadyState);
+  rpc JoinQueue(JoinQueueRequest) returns (QueueState);
+  rpc LeaveQueue(LeaveQueueRequest) returns (QueueLeaveResult);
+  rpc GetQueueState(GetPartyRequest) returns (QueueState);
   rpc ListReadyStates(GetPartyRequest) returns (ListReadyStatesResponse);
   rpc ListMemberStates(GetPartyRequest) returns (ListMemberStatesResponse);
 }

@@ -20,6 +20,13 @@ Define and implement party management and social queue orchestration while keepi
 - Queue entry/exit orchestration
 - Matchmaker integration boundary
 
+## Progress Notes
+
+- Party creation, shared invite joins, ready-state updates, leader transfer, leave, and kick flows are implemented.
+- Party now owns a social queue prototype with queue join, current queue reads, and queue leave semantics.
+- Active queue enrollment blocks party membership mutation until the leader leaves queue.
+- External matchmaker integration remains an explicit future boundary.
+
 ## Acceptance Criteria
 
 - Party leader operations are explicit.

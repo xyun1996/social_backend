@@ -17,6 +17,8 @@ const inviteDomainParty = "party"
 const (
 	presenceOnline  = "online"
 	presenceOffline = "offline"
+	queueStatusOpen = "queued"
+	queueStatusLeft = "left"
 )
 
 // Invite contains the subset of invite state party depends on.
@@ -64,6 +66,7 @@ type MemberState struct {
 type PartyService struct {
 	parties    PartyStore
 	ready      ReadyStateStore
+	queues     QueueStateStore
 	invites    InviteClient
 	presence   PresenceReader
 	now        func() time.Time
@@ -72,14 +75,15 @@ type PartyService struct {
 
 // NewPartyService constructs an in-memory party service.
 func NewPartyService(invites InviteClient, presence PresenceReader) *PartyService {
-	return NewPartyServiceWithStores(newMemoryPartyStore(), newMemoryReadyStateStore(), invites, presence)
+	return NewPartyServiceWithStores(newMemoryPartyStore(), newMemoryReadyStateStore(), newMemoryQueueStateStore(), invites, presence)
 }
 
 // NewPartyServiceWithStores constructs the party service with injected persistence boundaries.
-func NewPartyServiceWithStores(parties PartyStore, ready ReadyStateStore, invites InviteClient, presence PresenceReader) *PartyService {
+func NewPartyServiceWithStores(parties PartyStore, ready ReadyStateStore, queues QueueStateStore, invites InviteClient, presence PresenceReader) *PartyService {
 	return &PartyService{
 		parties:  parties,
 		ready:    ready,
+		queues:   queues,
 		invites:  invites,
 		presence: presence,
 		now:      time.Now,
@@ -162,6 +166,9 @@ func (s *PartyService) CreateInvite(ctx context.Context, partyID string, actorPl
 		err := apperrors.New("already_member", "player is already in the party", http.StatusConflict)
 		return Invite{}, &err
 	}
+	if appErr := s.ensureQueueUnlocked(partyID); appErr != nil {
+		return Invite{}, appErr
+	}
 
 	return s.invites.CreateInvite(ctx, inviteDomainParty, partyID, actorPlayerID, toPlayerID)
 }
@@ -191,6 +198,9 @@ func (s *PartyService) JoinWithInvite(ctx context.Context, partyID string, invit
 	if invite.Status != "accepted" {
 		err := apperrors.New("invite_not_accepted", "invite must be accepted before joining", http.StatusConflict)
 		return domain.Party{}, &err
+	}
+	if appErr := s.ensureQueueUnlocked(partyID); appErr != nil {
+		return domain.Party{}, appErr
 	}
 
 	party, ok, err := s.parties.GetParty(partyID)
@@ -237,6 +247,9 @@ func (s *PartyService) SetReady(partyID string, actorPlayerID string, isReady bo
 		err := apperrors.New("forbidden", "only party members can update ready state", http.StatusForbidden)
 		return domain.ReadyState{}, &err
 	}
+	if appErr := s.ensureQueueUnlocked(partyID); appErr != nil {
+		return domain.ReadyState{}, appErr
+	}
 
 	if s.presence != nil {
 		snapshot, appErr := s.presence.GetPresence(context.Background(), actorPlayerID)
@@ -263,6 +276,126 @@ func (s *PartyService) SetReady(partyID string, actorPlayerID string, isReady bo
 	return state, nil
 }
 
+// JoinQueue enrolls a fully online and ready party into a named social queue.
+func (s *PartyService) JoinQueue(ctx context.Context, partyID string, actorPlayerID string, queueName string) (domain.QueueState, *apperrors.Error) {
+	if partyID == "" || actorPlayerID == "" || queueName == "" {
+		err := apperrors.New("invalid_request", "party_id, actor_player_id, and queue_name are required", http.StatusBadRequest)
+		return domain.QueueState{}, &err
+	}
+
+	party, ok, err := s.parties.GetParty(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.QueueState{}, &internal
+	}
+	if !ok {
+		err := apperrors.New("not_found", "party not found", http.StatusNotFound)
+		return domain.QueueState{}, &err
+	}
+	if party.LeaderID != actorPlayerID {
+		err := apperrors.New("forbidden", "only the party leader can join queue", http.StatusForbidden)
+		return domain.QueueState{}, &err
+	}
+
+	current, exists, err := s.queues.GetQueueState(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.QueueState{}, &internal
+	}
+	if exists {
+		if current.QueueName == queueName {
+			return current, nil
+		}
+		err := apperrors.New("already_queued", "party is already queued in a different queue", http.StatusConflict)
+		return domain.QueueState{}, &err
+	}
+
+	if appErr := s.requireQueueReady(ctx, party); appErr != nil {
+		return domain.QueueState{}, appErr
+	}
+
+	state := domain.QueueState{
+		PartyID:   partyID,
+		QueueName: queueName,
+		Status:    queueStatusOpen,
+		JoinedBy:  actorPlayerID,
+		JoinedAt:  s.now(),
+	}
+	if err := s.queues.SaveQueueState(state); err != nil {
+		internal := apperrors.Internal()
+		return domain.QueueState{}, &internal
+	}
+	return state, nil
+}
+
+// GetQueueState returns the active queue enrollment for a party.
+func (s *PartyService) GetQueueState(partyID string) (domain.QueueState, *apperrors.Error) {
+	if partyID == "" {
+		err := apperrors.New("invalid_request", "party_id is required", http.StatusBadRequest)
+		return domain.QueueState{}, &err
+	}
+
+	if _, ok, appErr := s.getParty(partyID); appErr != nil {
+		return domain.QueueState{}, appErr
+	} else if !ok {
+		err := apperrors.New("not_found", "party not found", http.StatusNotFound)
+		return domain.QueueState{}, &err
+	}
+
+	state, ok, err := s.queues.GetQueueState(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.QueueState{}, &internal
+	}
+	if !ok {
+		err := apperrors.New("not_found", "party queue state not found", http.StatusNotFound)
+		return domain.QueueState{}, &err
+	}
+	return state, nil
+}
+
+// LeaveQueue removes the active queue enrollment for a party.
+func (s *PartyService) LeaveQueue(partyID string, actorPlayerID string) (domain.QueueLeaveResult, *apperrors.Error) {
+	if partyID == "" || actorPlayerID == "" {
+		err := apperrors.New("invalid_request", "party_id and actor_player_id are required", http.StatusBadRequest)
+		return domain.QueueLeaveResult{}, &err
+	}
+
+	party, ok, appErr := s.getParty(partyID)
+	if appErr != nil {
+		return domain.QueueLeaveResult{}, appErr
+	}
+	if !ok {
+		err := apperrors.New("not_found", "party not found", http.StatusNotFound)
+		return domain.QueueLeaveResult{}, &err
+	}
+	if party.LeaderID != actorPlayerID {
+		err := apperrors.New("forbidden", "only the party leader can leave queue", http.StatusForbidden)
+		return domain.QueueLeaveResult{}, &err
+	}
+
+	state, ok, err := s.queues.GetQueueState(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.QueueLeaveResult{}, &internal
+	}
+	if !ok {
+		err := apperrors.New("not_found", "party queue state not found", http.StatusNotFound)
+		return domain.QueueLeaveResult{}, &err
+	}
+	if err := s.queues.DeleteQueueState(partyID); err != nil {
+		internal := apperrors.Internal()
+		return domain.QueueLeaveResult{}, &internal
+	}
+
+	return domain.QueueLeaveResult{
+		PartyID:   partyID,
+		QueueName: state.QueueName,
+		Status:    queueStatusLeft,
+		LeftAt:    s.now(),
+	}, nil
+}
+
 // LeaveParty removes a non-leader member from the party and clears their ready state.
 func (s *PartyService) LeaveParty(partyID string, actorPlayerID string) (domain.Party, *apperrors.Error) {
 	if partyID == "" || actorPlayerID == "" {
@@ -282,6 +415,9 @@ func (s *PartyService) LeaveParty(partyID string, actorPlayerID string) (domain.
 	if !slices.Contains(party.MemberIDs, actorPlayerID) {
 		err := apperrors.New("forbidden", "only party members can leave", http.StatusForbidden)
 		return domain.Party{}, &err
+	}
+	if appErr := s.ensureQueueUnlocked(partyID); appErr != nil {
+		return domain.Party{}, appErr
 	}
 	if party.LeaderID == actorPlayerID {
 		err := apperrors.New("leader_must_transfer", "party leader must transfer leadership before leaving", http.StatusConflict)
@@ -319,6 +455,9 @@ func (s *PartyService) KickMember(partyID string, actorPlayerID string, targetPl
 	if party.LeaderID != actorPlayerID {
 		err := apperrors.New("forbidden", "only the party leader can kick members", http.StatusForbidden)
 		return domain.Party{}, &err
+	}
+	if appErr := s.ensureQueueUnlocked(partyID); appErr != nil {
+		return domain.Party{}, appErr
 	}
 	if targetPlayerID == party.LeaderID {
 		err := apperrors.New("invalid_request", "party leader cannot kick themselves", http.StatusBadRequest)
@@ -360,6 +499,9 @@ func (s *PartyService) TransferLeader(partyID string, actorPlayerID string, targ
 	if party.LeaderID != actorPlayerID {
 		err := apperrors.New("forbidden", "only the party leader can transfer leadership", http.StatusForbidden)
 		return domain.Party{}, &err
+	}
+	if appErr := s.ensureQueueUnlocked(partyID); appErr != nil {
+		return domain.Party{}, appErr
 	}
 	if !slices.Contains(party.MemberIDs, targetPlayerID) {
 		err := apperrors.New("not_found", "target member not found", http.StatusNotFound)
@@ -492,4 +634,57 @@ func deleteMemberIDs(memberIDs []string, targetPlayerID string) []string {
 		filtered = append(filtered, memberID)
 	}
 	return filtered
+}
+
+func (s *PartyService) getParty(partyID string) (domain.Party, bool, *apperrors.Error) {
+	party, ok, err := s.parties.GetParty(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Party{}, false, &internal
+	}
+	return party, ok, nil
+}
+
+func (s *PartyService) ensureQueueUnlocked(partyID string) *apperrors.Error {
+	state, ok, err := s.queues.GetQueueState(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return &internal
+	}
+	if ok {
+		msg := fmt.Sprintf("party is queued in %s", state.QueueName)
+		err := apperrors.New("party_queued", msg, http.StatusConflict)
+		return &err
+	}
+	return nil
+}
+
+func (s *PartyService) requireQueueReady(ctx context.Context, party domain.Party) *apperrors.Error {
+	readyStates, err := s.ready.ListReadyStates(party.ID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return &internal
+	}
+
+	readyByPlayer := make(map[string]domain.ReadyState, len(readyStates))
+	for _, state := range readyStates {
+		readyByPlayer[state.PlayerID] = state
+	}
+
+	for _, memberID := range party.MemberIDs {
+		ready, ok := readyByPlayer[memberID]
+		if !ok || !ready.IsReady {
+			err := apperrors.New("party_not_ready", "all party members must be ready before joining queue", http.StatusConflict)
+			return &err
+		}
+		if s.presence != nil {
+			snapshot, appErr := s.presence.GetPresence(ctx, memberID)
+			if appErr != nil || snapshot.Status != presenceOnline {
+				err := apperrors.New("presence_required", "all party members must be online before joining queue", http.StatusConflict)
+				return &err
+			}
+		}
+	}
+
+	return nil
 }

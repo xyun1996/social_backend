@@ -153,7 +153,8 @@ func TestPartyServiceWithInjectedStores(t *testing.T) {
 
 	parties := newMemoryPartyStore()
 	ready := newMemoryReadyStateStore()
-	svc := NewPartyServiceWithStores(parties, ready, &fakeInviteClient{}, nil)
+	queues := newMemoryQueueStateStore()
+	svc := NewPartyServiceWithStores(parties, ready, queues, &fakeInviteClient{}, nil)
 	svc.newPartyID = func() (string, error) { return "party-1", nil }
 
 	party, err := svc.CreateParty("p1")
@@ -179,6 +180,114 @@ func TestPartyServiceWithInjectedStores(t *testing.T) {
 	}
 	if len(readyStates) != 1 || !readyStates[0].IsReady {
 		t.Fatalf("unexpected stored ready states: %+v", readyStates)
+	}
+}
+
+func TestJoinQueueRequiresReadyOnlineMembers(t *testing.T) {
+	t.Parallel()
+
+	invites := &fakeInviteClient{
+		get: Invite{
+			ID:         "inv-1",
+			Domain:     inviteDomainParty,
+			ResourceID: "party-1",
+			ToPlayerID: "p2",
+			Status:     "accepted",
+		},
+	}
+	presence := &fakePresenceReader{
+		snapshots: map[string]PresenceSnapshot{
+			"p1": {PlayerID: "p1", Status: presenceOnline},
+			"p2": {PlayerID: "p2", Status: presenceOnline},
+		},
+	}
+
+	svc := NewPartyService(invites, presence)
+	svc.newPartyID = func() (string, error) { return "party-1", nil }
+
+	party, err := svc.CreateParty("p1")
+	if err != nil {
+		t.Fatalf("create party returned error: %+v", err)
+	}
+	if _, joinErr := svc.JoinWithInvite(context.Background(), party.ID, "inv-1", "p2"); joinErr != nil {
+		t.Fatalf("join returned error: %+v", joinErr)
+	}
+	if _, readyErr := svc.SetReady(party.ID, "p1", true); readyErr != nil {
+		t.Fatalf("set ready returned error: %+v", readyErr)
+	}
+	if _, queueErr := svc.JoinQueue(context.Background(), party.ID, "p1", "casual-2v2"); queueErr == nil {
+		t.Fatalf("expected queue join to fail when a member is not ready")
+	}
+	if _, readyErr := svc.SetReady(party.ID, "p2", true); readyErr != nil {
+		t.Fatalf("set ready returned error: %+v", readyErr)
+	}
+
+	state, queueErr := svc.JoinQueue(context.Background(), party.ID, "p1", "casual-2v2")
+	if queueErr != nil {
+		t.Fatalf("join queue returned error: %+v", queueErr)
+	}
+	if state.QueueName != "casual-2v2" || state.JoinedBy != "p1" {
+		t.Fatalf("unexpected queue state: %+v", state)
+	}
+
+	if _, readyErr := svc.SetReady(party.ID, "p2", false); readyErr == nil {
+		t.Fatalf("expected ready updates to be blocked while queued")
+	}
+}
+
+func TestLeaveQueueAndBlockMembershipMutationWhileQueued(t *testing.T) {
+	t.Parallel()
+
+	invites := &fakeInviteClient{
+		get: Invite{
+			ID:         "inv-1",
+			Domain:     inviteDomainParty,
+			ResourceID: "party-1",
+			ToPlayerID: "p2",
+			Status:     "accepted",
+		},
+	}
+	presence := &fakePresenceReader{
+		snapshots: map[string]PresenceSnapshot{
+			"p1": {PlayerID: "p1", Status: presenceOnline},
+			"p2": {PlayerID: "p2", Status: presenceOnline},
+		},
+	}
+
+	svc := NewPartyService(invites, presence)
+	svc.newPartyID = func() (string, error) { return "party-1", nil }
+
+	party, err := svc.CreateParty("p1")
+	if err != nil {
+		t.Fatalf("create party returned error: %+v", err)
+	}
+	if _, joinErr := svc.JoinWithInvite(context.Background(), party.ID, "inv-1", "p2"); joinErr != nil {
+		t.Fatalf("join returned error: %+v", joinErr)
+	}
+	if _, readyErr := svc.SetReady(party.ID, "p1", true); readyErr != nil {
+		t.Fatalf("set ready returned error: %+v", readyErr)
+	}
+	if _, readyErr := svc.SetReady(party.ID, "p2", true); readyErr != nil {
+		t.Fatalf("set ready returned error: %+v", readyErr)
+	}
+	if _, queueErr := svc.JoinQueue(context.Background(), party.ID, "p1", "casual-2v2"); queueErr != nil {
+		t.Fatalf("join queue returned error: %+v", queueErr)
+	}
+
+	if _, leaveErr := svc.LeaveParty(party.ID, "p2"); leaveErr == nil {
+		t.Fatalf("expected party leave to be blocked while queued")
+	}
+
+	left, leaveQueueErr := svc.LeaveQueue(party.ID, "p1")
+	if leaveQueueErr != nil {
+		t.Fatalf("leave queue returned error: %+v", leaveQueueErr)
+	}
+	if left.Status != "left" || left.QueueName != "casual-2v2" {
+		t.Fatalf("unexpected leave queue result: %+v", left)
+	}
+
+	if _, queueStateErr := svc.GetQueueState(party.ID); queueStateErr == nil {
+		t.Fatalf("expected queue state to be removed after leaving queue")
 	}
 }
 

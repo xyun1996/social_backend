@@ -18,6 +18,7 @@ const (
 	PartiesTable      = "party_parties"
 	PartyMembersTable = "party_members"
 	PartyReadyTable   = "party_ready_states"
+	PartyQueueTable   = "party_queue_states"
 )
 
 // Repository implements party durable storage on MySQL.
@@ -57,6 +58,18 @@ func (r *Repository) Migrations() []db.Migration {
 					is_ready BOOLEAN NOT NULL,
 					updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 					PRIMARY KEY (party_id, player_id)
+				);`,
+			},
+		},
+		{
+			ID: "002_party_queue",
+			Statements: []string{
+				`CREATE TABLE IF NOT EXISTS party_queue_states (
+					party_id VARCHAR(64) PRIMARY KEY,
+					queue_name VARCHAR(128) NOT NULL,
+					status VARCHAR(32) NOT NULL,
+					joined_by VARCHAR(64) NOT NULL,
+					joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 				);`,
 			},
 		},
@@ -264,6 +277,65 @@ func (r *Repository) DeleteReadyState(partyID string, playerID string) error {
 		`DELETE FROM party_ready_states WHERE party_id = ? AND player_id = ?`,
 		partyID,
 		playerID,
+	)
+	return err
+}
+
+func (r *Repository) SaveQueueState(state domain.QueueState) error {
+	if r == nil || r.sqlDB == nil {
+		return errors.New("mysql repository is not configured")
+	}
+
+	_, err := r.sqlDB.ExecContext(
+		context.Background(),
+		`INSERT INTO party_queue_states (party_id, queue_name, status, joined_by, joined_at)
+		 VALUES (?, ?, ?, ?, ?)
+		 ON DUPLICATE KEY UPDATE
+		   queue_name = VALUES(queue_name),
+		   status = VALUES(status),
+		   joined_by = VALUES(joined_by),
+		   joined_at = VALUES(joined_at)`,
+		state.PartyID,
+		state.QueueName,
+		state.Status,
+		state.JoinedBy,
+		state.JoinedAt.UTC(),
+	)
+	return err
+}
+
+func (r *Repository) GetQueueState(partyID string) (domain.QueueState, bool, error) {
+	if r == nil || r.sqlDB == nil {
+		return domain.QueueState{}, false, errors.New("mysql repository is not configured")
+	}
+
+	row := r.sqlDB.QueryRowContext(
+		context.Background(),
+		`SELECT party_id, queue_name, status, joined_by, joined_at
+		 FROM party_queue_states
+		 WHERE party_id = ?`,
+		partyID,
+	)
+
+	var state domain.QueueState
+	if err := row.Scan(&state.PartyID, &state.QueueName, &state.Status, &state.JoinedBy, &state.JoinedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.QueueState{}, false, nil
+		}
+		return domain.QueueState{}, false, err
+	}
+	return state, true, nil
+}
+
+func (r *Repository) DeleteQueueState(partyID string) error {
+	if r == nil || r.sqlDB == nil {
+		return errors.New("mysql repository is not configured")
+	}
+
+	_, err := r.sqlDB.ExecContext(
+		context.Background(),
+		`DELETE FROM party_queue_states WHERE party_id = ?`,
+		partyID,
 	)
 	return err
 }

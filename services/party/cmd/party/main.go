@@ -66,7 +66,7 @@ func buildPartyService() (*service.PartyService, func(), error) {
 		}
 	}
 
-	return service.NewPartyServiceWithStores(repo, repo, invites, presence), func() {
+	return service.NewPartyServiceWithStores(repo, repo, repo, invites, presence), func() {
 		_ = sqlDB.Close()
 	}, nil
 }

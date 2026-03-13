@@ -181,3 +181,78 @@ func TestPartyManagementEndpoints(t *testing.T) {
 		t.Fatalf("unexpected leave status: got %d want %d", leaveRec.Code, http.StatusOK)
 	}
 }
+
+func TestPartyQueueEndpoints(t *testing.T) {
+	t.Parallel()
+
+	invites := &fakeInviteClient{}
+	presence := &fakePresenceReader{
+		snapshots: map[string]partyservice.PresenceSnapshot{
+			"p1": {PlayerID: "p1", Status: "online", SessionID: "sess-1"},
+			"p2": {PlayerID: "p2", Status: "online", SessionID: "sess-2"},
+		},
+	}
+	svc := partyservice.NewPartyService(invites, presence)
+	h := NewHTTPHandler(svc)
+
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/parties", bytes.NewBufferString(`{"leader_id":"p1"}`))
+	createRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(createRec, createReq)
+
+	var created map[string]any
+	if err := json.Unmarshal(createRec.Body.Bytes(), &created); err != nil {
+		t.Fatalf("unmarshal create response: %v", err)
+	}
+	partyID, _ := created["id"].(string)
+
+	inviteReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/invites", bytes.NewBufferString(`{"actor_player_id":"p1","to_player_id":"p2"}`))
+	inviteRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(inviteRec, inviteReq)
+	if inviteRec.Code != http.StatusOK {
+		t.Fatalf("unexpected invite status: got %d want %d", inviteRec.Code, http.StatusOK)
+	}
+
+	joinReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/join", bytes.NewBufferString(`{"invite_id":"inv-1","actor_player_id":"p2"}`))
+	joinRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(joinRec, joinReq)
+	if joinRec.Code != http.StatusOK {
+		t.Fatalf("unexpected join status: got %d want %d", joinRec.Code, http.StatusOK)
+	}
+
+	for _, actor := range []string{"p1", "p2"} {
+		readyReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/ready", bytes.NewBufferString(`{"actor_player_id":"`+actor+`","is_ready":true}`))
+		readyRec := httptest.NewRecorder()
+		h.Routes().ServeHTTP(readyRec, readyReq)
+		if readyRec.Code != http.StatusOK {
+			t.Fatalf("unexpected ready status for %s: got %d want %d", actor, readyRec.Code, http.StatusOK)
+		}
+	}
+
+	queueJoinReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/queue/join", bytes.NewBufferString(`{"actor_player_id":"p1","queue_name":"casual-2v2"}`))
+	queueJoinRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(queueJoinRec, queueJoinReq)
+	if queueJoinRec.Code != http.StatusOK {
+		t.Fatalf("unexpected queue join status: got %d want %d", queueJoinRec.Code, http.StatusOK)
+	}
+
+	queueGetReq := httptest.NewRequest(http.MethodGet, "/v1/parties/"+partyID+"/queue", nil)
+	queueGetRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(queueGetRec, queueGetReq)
+	if queueGetRec.Code != http.StatusOK {
+		t.Fatalf("unexpected queue get status: got %d want %d", queueGetRec.Code, http.StatusOK)
+	}
+
+	queuedLeaveReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/leave", bytes.NewBufferString(`{"actor_player_id":"p2"}`))
+	queuedLeaveRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(queuedLeaveRec, queuedLeaveReq)
+	if queuedLeaveRec.Code != http.StatusConflict {
+		t.Fatalf("expected queued party leave conflict, got %d", queuedLeaveRec.Code)
+	}
+
+	queueLeaveReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/queue/leave", bytes.NewBufferString(`{"actor_player_id":"p1"}`))
+	queueLeaveRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(queueLeaveRec, queueLeaveReq)
+	if queueLeaveRec.Code != http.StatusOK {
+		t.Fatalf("unexpected queue leave status: got %d want %d", queueLeaveRec.Code, http.StatusOK)
+	}
+}

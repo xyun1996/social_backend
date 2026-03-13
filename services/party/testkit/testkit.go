@@ -41,6 +41,7 @@ func NewDurableServer(mysqlConfig db.MySQLConfig, sqlDB *sql.DB, inviteBaseURL s
 	parties := partyservice.NewPartyServiceWithStores(
 		repo,
 		repo,
+		repo,
 		inviteclient.NewHTTPClient(inviteBaseURL),
 		presenceclient.NewHTTPClient(presenceBaseURL),
 	)

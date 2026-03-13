@@ -21,6 +21,13 @@ type ReadyStateStore interface {
 	DeleteReadyState(partyID string, playerID string) error
 }
 
+// QueueStateStore persists active social queue enrollment per party.
+type QueueStateStore interface {
+	SaveQueueState(state domain.QueueState) error
+	GetQueueState(partyID string) (domain.QueueState, bool, error)
+	DeleteQueueState(partyID string) error
+}
+
 type memoryPartyStore struct {
 	mu      sync.RWMutex
 	parties map[string]domain.Party
@@ -78,9 +85,20 @@ type memoryReadyStateStore struct {
 	states map[string]map[string]domain.ReadyState
 }
 
+type memoryQueueStateStore struct {
+	mu     sync.RWMutex
+	queues map[string]domain.QueueState
+}
+
 func newMemoryReadyStateStore() *memoryReadyStateStore {
 	return &memoryReadyStateStore{
 		states: make(map[string]map[string]domain.ReadyState),
+	}
+}
+
+func newMemoryQueueStateStore() *memoryQueueStateStore {
+	return &memoryQueueStateStore{
+		queues: make(map[string]domain.QueueState),
 	}
 }
 
@@ -128,5 +146,26 @@ func (s *memoryReadyStateStore) DeleteReadyState(partyID string, playerID string
 	if len(s.states[partyID]) == 0 {
 		delete(s.states, partyID)
 	}
+	return nil
+}
+
+func (s *memoryQueueStateStore) SaveQueueState(state domain.QueueState) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.queues[state.PartyID] = state
+	return nil
+}
+
+func (s *memoryQueueStateStore) GetQueueState(partyID string) (domain.QueueState, bool, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	state, ok := s.queues[partyID]
+	return state, ok, nil
+}
+
+func (s *memoryQueueStateStore) DeleteQueueState(partyID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.queues, partyID)
 	return nil
 }
