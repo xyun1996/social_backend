@@ -67,6 +67,7 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("POST /v1/parties/{partyID}/queue/join", h.handleJoinQueue)
 	mux.HandleFunc("POST /v1/parties/{partyID}/queue/leave", h.handleLeaveQueue)
 	mux.HandleFunc("GET /v1/parties/{partyID}/queue", h.handleGetQueue)
+	mux.HandleFunc("GET /v1/parties/{partyID}/queue/handoff", h.handleGetQueueHandoff)
 	mux.HandleFunc("GET /v1/parties/{partyID}/ready", h.handleListReady)
 	mux.HandleFunc("GET /v1/parties/{partyID}/members", h.handleListMembers)
 	return mux
@@ -241,6 +242,25 @@ func (h *HTTPHandler) handleGetQueue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	transport.WriteJSON(w, http.StatusOK, state)
+}
+
+func (h *HTTPHandler) handleGetQueueHandoff(w http.ResponseWriter, r *http.Request) {
+	handoff, members, appErr := h.parties.GetQueueHandoff(r.Context(), r.PathValue("partyID"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, map[string]any{
+		"ticket_id":    handoff.TicketID,
+		"party_id":     handoff.PartyID,
+		"queue_name":   handoff.QueueName,
+		"leader_id":    handoff.LeaderID,
+		"member_ids":   handoff.MemberIDs,
+		"joined_at":    handoff.JoinedAt,
+		"member_count": len(members),
+		"members":      members,
+	})
 }
 
 func (h *HTTPHandler) handleListReady(w http.ResponseWriter, r *http.Request) {

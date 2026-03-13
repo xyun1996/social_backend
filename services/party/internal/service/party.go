@@ -354,6 +354,48 @@ func (s *PartyService) GetQueueState(partyID string) (domain.QueueState, *apperr
 	return state, nil
 }
 
+// GetQueueHandoff returns the external queue handoff snapshot for the active queued party.
+func (s *PartyService) GetQueueHandoff(ctx context.Context, partyID string) (domain.QueueHandoff, []MemberState, *apperrors.Error) {
+	if partyID == "" {
+		err := apperrors.New("invalid_request", "party_id is required", http.StatusBadRequest)
+		return domain.QueueHandoff{}, nil, &err
+	}
+
+	party, ok, appErr := s.getParty(partyID)
+	if appErr != nil {
+		return domain.QueueHandoff{}, nil, appErr
+	}
+	if !ok {
+		err := apperrors.New("not_found", "party not found", http.StatusNotFound)
+		return domain.QueueHandoff{}, nil, &err
+	}
+
+	state, ok, err := s.queues.GetQueueState(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.QueueHandoff{}, nil, &internal
+	}
+	if !ok {
+		err := apperrors.New("not_found", "party queue state not found", http.StatusNotFound)
+		return domain.QueueHandoff{}, nil, &err
+	}
+
+	members, appErr := s.ListMemberStates(ctx, partyID)
+	if appErr != nil {
+		return domain.QueueHandoff{}, nil, appErr
+	}
+
+	handoff := domain.QueueHandoff{
+		TicketID:  queueTicketID(party.ID, state.QueueName, state.JoinedAt),
+		PartyID:   party.ID,
+		QueueName: state.QueueName,
+		LeaderID:  party.LeaderID,
+		MemberIDs: append([]string(nil), party.MemberIDs...),
+		JoinedAt:  state.JoinedAt,
+	}
+	return handoff, members, nil
+}
+
 // LeaveQueue removes the active queue enrollment for a party.
 func (s *PartyService) LeaveQueue(partyID string, actorPlayerID string) (domain.QueueLeaveResult, *apperrors.Error) {
 	if partyID == "" || actorPlayerID == "" {
@@ -657,6 +699,10 @@ func (s *PartyService) ensureQueueUnlocked(partyID string) *apperrors.Error {
 		return &err
 	}
 	return nil
+}
+
+func queueTicketID(partyID string, queueName string, joinedAt time.Time) string {
+	return fmt.Sprintf("ticket:%s:%s:%d", partyID, queueName, joinedAt.UTC().Unix())
 }
 
 func (s *PartyService) requireQueueReady(ctx context.Context, party domain.Party) *apperrors.Error {

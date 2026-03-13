@@ -36,6 +36,17 @@ message QueueLeaveResult {
   google.protobuf.Timestamp left_at = 4;
 }
 
+message QueueHandoff {
+  string ticket_id = 1;
+  string party_id = 2;
+  string queue_name = 3;
+  string leader_id = 4;
+  repeated string member_ids = 5;
+  google.protobuf.Timestamp joined_at = 6;
+  int32 member_count = 7;
+  repeated MemberState members = 8;
+}
+
 message MemberState {
   string player_id = 1;
   bool is_leader = 2;
@@ -102,6 +113,7 @@ service PartyService {
   rpc JoinQueue(JoinQueueRequest) returns (QueueState);
   rpc LeaveQueue(LeaveQueueRequest) returns (QueueLeaveResult);
   rpc GetQueueState(GetPartyRequest) returns (QueueState);
+  rpc GetQueueHandoff(GetPartyRequest) returns (QueueHandoff);
   rpc ListReadyStates(GetPartyRequest) returns (ListReadyStatesResponse);
   rpc ListMemberStates(GetPartyRequest) returns (ListMemberStatesResponse);
 }

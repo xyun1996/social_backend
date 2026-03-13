@@ -242,6 +242,13 @@ func TestPartyQueueEndpoints(t *testing.T) {
 		t.Fatalf("unexpected queue get status: got %d want %d", queueGetRec.Code, http.StatusOK)
 	}
 
+	queueHandoffReq := httptest.NewRequest(http.MethodGet, "/v1/parties/"+partyID+"/queue/handoff", nil)
+	queueHandoffRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(queueHandoffRec, queueHandoffReq)
+	if queueHandoffRec.Code != http.StatusOK {
+		t.Fatalf("unexpected queue handoff status: got %d want %d", queueHandoffRec.Code, http.StatusOK)
+	}
+
 	queuedLeaveReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/leave", bytes.NewBufferString(`{"actor_player_id":"p2"}`))
 	queuedLeaveRec := httptest.NewRecorder()
 	h.Routes().ServeHTTP(queuedLeaveRec, queuedLeaveReq)

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"testing"
+	"time"
 
 	apperrors "github.com/xyun1996/social_backend/pkg/errors"
 )
@@ -288,6 +289,58 @@ func TestLeaveQueueAndBlockMembershipMutationWhileQueued(t *testing.T) {
 
 	if _, queueStateErr := svc.GetQueueState(party.ID); queueStateErr == nil {
 		t.Fatalf("expected queue state to be removed after leaving queue")
+	}
+}
+
+func TestGetQueueHandoffIncludesPartyAndMemberSnapshot(t *testing.T) {
+	t.Parallel()
+
+	invites := &fakeInviteClient{
+		get: Invite{
+			ID:         "inv-1",
+			Domain:     inviteDomainParty,
+			ResourceID: "party-1",
+			ToPlayerID: "p2",
+			Status:     "accepted",
+		},
+	}
+	presence := &fakePresenceReader{
+		snapshots: map[string]PresenceSnapshot{
+			"p1": {PlayerID: "p1", Status: presenceOnline, SessionID: "sess-1"},
+			"p2": {PlayerID: "p2", Status: presenceOnline, SessionID: "sess-2"},
+		},
+	}
+
+	svc := NewPartyService(invites, presence)
+	svc.newPartyID = func() (string, error) { return "party-1", nil }
+	svc.now = func() time.Time { return time.Date(2026, 3, 13, 12, 0, 0, 0, time.UTC) }
+
+	party, err := svc.CreateParty("p1")
+	if err != nil {
+		t.Fatalf("create party returned error: %+v", err)
+	}
+	if _, joinErr := svc.JoinWithInvite(context.Background(), party.ID, "inv-1", "p2"); joinErr != nil {
+		t.Fatalf("join returned error: %+v", joinErr)
+	}
+	if _, readyErr := svc.SetReady(party.ID, "p1", true); readyErr != nil {
+		t.Fatalf("set ready returned error: %+v", readyErr)
+	}
+	if _, readyErr := svc.SetReady(party.ID, "p2", true); readyErr != nil {
+		t.Fatalf("set ready returned error: %+v", readyErr)
+	}
+	if _, queueErr := svc.JoinQueue(context.Background(), party.ID, "p1", "casual-2v2"); queueErr != nil {
+		t.Fatalf("join queue returned error: %+v", queueErr)
+	}
+
+	handoff, members, handoffErr := svc.GetQueueHandoff(context.Background(), party.ID)
+	if handoffErr != nil {
+		t.Fatalf("get queue handoff returned error: %+v", handoffErr)
+	}
+	if handoff.TicketID == "" || handoff.QueueName != "casual-2v2" || handoff.LeaderID != "p1" {
+		t.Fatalf("unexpected handoff payload: %+v", handoff)
+	}
+	if len(members) != 2 || members[0].PlayerID != "p1" || members[1].PlayerID != "p2" {
+		t.Fatalf("unexpected handoff members: %+v", members)
 	}
 }
 

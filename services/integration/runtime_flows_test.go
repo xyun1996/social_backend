@@ -11,6 +11,7 @@ import (
 	gatewaytestkit "github.com/xyun1996/social_backend/services/gateway/testkit"
 	identitytestkit "github.com/xyun1996/social_backend/services/identity/testkit"
 	invitetestkit "github.com/xyun1996/social_backend/services/invite/testkit"
+	partytestkit "github.com/xyun1996/social_backend/services/party/testkit"
 	presencetestkit "github.com/xyun1996/social_backend/services/presence/testkit"
 	workertestkit "github.com/xyun1996/social_backend/services/worker/testkit"
 )
@@ -306,6 +307,77 @@ func TestGatewayResumeTrimsBufferedInboxFlow(t *testing.T) {
 	getJSON(t, gateway.URL()+"/v1/realtime/sessions/sess-2/events", &inbox)
 	if inbox.Count != 1 || inbox.Events[0].EventID != message2.ID+":2" {
 		t.Fatalf("expected only the newer buffered event after resume, got %+v", inbox)
+	}
+}
+
+func TestPartyQueueHandoffFlow(t *testing.T) {
+	t.Parallel()
+
+	invite := invitetestkit.NewServer("")
+	defer invite.Close()
+
+	presence := presencetestkit.NewServer()
+	defer presence.Close()
+
+	party := partytestkit.NewServer(invite.URL(), presence.URL())
+	defer party.Close()
+
+	postJSON(t, presence.URL()+"/v1/presence/connect", map[string]any{
+		"player_id":  "p1",
+		"session_id": "sess-1",
+		"realm_id":   "realm-1",
+		"location":   "lobby",
+	}, nil)
+	postJSON(t, presence.URL()+"/v1/presence/connect", map[string]any{
+		"player_id":  "p2",
+		"session_id": "sess-2",
+		"realm_id":   "realm-1",
+		"location":   "lobby",
+	}, nil)
+
+	var created struct {
+		ID string `json:"id"`
+	}
+	postJSON(t, party.URL()+"/v1/parties", map[string]any{
+		"leader_id": "p1",
+	}, &created)
+
+	var partyInvite struct {
+		ID string `json:"id"`
+	}
+	postJSON(t, party.URL()+"/v1/parties/"+created.ID+"/invites", map[string]any{
+		"actor_player_id": "p1",
+		"to_player_id":    "p2",
+	}, &partyInvite)
+	postJSON(t, invite.URL()+"/v1/invites/"+partyInvite.ID+"/accept", map[string]any{
+		"actor_player_id": "p2",
+	}, nil)
+	postJSON(t, party.URL()+"/v1/parties/"+created.ID+"/join", map[string]any{
+		"invite_id":       partyInvite.ID,
+		"actor_player_id": "p2",
+	}, nil)
+
+	for _, actor := range []string{"p1", "p2"} {
+		postJSON(t, party.URL()+"/v1/parties/"+created.ID+"/ready", map[string]any{
+			"actor_player_id": actor,
+			"is_ready":        true,
+		}, nil)
+	}
+
+	postJSON(t, party.URL()+"/v1/parties/"+created.ID+"/queue/join", map[string]any{
+		"actor_player_id": "p1",
+		"queue_name":      "casual-2v2",
+	}, nil)
+
+	var handoff struct {
+		TicketID    string `json:"ticket_id"`
+		PartyID     string `json:"party_id"`
+		QueueName   string `json:"queue_name"`
+		MemberCount int    `json:"member_count"`
+	}
+	getJSON(t, party.URL()+"/v1/parties/"+created.ID+"/queue/handoff", &handoff)
+	if handoff.TicketID == "" || handoff.PartyID != created.ID || handoff.QueueName != "casual-2v2" || handoff.MemberCount != 2 {
+		t.Fatalf("unexpected handoff payload: %+v", handoff)
 	}
 }
 

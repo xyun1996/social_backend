@@ -28,6 +28,7 @@ const (
 	PartyService_JoinQueue_FullMethodName         = "/social_backend.party.v1.PartyService/JoinQueue"
 	PartyService_LeaveQueue_FullMethodName        = "/social_backend.party.v1.PartyService/LeaveQueue"
 	PartyService_GetQueueState_FullMethodName     = "/social_backend.party.v1.PartyService/GetQueueState"
+	PartyService_GetQueueHandoff_FullMethodName   = "/social_backend.party.v1.PartyService/GetQueueHandoff"
 	PartyService_ListReadyStates_FullMethodName   = "/social_backend.party.v1.PartyService/ListReadyStates"
 	PartyService_ListMemberStates_FullMethodName  = "/social_backend.party.v1.PartyService/ListMemberStates"
 )
@@ -44,6 +45,7 @@ type PartyServiceClient interface {
 	JoinQueue(ctx context.Context, in *JoinQueueRequest, opts ...grpc.CallOption) (*QueueState, error)
 	LeaveQueue(ctx context.Context, in *LeaveQueueRequest, opts ...grpc.CallOption) (*QueueLeaveResult, error)
 	GetQueueState(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*QueueState, error)
+	GetQueueHandoff(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*QueueHandoff, error)
 	ListReadyStates(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*ListReadyStatesResponse, error)
 	ListMemberStates(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*ListMemberStatesResponse, error)
 }
@@ -136,6 +138,16 @@ func (c *partyServiceClient) GetQueueState(ctx context.Context, in *GetPartyRequ
 	return out, nil
 }
 
+func (c *partyServiceClient) GetQueueHandoff(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*QueueHandoff, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(QueueHandoff)
+	err := c.cc.Invoke(ctx, PartyService_GetQueueHandoff_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *partyServiceClient) ListReadyStates(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*ListReadyStatesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListReadyStatesResponse)
@@ -168,6 +180,7 @@ type PartyServiceServer interface {
 	JoinQueue(context.Context, *JoinQueueRequest) (*QueueState, error)
 	LeaveQueue(context.Context, *LeaveQueueRequest) (*QueueLeaveResult, error)
 	GetQueueState(context.Context, *GetPartyRequest) (*QueueState, error)
+	GetQueueHandoff(context.Context, *GetPartyRequest) (*QueueHandoff, error)
 	ListReadyStates(context.Context, *GetPartyRequest) (*ListReadyStatesResponse, error)
 	ListMemberStates(context.Context, *GetPartyRequest) (*ListMemberStatesResponse, error)
 	mustEmbedUnimplementedPartyServiceServer()
@@ -203,6 +216,9 @@ func (UnimplementedPartyServiceServer) LeaveQueue(context.Context, *LeaveQueueRe
 }
 func (UnimplementedPartyServiceServer) GetQueueState(context.Context, *GetPartyRequest) (*QueueState, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetQueueState not implemented")
+}
+func (UnimplementedPartyServiceServer) GetQueueHandoff(context.Context, *GetPartyRequest) (*QueueHandoff, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetQueueHandoff not implemented")
 }
 func (UnimplementedPartyServiceServer) ListReadyStates(context.Context, *GetPartyRequest) (*ListReadyStatesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListReadyStates not implemented")
@@ -375,6 +391,24 @@ func _PartyService_GetQueueState_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PartyService_GetQueueHandoff_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPartyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PartyServiceServer).GetQueueHandoff(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PartyService_GetQueueHandoff_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PartyServiceServer).GetQueueHandoff(ctx, req.(*GetPartyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PartyService_ListReadyStates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetPartyRequest)
 	if err := dec(in); err != nil {
@@ -449,6 +483,10 @@ var PartyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetQueueState",
 			Handler:    _PartyService_GetQueueState_Handler,
+		},
+		{
+			MethodName: "GetQueueHandoff",
+			Handler:    _PartyService_GetQueueHandoff_Handler,
 		},
 		{
 			MethodName: "ListReadyStates",

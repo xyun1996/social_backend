@@ -179,6 +179,29 @@ Base purpose: party creation, shared-invite-based joins, ready state updates, co
 - `GET /v1/parties/{partyID}/queue`
 - Response `200`: queue state shape from join response
 
+## Get Queue Handoff
+
+- `GET /v1/parties/{partyID}/queue/handoff`
+- Response `200`
+
+```json
+{
+  "ticket_id": "ticket:party-1:casual-2v2:1760000000",
+  "party_id": "party-1",
+  "queue_name": "casual-2v2",
+  "leader_id": "p1",
+  "member_ids": ["p1", "p2"],
+  "joined_at": "2026-03-13T10:00:00Z",
+  "member_count": 2,
+  "members": []
+}
+```
+
+- Rules
+- Only queued parties can produce a handoff snapshot
+- The handoff payload is the stable boundary intended for a future external matchmaker
+- Matchmaker ownership starts after consuming this snapshot; party still owns queue state and membership rules
+
 ## Leave Queue
 
 - `POST /v1/parties/{partyID}/queue/leave`

@@ -34,3 +34,13 @@ type QueueLeaveResult struct {
 	Status    string    `json:"status"`
 	LeftAt    time.Time `json:"left_at"`
 }
+
+// QueueHandoff is the stable queue payload exposed to an external matchmaker boundary.
+type QueueHandoff struct {
+	TicketID  string    `json:"ticket_id"`
+	PartyID   string    `json:"party_id"`
+	QueueName string    `json:"queue_name"`
+	LeaderID  string    `json:"leader_id"`
+	MemberIDs []string  `json:"member_ids"`
+	JoinedAt  time.Time `json:"joined_at"`
+}

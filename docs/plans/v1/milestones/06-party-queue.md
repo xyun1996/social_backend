@@ -26,7 +26,7 @@ Define and implement party management and social queue orchestration while keepi
 - Party now owns a social queue prototype with queue join, current queue reads, and queue leave semantics.
 - Active queue enrollment blocks party membership mutation until the leader leaves queue.
 - Ops party snapshots now surface active queue enrollment for operator visibility.
-- External matchmaker integration remains an explicit future boundary.
+- Party now exposes a stable queue handoff snapshot as the future external matchmaker boundary.
 
 ## Acceptance Criteria
 
