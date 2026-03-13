@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package social_backend.identity.v1;
+
+option go_package = "github.com/xyun1996/social_backend/api/proto/identity/v1;identityv1";
+
+message TokenPair {
+  string access_token = 1;
+  string refresh_token = 2;
+  string account_id = 3;
+  string player_id = 4;
+}
+
+message Subject {
+  string account_id = 1;
+  string player_id = 2;
+}
+
+message LoginRequest {
+  string account_id = 1;
+  string player_id = 2;
+}
+
+message RefreshRequest {
+  string refresh_token = 1;
+}
+
+message IntrospectRequest {
+  string access_token = 1;
+}
+
+service IdentityService {
+  rpc Login(LoginRequest) returns (TokenPair);
+  rpc Refresh(RefreshRequest) returns (TokenPair);
+  rpc Introspect(IntrospectRequest) returns (Subject);
+}

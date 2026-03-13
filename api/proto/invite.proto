@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package social_backend.invite.v1;
+
+option go_package = "github.com/xyun1996/social_backend/api/proto/invite/v1;invitev1";
+
+import "google/protobuf/timestamp.proto";
+
+message Invite {
+  string id = 1;
+  string domain = 2;
+  string resource_id = 3;
+  string from_player_id = 4;
+  string to_player_id = 5;
+  string status = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp expires_at = 8;
+  google.protobuf.Timestamp responded_at = 9;
+}
+
+message CreateInviteRequest {
+  string domain = 1;
+  string resource_id = 2;
+  string from_player_id = 3;
+  string to_player_id = 4;
+  int32 ttl_seconds = 5;
+}
+
+message GetInviteRequest {
+  string invite_id = 1;
+}
+
+message RespondInviteRequest {
+  string invite_id = 1;
+  string actor_player_id = 2;
+  string action = 3;
+}
+
+message ListInvitesRequest {
+  string player_id = 1;
+  string role = 2;
+  string status = 3;
+}
+
+message ListInvitesResponse {
+  string player_id = 1;
+  string role = 2;
+  string status = 3;
+  repeated Invite invites = 4;
+}
+
+service InviteService {
+  rpc CreateInvite(CreateInviteRequest) returns (Invite);
+  rpc GetInvite(GetInviteRequest) returns (Invite);
+  rpc RespondInvite(RespondInviteRequest) returns (Invite);
+  rpc ListInvites(ListInvitesRequest) returns (ListInvitesResponse);
+}

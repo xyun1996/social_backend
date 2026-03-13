@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package social_backend.presence.v1;
+
+option go_package = "github.com/xyun1996/social_backend/api/proto/presence/v1;presencev1";
+
+import "google/protobuf/timestamp.proto";
+
+message Presence {
+  string player_id = 1;
+  string status = 2;
+  string session_id = 3;
+  string realm_id = 4;
+  string location = 5;
+  google.protobuf.Timestamp last_heartbeat_at = 6;
+  google.protobuf.Timestamp last_seen_at = 7;
+  google.protobuf.Timestamp connected_at = 8;
+  google.protobuf.Timestamp disconnected_at = 9;
+}
+
+message ConnectRequest {
+  string player_id = 1;
+  string session_id = 2;
+  string realm_id = 3;
+  string location = 4;
+}
+
+message HeartbeatRequest {
+  string player_id = 1;
+  string session_id = 2;
+  string realm_id = 3;
+  string location = 4;
+}
+
+message DisconnectRequest {
+  string player_id = 1;
+  string session_id = 2;
+}
+
+message GetPresenceRequest {
+  string player_id = 1;
+}
+
+service PresenceService {
+  rpc Connect(ConnectRequest) returns (Presence);
+  rpc Heartbeat(HeartbeatRequest) returns (Presence);
+  rpc Disconnect(DisconnectRequest) returns (Presence);
+  rpc GetPresence(GetPresenceRequest) returns (Presence);
+}
