@@ -20,6 +20,8 @@ message SocialSnapshot {
   string player_id = 1;
   repeated string friends = 2;
   repeated string blocks = 3;
+  repeated string pending_inbox = 4;
+  repeated string pending_outbox = 5;
 }
 
 message PlayerOverview {
@@ -27,8 +29,12 @@ message PlayerOverview {
   PresenceRecord presence = 2;
   repeated string friends = 3;
   repeated string blocks = 4;
-  int32 friend_count = 5;
-  int32 block_count = 6;
+  repeated string pending_inbox = 5;
+  repeated string pending_outbox = 6;
+  int32 friend_count = 7;
+  int32 block_count = 8;
+  int32 pending_inbox_count = 9;
+  int32 pending_outbox_count = 10;
 }
 
 message PartyMemberState {
@@ -52,12 +58,14 @@ message GuildMemberState {
 
 message PartySnapshot {
   string party_id = 1;
-  repeated PartyMemberState members = 2;
+  int32 count = 2;
+  repeated PartyMemberState members = 3;
 }
 
 message GuildSnapshot {
   string guild_id = 1;
-  repeated GuildMemberState members = 2;
+  int32 count = 2;
+  repeated GuildMemberState members = 3;
 }
 
 message WorkerJob {
@@ -76,7 +84,37 @@ message WorkerJob {
 message WorkerSnapshot {
   string status = 1;
   string type = 2;
-  repeated WorkerJob jobs = 3;
+  int32 count = 3;
+  repeated WorkerJob jobs = 4;
+}
+
+message MySQLBootstrapService {
+  string service = 1;
+  int32 count = 2;
+  repeated string migration_ids = 3;
+}
+
+message MySQLBootstrapSnapshot {
+  int32 count = 1;
+  repeated MySQLBootstrapService services = 2;
+}
+
+message RedisWorkerStatusCount {
+  string status = 1;
+  int32 count = 2;
+}
+
+message RedisRuntimeSnapshot {
+  string redis_url = 1;
+  int32 presence_record_count = 2;
+  int32 gateway_session_count = 3;
+  int32 worker_job_count = 4;
+  repeated RedisWorkerStatusCount worker_status_counters = 5;
+}
+
+message DurableSummary {
+  MySQLBootstrapSnapshot mysql = 1;
+  RedisRuntimeSnapshot redis = 2;
 }
 
 message GetPlayerPresenceRequest {
@@ -100,10 +138,19 @@ message GetWorkerSnapshotRequest {
   string type = 2;
 }
 
+message GetMySQLBootstrapSnapshotRequest {}
+
+message GetRedisRuntimeSnapshotRequest {}
+
+message GetDurableSummaryRequest {}
+
 service OpsService {
   rpc GetPlayerPresence(GetPlayerPresenceRequest) returns (PresenceRecord);
   rpc GetPlayerOverview(GetPlayerOverviewRequest) returns (PlayerOverview);
   rpc GetPartySnapshot(GetPartySnapshotRequest) returns (PartySnapshot);
   rpc GetGuildSnapshot(GetGuildSnapshotRequest) returns (GuildSnapshot);
   rpc GetWorkerSnapshot(GetWorkerSnapshotRequest) returns (WorkerSnapshot);
+  rpc GetMySQLBootstrapSnapshot(GetMySQLBootstrapSnapshotRequest) returns (MySQLBootstrapSnapshot);
+  rpc GetRedisRuntimeSnapshot(GetRedisRuntimeSnapshotRequest) returns (RedisRuntimeSnapshot);
+  rpc GetDurableSummary(GetDurableSummaryRequest) returns (DurableSummary);
 }
