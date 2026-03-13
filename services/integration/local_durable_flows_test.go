@@ -192,6 +192,85 @@ func TestLocalDurableGatewayHandshakeFlow(t *testing.T) {
 	}
 }
 
+func TestLocalDurableInviteWorkerExpiryFlow(t *testing.T) {
+	requireLocalDurableTests(t)
+
+	mysqlConfig, sqlDB := newLocalMySQLTestDatabase(t)
+	redisConfig, redisClient := newLocalRedisTestClient(t)
+
+	worker := workertestkit.NewDurableServer(redisConfig, redisClient)
+	defer worker.Close()
+	invite := invitetestkit.NewDurableServer(mysqlConfig, sqlDB, worker.URL())
+	defer invite.Close()
+
+	worker.RegisterInviteExpireHandler(invite.URL())
+
+	var created struct {
+		ID string `json:"id"`
+	}
+	postJSON(t, invite.URL()+"/v1/invites", map[string]any{
+		"domain":         "party",
+		"resource_id":    "party-1",
+		"from_player_id": "p1",
+		"to_player_id":   "p2",
+		"ttl_seconds":    60,
+	}, &created)
+
+	result, err := worker.ExecuteUntilEmpty(context.Background(), "worker-a", "invite.expire", 10)
+	if err != nil {
+		t.Fatalf("execute until empty failed: %v", err)
+	}
+	if result.Completed != 1 {
+		t.Fatalf("unexpected worker result: %+v", result)
+	}
+
+	var expired struct {
+		Status string `json:"status"`
+	}
+	getJSON(t, invite.URL()+"/v1/invites/"+created.ID, &expired)
+	if expired.Status != "expired" {
+		t.Fatalf("expected durable invite to be expired, got %+v", expired)
+	}
+}
+
+func TestLocalDurableChatWorkerOfflineDeliveryFlow(t *testing.T) {
+	requireLocalDurableTests(t)
+
+	mysqlConfig, sqlDB := newLocalMySQLTestDatabase(t)
+	redisConfig, redisClient := newLocalRedisTestClient(t)
+
+	worker := workertestkit.NewDurableServer(redisConfig, redisClient)
+	defer worker.Close()
+	chat := chattestkit.NewDurableServer(mysqlConfig, sqlDB, "", worker.URL())
+	defer chat.Close()
+
+	worker.RegisterChatOfflineDeliveryHandler(chat.URL())
+
+	var conversation struct {
+		ID string `json:"id"`
+	}
+	postJSON(t, chat.URL()+"/v1/conversations", map[string]any{
+		"kind":              "private",
+		"member_player_ids": []string{"p1", "p2"},
+	}, &conversation)
+
+	postJSON(t, chat.URL()+"/v1/conversations/"+conversation.ID+"/messages", map[string]any{
+		"sender_player_id": "p1",
+		"body":             "hello durable worker",
+	}, nil)
+
+	result, err := worker.ExecuteUntilEmpty(context.Background(), "worker-a", "chat.offline_delivery", 10)
+	if err != nil {
+		t.Fatalf("execute until empty failed: %v", err)
+	}
+	if result.Completed != 1 {
+		t.Fatalf("unexpected worker result: %+v", result)
+	}
+	if chat.OfflineDeliveryCount(conversation.ID) != 1 {
+		t.Fatalf("expected one durable offline delivery receipt")
+	}
+}
+
 func requireLocalDurableTests(t *testing.T) {
 	t.Helper()
 	if !strings.EqualFold(strings.TrimSpace(os.Getenv("ENABLE_LOCAL_DURABLE_TESTS")), "true") {
