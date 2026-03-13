@@ -69,6 +69,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/021-complete-proto-contract-coverage.md](v1/tasks/021-complete-proto-contract-coverage.md)
 - [docs/plans/v1/tasks/022-document-tcp-realtime-contract-baseline.md](v1/tasks/022-document-tcp-realtime-contract-baseline.md)
 - [docs/plans/v1/tasks/023-document-persistence-boundaries.md](v1/tasks/023-document-persistence-boundaries.md)
+- [docs/plans/v1/tasks/024-enqueue-invite-expiry-jobs.md](v1/tasks/024-enqueue-invite-expiry-jobs.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)

@@ -41,6 +41,7 @@ Base purpose: shared cross-domain invite lifecycle for party, guild, and future 
 - Self-invite is rejected
 - Non-positive TTL falls back to the service default
 - Existing pending invite for the same tuple is returned
+- When the worker boundary is configured, creating a new invite also enqueues an `invite.expire` job intent
 
 ## Get Invite
 

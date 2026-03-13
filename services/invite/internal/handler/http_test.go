@@ -13,7 +13,7 @@ import (
 func TestInviteLifecycleEndpoints(t *testing.T) {
 	t.Parallel()
 
-	h := NewHTTPHandler(service.NewInviteService())
+	h := NewHTTPHandler(service.NewInviteService(nil))
 
 	createReq := httptest.NewRequest(http.MethodPost, "/v1/invites", bytes.NewBufferString(`{"domain":"party","resource_id":"party-1","from_player_id":"p1","to_player_id":"p2"}`))
 	createRec := httptest.NewRecorder()
@@ -41,7 +41,7 @@ func TestInviteLifecycleEndpoints(t *testing.T) {
 func TestListInvitesEndpoint(t *testing.T) {
 	t.Parallel()
 
-	h := NewHTTPHandler(service.NewInviteService())
+	h := NewHTTPHandler(service.NewInviteService(nil))
 
 	createReq := httptest.NewRequest(http.MethodPost, "/v1/invites", bytes.NewBufferString(`{"domain":"guild","resource_id":"guild-1","from_player_id":"p1","to_player_id":"p2"}`))
 	createRec := httptest.NewRecorder()
@@ -72,7 +72,7 @@ func TestListInvitesEndpoint(t *testing.T) {
 func TestGetInviteEndpoint(t *testing.T) {
 	t.Parallel()
 
-	h := NewHTTPHandler(service.NewInviteService())
+	h := NewHTTPHandler(service.NewInviteService(nil))
 
 	createReq := httptest.NewRequest(http.MethodPost, "/v1/invites", bytes.NewBufferString(`{"domain":"party","resource_id":"party-1","from_player_id":"p1","to_player_id":"p2"}`))
 	createRec := httptest.NewRecorder()

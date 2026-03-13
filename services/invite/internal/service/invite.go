@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"slices"
@@ -22,7 +24,13 @@ const (
 	inviteActionDecline = "decline"
 
 	defaultInviteTTL = 15 * time.Minute
+	expireJobType    = "invite.expire"
 )
+
+// JobScheduler captures async scheduling intent for invite lifecycle work.
+type JobScheduler interface {
+	EnqueueJob(ctx context.Context, jobType string, payload string) *apperrors.Error
+}
 
 // InviteService provides an in-memory prototype for cross-domain invite flows.
 type InviteService struct {
@@ -30,13 +38,15 @@ type InviteService struct {
 	invites     map[string]domain.Invite
 	now         func() time.Time
 	newInviteID func() (string, error)
+	scheduler   JobScheduler
 }
 
 // NewInviteService constructs an in-memory invite service.
-func NewInviteService() *InviteService {
+func NewInviteService(scheduler JobScheduler) *InviteService {
 	return &InviteService{
-		invites: make(map[string]domain.Invite),
-		now:     time.Now,
+		invites:   make(map[string]domain.Invite),
+		now:       time.Now,
+		scheduler: scheduler,
 		newInviteID: func() (string, error) {
 			return idgen.Token(8)
 		},
@@ -91,6 +101,25 @@ func (s *InviteService) CreateInvite(domainName string, resourceID string, fromP
 		Status:       inviteStatusPending,
 		CreatedAt:    now,
 		ExpiresAt:    now.Add(ttl),
+	}
+
+	if s.scheduler != nil {
+		payload, err := json.Marshal(map[string]string{
+			"invite_id":      invite.ID,
+			"domain":         invite.Domain,
+			"resource_id":    invite.ResourceID,
+			"from_player_id": invite.FromPlayerID,
+			"to_player_id":   invite.ToPlayerID,
+			"expires_at":     invite.ExpiresAt.Format(time.RFC3339Nano),
+		})
+		if err != nil {
+			internal := apperrors.Internal()
+			return domain.Invite{}, &internal
+		}
+
+		if appErr := s.scheduler.EnqueueJob(context.Background(), expireJobType, string(payload)); appErr != nil {
+			return domain.Invite{}, appErr
+		}
 	}
 
 	s.invites[invite.ID] = invite
