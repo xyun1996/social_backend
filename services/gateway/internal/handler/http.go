@@ -235,7 +235,7 @@ func (h *HTTPHandler) handleRealtimeChatAck(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	appErr := h.acks.AckConversation(r.Context(), gatewayservice.AckRequest{
+	result, appErr := h.acks.AckConversation(r.Context(), gatewayservice.AckRequest{
 		SessionID:      r.PathValue("sessionID"),
 		ConversationID: request.ConversationID,
 		AckSeq:         request.AckSeq,
@@ -245,11 +245,7 @@ func (h *HTTPHandler) handleRealtimeChatAck(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	transport.WriteJSON(w, http.StatusOK, map[string]any{
-		"session_id":      r.PathValue("sessionID"),
-		"conversation_id": request.ConversationID,
-		"ack_seq":         request.AckSeq,
-	})
+	transport.WriteJSON(w, http.StatusOK, result)
 }
 
 func (h *HTTPHandler) handleRealtimeChatReplay(w http.ResponseWriter, r *http.Request) {

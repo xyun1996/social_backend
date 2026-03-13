@@ -89,6 +89,8 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/041-worker-proto-alignment.md](v1/tasks/041-worker-proto-alignment.md)
 - [docs/plans/v1/tasks/042-gateway-proto-alignment.md](v1/tasks/042-gateway-proto-alignment.md)
 - [docs/plans/v1/tasks/043-integration-local-flow-tests.md](v1/tasks/043-integration-local-flow-tests.md)
+- [docs/plans/v1/tasks/044-gateway-ack-inbox-compaction.md](v1/tasks/044-gateway-ack-inbox-compaction.md)
+- [docs/plans/v1/tasks/045-gateway-resume-buffer-trimming.md](v1/tasks/045-gateway-resume-buffer-trimming.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)

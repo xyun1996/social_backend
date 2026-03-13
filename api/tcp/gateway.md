@@ -62,6 +62,7 @@ Example heartbeat:
 - Resume is allowed only for the same authenticated subject.
 - Resume should reuse the existing session identity when possible.
 - Gateway must refresh presence ownership before accepting resumed traffic.
+- If `last_server_event_id` matches buffered session events, gateway should trim buffered delivery through that event before continuing.
 
 Example resume request:
 

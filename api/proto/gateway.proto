@@ -120,6 +120,8 @@ message AckConversationResponse {
   string session_id = 1;
   string conversation_id = 2;
   int64 ack_seq = 3;
+  int32 pruned_count = 4;
+  string last_acked_event_id = 5;
 }
 
 message ReplayMessagesRequest {

@@ -38,6 +38,15 @@ type SessionEventInbox struct {
 	Events    []ChatMessageEnvelope `json:"events"`
 }
 
+// AckCompactionResult summarizes local inbox pruning after a conversation ack.
+type AckCompactionResult struct {
+	SessionID        string `json:"session_id"`
+	ConversationID   string `json:"conversation_id"`
+	AckSeq           int64  `json:"ack_seq"`
+	PrunedCount      int    `json:"pruned_count"`
+	LastAckedEventID string `json:"last_acked_event_id,omitempty"`
+}
+
 // HandshakeRequest is the HTTP prototype shape for realtime handshake.
 type HandshakeRequest struct {
 	AccessToken   string `json:"access_token"`
@@ -187,6 +196,9 @@ func (s *RealtimeService) Resume(ctx context.Context, request ResumeRequest) (Re
 	session.LastHeartbeatAt = snapshot.LastHeartbeatAt
 	session.DisconnectedAt = ""
 	session.LastServerEventID = request.LastServerEventID
+	if request.LastServerEventID != "" {
+		s.events[session.SessionID] = trimEventsThroughID(s.events[session.SessionID], request.LastServerEventID)
+	}
 	s.sessions[session.SessionID] = session
 	s.mu.Unlock()
 	return session, nil
@@ -252,6 +264,52 @@ func (s *RealtimeService) GetSessionEvents(sessionID string) (SessionEventInbox,
 	}, nil
 }
 
+// AcknowledgeConversation removes locally buffered chat events that are already durable on the client side.
+func (s *RealtimeService) AcknowledgeConversation(sessionID string, conversationID string, ackSeq int64) (AckCompactionResult, *apperrors.Error) {
+	session, appErr := s.getActiveSession(sessionID)
+	if appErr != nil {
+		return AckCompactionResult{}, appErr
+	}
+	if conversationID == "" {
+		err := apperrors.New("invalid_request", "conversation_id is required", http.StatusBadRequest)
+		return AckCompactionResult{}, &err
+	}
+	if ackSeq < 0 {
+		err := apperrors.New("invalid_request", "ack_seq must be >= 0", http.StatusBadRequest)
+		return AckCompactionResult{}, &err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	events := s.events[sessionID]
+	kept := make([]ChatMessageEnvelope, 0, len(events))
+	lastAckedEventID := ""
+	prunedCount := 0
+	for _, event := range events {
+		if event.Stream == "chat" && event.Kind == "chat.message" && event.ConversationID == conversationID && event.Seq <= ackSeq {
+			prunedCount++
+			lastAckedEventID = event.EventID
+			continue
+		}
+		kept = append(kept, event)
+	}
+
+	s.events[sessionID] = kept
+	if lastAckedEventID != "" {
+		session.LastServerEventID = lastAckedEventID
+		s.sessions[sessionID] = session
+	}
+
+	return AckCompactionResult{
+		SessionID:        sessionID,
+		ConversationID:   conversationID,
+		AckSeq:           ackSeq,
+		PrunedCount:      prunedCount,
+		LastAckedEventID: lastAckedEventID,
+	}, nil
+}
+
 func (s *RealtimeService) getActiveSession(sessionID string) (RealtimeSession, *apperrors.Error) {
 	session, appErr := s.getSession(sessionID)
 	if appErr != nil {
@@ -282,4 +340,23 @@ func (s *RealtimeService) getSession(sessionID string) (RealtimeSession, *apperr
 
 func (s *RealtimeService) String() string {
 	return fmt.Sprintf("gateway-realtime(sessions=%d)", len(s.sessions))
+}
+
+func trimEventsThroughID(events []ChatMessageEnvelope, lastServerEventID string) []ChatMessageEnvelope {
+	if lastServerEventID == "" {
+		return events
+	}
+
+	trimIndex := -1
+	for idx, event := range events {
+		if event.EventID == lastServerEventID {
+			trimIndex = idx
+			break
+		}
+	}
+	if trimIndex < 0 {
+		return events
+	}
+
+	return append([]ChatMessageEnvelope(nil), events[trimIndex+1:]...)
 }

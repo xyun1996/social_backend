@@ -241,7 +241,11 @@ func TestRealtimeChatAckUsesSessionPlayerIdentity(t *testing.T) {
 			LastHeartbeatAt: "2026-03-13T10:00:00Z",
 		},
 	}
-	planner := &stubChatPlanner{}
+	planner := &stubChatPlanner{
+		targets: []gatewayservice.ChatDeliveryTarget{
+			{PlayerID: "p2", DeliveryMode: "online_push", SessionID: "sess-2"},
+		},
+	}
 	h := NewHTTPHandler(stubIntrospector{
 		subject: gatewayservice.Subject{AccountID: "a2", PlayerID: "p2"},
 	}, reporter, planner)
@@ -253,6 +257,13 @@ func TestRealtimeChatAckUsesSessionPlayerIdentity(t *testing.T) {
 		t.Fatalf("unexpected handshake status: got %d want %d", handshakeRec.Code, http.StatusOK)
 	}
 
+	dispatchReq := httptest.NewRequest(http.MethodPost, "/v1/realtime/chat/deliveries", bytes.NewBufferString(`{"conversation_id":"conv-1","sender_player_id":"p1","message_id":"msg-1","seq":1,"body":"hello","sent_at":"2026-03-13T10:00:00Z"}`))
+	dispatchRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(dispatchRec, dispatchReq)
+	if dispatchRec.Code != http.StatusOK {
+		t.Fatalf("unexpected dispatch status: got %d want %d", dispatchRec.Code, http.StatusOK)
+	}
+
 	ackReq := httptest.NewRequest(http.MethodPost, "/v1/realtime/sessions/sess-2/acks", bytes.NewBufferString(`{"conversation_id":"conv-1","ack_seq":3}`))
 	ackRec := httptest.NewRecorder()
 	h.Routes().ServeHTTP(ackRec, ackReq)
@@ -261,6 +272,31 @@ func TestRealtimeChatAckUsesSessionPlayerIdentity(t *testing.T) {
 	}
 	if planner.ackedConversationID != "conv-1" || planner.ackedPlayerID != "p2" || planner.ackedSeq != 3 {
 		t.Fatalf("unexpected ack forwarding: %+v", planner)
+	}
+
+	var ackPayload map[string]any
+	if err := json.Unmarshal(ackRec.Body.Bytes(), &ackPayload); err != nil {
+		t.Fatalf("unmarshal ack response: %v", err)
+	}
+	if ackPayload["pruned_count"] != float64(1) {
+		t.Fatalf("unexpected ack response payload: %+v", ackPayload)
+	}
+
+	eventsReq := httptest.NewRequest(http.MethodGet, "/v1/realtime/sessions/sess-2/events", nil)
+	eventsRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(eventsRec, eventsReq)
+	if eventsRec.Code != http.StatusOK {
+		t.Fatalf("unexpected events status: got %d want %d", eventsRec.Code, http.StatusOK)
+	}
+
+	var inbox struct {
+		Count int `json:"count"`
+	}
+	if err := json.Unmarshal(eventsRec.Body.Bytes(), &inbox); err != nil {
+		t.Fatalf("unmarshal events response: %v", err)
+	}
+	if inbox.Count != 0 {
+		t.Fatalf("expected session inbox to be compacted, got %+v", inbox)
 	}
 }
 
@@ -299,5 +335,71 @@ func TestRealtimeChatReplayUsesSessionPlayerIdentity(t *testing.T) {
 	}
 	if planner.replayedConvID != "conv-1" || planner.replayedPlayerID != "p2" || planner.replayedAfterSeq != 1 || planner.replayedLimit != 20 {
 		t.Fatalf("unexpected replay forwarding: %+v", planner)
+	}
+}
+
+func TestRealtimeResumeTrimsBufferedEventsThroughLastSeenEvent(t *testing.T) {
+	t.Parallel()
+
+	reporter := &stubPresenceReporter{
+		snapshot: gatewayservice.PresenceSnapshot{
+			PlayerID:        "p2",
+			Status:          "online",
+			SessionID:       "sess-2",
+			LastHeartbeatAt: "2026-03-13T10:00:00Z",
+		},
+	}
+	h := NewHTTPHandler(stubIntrospector{
+		subject: gatewayservice.Subject{AccountID: "a2", PlayerID: "p2"},
+	}, reporter, &stubChatPlanner{
+		targets: []gatewayservice.ChatDeliveryTarget{
+			{PlayerID: "p2", DeliveryMode: "online_push", SessionID: "sess-2"},
+		},
+	})
+
+	handshakeReq := httptest.NewRequest(http.MethodPost, "/v1/realtime/handshake", bytes.NewBufferString(`{"access_token":"token-2","session_id":"sess-2"}`))
+	handshakeRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(handshakeRec, handshakeReq)
+	if handshakeRec.Code != http.StatusOK {
+		t.Fatalf("unexpected handshake status: got %d want %d", handshakeRec.Code, http.StatusOK)
+	}
+
+	for _, payload := range []string{
+		`{"conversation_id":"conv-1","sender_player_id":"p1","message_id":"msg-1","seq":1,"body":"hello","sent_at":"2026-03-13T10:00:00Z"}`,
+		`{"conversation_id":"conv-1","sender_player_id":"p1","message_id":"msg-2","seq":2,"body":"world","sent_at":"2026-03-13T10:00:01Z"}`,
+	} {
+		dispatchReq := httptest.NewRequest(http.MethodPost, "/v1/realtime/chat/deliveries", bytes.NewBufferString(payload))
+		dispatchRec := httptest.NewRecorder()
+		h.Routes().ServeHTTP(dispatchRec, dispatchReq)
+		if dispatchRec.Code != http.StatusOK {
+			t.Fatalf("unexpected dispatch status: got %d want %d", dispatchRec.Code, http.StatusOK)
+		}
+	}
+
+	resumeReq := httptest.NewRequest(http.MethodPost, "/v1/realtime/resume", bytes.NewBufferString(`{"access_token":"token-2","session_id":"sess-2","last_server_event_id":"msg-1:1"}`))
+	resumeRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(resumeRec, resumeReq)
+	if resumeRec.Code != http.StatusOK {
+		t.Fatalf("unexpected resume status: got %d want %d", resumeRec.Code, http.StatusOK)
+	}
+
+	eventsReq := httptest.NewRequest(http.MethodGet, "/v1/realtime/sessions/sess-2/events", nil)
+	eventsRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(eventsRec, eventsReq)
+	if eventsRec.Code != http.StatusOK {
+		t.Fatalf("unexpected events status: got %d want %d", eventsRec.Code, http.StatusOK)
+	}
+
+	var inbox struct {
+		Count  int `json:"count"`
+		Events []struct {
+			EventID string `json:"event_id"`
+		} `json:"events"`
+	}
+	if err := json.Unmarshal(eventsRec.Body.Bytes(), &inbox); err != nil {
+		t.Fatalf("unmarshal events response: %v", err)
+	}
+	if inbox.Count != 1 || inbox.Events[0].EventID != "msg-2:2" {
+		t.Fatalf("unexpected inbox after resume trim: %+v", inbox)
 	}
 }

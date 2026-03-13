@@ -109,3 +109,70 @@ func TestEnqueueChatEvent(t *testing.T) {
 		t.Fatalf("unexpected inbox: %+v", inbox)
 	}
 }
+
+func TestAcknowledgeConversationPrunesInbox(t *testing.T) {
+	t.Parallel()
+
+	presence := &fakePresence{snapshot: PresenceSnapshot{Status: "online", LastHeartbeatAt: "2026-03-13T10:00:00Z"}}
+	svc := NewRealtimeService(fakeIntrospector{subject: Subject{AccountID: "a1", PlayerID: "p1"}}, presence)
+	if _, err := svc.Handshake(context.Background(), HandshakeRequest{
+		AccessToken: "token-1",
+		SessionID:   "sess-1",
+	}); err != nil {
+		t.Fatalf("handshake returned error: %+v", err)
+	}
+
+	_ = svc.EnqueueChatEvent("sess-1", ChatMessageEnvelope{EventID: "msg-1:1", Stream: "chat", Kind: "chat.message", ConversationID: "conv-1", Seq: 1})
+	_ = svc.EnqueueChatEvent("sess-1", ChatMessageEnvelope{EventID: "msg-2:2", Stream: "chat", Kind: "chat.message", ConversationID: "conv-1", Seq: 2})
+	_ = svc.EnqueueChatEvent("sess-1", ChatMessageEnvelope{EventID: "msg-3:1", Stream: "chat", Kind: "chat.message", ConversationID: "conv-2", Seq: 1})
+
+	result, err := svc.AcknowledgeConversation("sess-1", "conv-1", 1)
+	if err != nil {
+		t.Fatalf("acknowledge conversation returned error: %+v", err)
+	}
+	if result.PrunedCount != 1 || result.LastAckedEventID != "msg-1:1" {
+		t.Fatalf("unexpected compaction result: %+v", result)
+	}
+
+	inbox, err := svc.GetSessionEvents("sess-1")
+	if err != nil {
+		t.Fatalf("get session events returned error: %+v", err)
+	}
+	if inbox.Count != 2 || inbox.Events[0].EventID != "msg-2:2" {
+		t.Fatalf("unexpected inbox after ack: %+v", inbox)
+	}
+}
+
+func TestResumeTrimsEventsThroughLastServerEventID(t *testing.T) {
+	t.Parallel()
+
+	presence := &fakePresence{snapshot: PresenceSnapshot{Status: "online", LastHeartbeatAt: "2026-03-13T10:00:00Z"}}
+	svc := NewRealtimeService(fakeIntrospector{subject: Subject{AccountID: "a1", PlayerID: "p1"}}, presence)
+	if _, err := svc.Handshake(context.Background(), HandshakeRequest{
+		AccessToken: "token-1",
+		SessionID:   "sess-1",
+	}); err != nil {
+		t.Fatalf("handshake returned error: %+v", err)
+	}
+
+	_ = svc.EnqueueChatEvent("sess-1", ChatMessageEnvelope{EventID: "evt-1", Stream: "chat", Kind: "chat.message", ConversationID: "conv-1", Seq: 1})
+	_ = svc.EnqueueChatEvent("sess-1", ChatMessageEnvelope{EventID: "evt-2", Stream: "chat", Kind: "chat.message", ConversationID: "conv-1", Seq: 2})
+	_ = svc.EnqueueChatEvent("sess-1", ChatMessageEnvelope{EventID: "evt-3", Stream: "chat", Kind: "chat.message", ConversationID: "conv-1", Seq: 3})
+
+	_, err := svc.Resume(context.Background(), ResumeRequest{
+		AccessToken:       "token-1",
+		SessionID:         "sess-1",
+		LastServerEventID: "evt-2",
+	})
+	if err != nil {
+		t.Fatalf("resume returned error: %+v", err)
+	}
+
+	inbox, err := svc.GetSessionEvents("sess-1")
+	if err != nil {
+		t.Fatalf("get session events returned error: %+v", err)
+	}
+	if inbox.Count != 1 || inbox.Events[0].EventID != "evt-3" {
+		t.Fatalf("unexpected inbox after resume trim: %+v", inbox)
+	}
+}

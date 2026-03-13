@@ -171,6 +171,7 @@ Authorization: Bearer <access_token>
 - Response `200`
 - Rules
 - Gateway resolves the `player_id` from the active session before forwarding the ack to chat
+- Gateway also compacts already acknowledged chat events from the session inbox
 
 ## Realtime Chat Replay Prototype
 
@@ -191,3 +192,9 @@ Authorization: Bearer <access_token>
 - Rules
 - Gateway resolves the `player_id` from the active session before requesting replay from chat
 - Replay remains chat-owned; gateway only scopes and forwards the request
+
+## Realtime Resume Buffer Rule
+
+- `POST /v1/realtime/resume` already accepts `last_server_event_id`
+- When that event id matches buffered gateway events, gateway trims local buffered events through that id before the resumed session continues
+- Durable gap recovery still belongs to `chat` replay rather than gateway-local buffering
