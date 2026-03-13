@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"os"
 	"strings"
 	"time"
@@ -50,18 +49,13 @@ func buildAuthService() (*service.AuthService, func(), error) {
 	}
 
 	mysqlConfig := db.LoadMySQLConfig()
-	sqlDB, err := sql.Open("mysql", mysqlConfig.DSN())
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	sqlDB, err := db.OpenMySQL(ctx, mysqlConfig)
 	if err != nil {
 		return nil, func() {}, err
 	}
-
 	repo := mysqlrepo.NewRepository(mysqlConfig, sqlDB)
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	if err := sqlDB.PingContext(ctx); err != nil {
-		_ = sqlDB.Close()
-		return nil, func() {}, err
-	}
 	if strings.EqualFold(strings.TrimSpace(os.Getenv("IDENTITY_AUTO_MIGRATE")), "true") {
 		if err := repo.BootstrapSchema(ctx); err != nil {
 			_ = sqlDB.Close()

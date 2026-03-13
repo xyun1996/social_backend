@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/xyun1996/social_backend/pkg/app"
 	"github.com/xyun1996/social_backend/pkg/config"
 	"github.com/xyun1996/social_backend/pkg/db"
@@ -68,17 +67,10 @@ func buildWorkerService() (*service.WorkerService, func(), error) {
 	}
 
 	redisConfig := db.LoadRedisConfig()
-	client := redis.NewClient(&redis.Options{
-		Addr:     redisConfig.Addr,
-		Username: redisConfig.Username,
-		Password: redisConfig.Password,
-		DB:       redisConfig.DB,
-	})
-
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	if err := client.Ping(ctx).Err(); err != nil {
-		_ = client.Close()
+	client, err := db.OpenRedis(ctx, redisConfig)
+	if err != nil {
 		return nil, func() {}, err
 	}
 

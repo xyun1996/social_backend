@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"os"
 	"strings"
 	"time"
@@ -58,15 +57,10 @@ func buildInviteService() (*service.InviteService, func(), error) {
 	}
 
 	mysqlConfig := db.LoadMySQLConfig()
-	sqlDB, err := sql.Open("mysql", mysqlConfig.DSN())
-	if err != nil {
-		return nil, func() {}, err
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	if err := sqlDB.PingContext(ctx); err != nil {
-		_ = sqlDB.Close()
+	sqlDB, err := db.OpenMySQL(ctx, mysqlConfig)
+	if err != nil {
 		return nil, func() {}, err
 	}
 
