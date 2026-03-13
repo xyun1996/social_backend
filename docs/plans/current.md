@@ -117,6 +117,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/069-local-durable-gateway-auth-flow.md](v1/tasks/069-local-durable-gateway-auth-flow.md)
 - [docs/plans/v1/tasks/070-local-durable-worker-runtime-flows.md](v1/tasks/070-local-durable-worker-runtime-flows.md)
 - [docs/plans/v1/tasks/071-party-store-boundary-refactor.md](v1/tasks/071-party-store-boundary-refactor.md)
+- [docs/plans/v1/tasks/072-party-mysql-store-and-startup.md](v1/tasks/072-party-mysql-store-and-startup.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)

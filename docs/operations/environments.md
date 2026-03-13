@@ -39,6 +39,8 @@
 - `CHAT_AUTO_MIGRATE`: bootstrap owned MySQL schema on startup when `true`
 - `SOCIAL_STORE`: `memory` or `mysql`
 - `SOCIAL_AUTO_MIGRATE`: bootstrap owned MySQL schema on startup when `true`
+- `PARTY_STORE`: `memory` or `mysql`
+- `PARTY_AUTO_MIGRATE`: bootstrap owned MySQL schema on startup when `true`
 - `PRESENCE_STORE`: `memory` or `redis`
 - `WORKER_STORE`: `memory` or `redis`
 - `WORKER_AUTO_RUN`: enable the worker background drain loop when `true`

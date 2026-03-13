@@ -42,6 +42,8 @@ Shared keys currently documented there:
 - `CHAT_AUTO_MIGRATE=false`
 - `SOCIAL_STORE=memory`
 - `SOCIAL_AUTO_MIGRATE=false`
+- `PARTY_STORE=memory`
+- `PARTY_AUTO_MIGRATE=false`
 - `PRESENCE_STORE=memory`
 - `WORKER_STORE=memory`
 
