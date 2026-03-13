@@ -28,3 +28,15 @@
 - Document environment differences before relying on environment-specific behavior.
 - Avoid introducing runtime assumptions that only exist in local development.
 - Keep local-only credentials in committed example files only when they are explicitly disposable developer defaults.
+
+## Runtime Toggles
+
+- `IDENTITY_STORE`: `memory` or `mysql`
+- `IDENTITY_AUTO_MIGRATE`: bootstrap owned MySQL schema on startup when `true`
+- `INVITE_STORE`: `memory` or `mysql`
+- `INVITE_AUTO_MIGRATE`: bootstrap owned MySQL schema on startup when `true`
+- `CHAT_STORE`: `memory` or `mysql`
+- `CHAT_AUTO_MIGRATE`: bootstrap owned MySQL schema on startup when `true`
+- `PRESENCE_STORE`: `memory` or `redis`
+- `WORKER_STORE`: `memory` or `redis`
+- `PRESENCE_AUTO_PING`: validate Redis connectivity on startup when `true`

@@ -34,9 +34,17 @@ Shared keys currently documented there:
 - `REDIS_USERNAME=`
 - `REDIS_PASSWORD=`
 - `REDIS_DB=0`
+- `IDENTITY_STORE=memory`
+- `IDENTITY_AUTO_MIGRATE=false`
+- `INVITE_STORE=memory`
+- `INVITE_AUTO_MIGRATE=false`
+- `CHAT_STORE=memory`
+- `CHAT_AUTO_MIGRATE=false`
+- `PRESENCE_STORE=memory`
 
 ## Future Work
 
 - Decide on exact config format and loading library when Go modules are introduced.
 - Shared MySQL foundation currently reads `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, and `MYSQL_DATABASE`.
 - Shared Redis foundation currently reads `REDIS_ADDR`, `REDIS_USERNAME`, `REDIS_PASSWORD`, and `REDIS_DB`.
+- Service-local runtime selection currently uses `*_STORE` toggles, while owned schema bootstrap uses `*_AUTO_MIGRATE=true` for MySQL-backed services.
