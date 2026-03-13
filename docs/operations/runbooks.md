@@ -12,6 +12,7 @@ Use one file per meaningful operator or incident workflow once implementation be
 - Operator mute or system broadcast procedure
 - [Local durable bootstrap and status triage](local-durable-troubleshooting.md)
 - [Proto generation workflow](proto-generation.md)
+- [Contract inventory workflow](contract-inventory.md)
 
 ## Rules
 

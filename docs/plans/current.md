@@ -140,6 +140,7 @@ Advance the prototype stack into durable local runtime shape by closing MySQL an
 - [docs/plans/v1/tasks/095-proto-check-entrypoint.md](v1/tasks/095-proto-check-entrypoint.md)
 - [docs/plans/v1/tasks/096-tcp-contract-smoke-tests.md](v1/tasks/096-tcp-contract-smoke-tests.md)
 - [docs/plans/v1/tasks/097-http-contract-readme-smoke-tests.md](v1/tasks/097-http-contract-readme-smoke-tests.md)
+- [docs/plans/v1/tasks/098-contract-inventory-checker.md](v1/tasks/098-contract-inventory-checker.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)
