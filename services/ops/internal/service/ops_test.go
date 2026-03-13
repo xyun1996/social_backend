@@ -90,14 +90,22 @@ func TestGetPartySnapshot(t *testing.T) {
 	t.Parallel()
 
 	svc := NewOpsService(nil, &fakePartyReader{
-		record: PartySnapshot{PartyID: "party-1", Count: 1},
+		record: PartySnapshot{
+			PartyID: "party-1",
+			Count:   1,
+			Queue: &PartyQueueState{
+				PartyID:   "party-1",
+				QueueName: "casual-2v2",
+				Status:    "queued",
+			},
+		},
 	}, nil, nil, nil, nil, nil)
 
 	record, err := svc.GetPartySnapshot(context.Background(), "party-1")
 	if err != nil {
 		t.Fatalf("get party returned error: %+v", err)
 	}
-	if record.PartyID != "party-1" {
+	if record.PartyID != "party-1" || record.Queue == nil || record.Queue.QueueName != "casual-2v2" {
 		t.Fatalf("unexpected party snapshot: %+v", record)
 	}
 }

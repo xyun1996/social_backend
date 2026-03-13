@@ -47,6 +47,14 @@ message PartyMemberState {
   string location = 7;
 }
 
+message PartyQueueState {
+  string party_id = 1;
+  string queue_name = 2;
+  string status = 3;
+  string joined_by = 4;
+  string joined_at = 5;
+}
+
 message GuildMemberState {
   string player_id = 1;
   string role = 2;
@@ -60,6 +68,7 @@ message PartySnapshot {
   string party_id = 1;
   int32 count = 2;
   repeated PartyMemberState members = 3;
+  PartyQueueState queue = 4;
 }
 
 message GuildSnapshot {

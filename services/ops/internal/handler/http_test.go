@@ -19,7 +19,15 @@ func (f *fakePresenceReader) GetPresence(context.Context, string) (opsservice.Pr
 type fakePartyReader struct{}
 
 func (f *fakePartyReader) GetPartySnapshot(context.Context, string) (opsservice.PartySnapshot, *apperrors.Error) {
-	return opsservice.PartySnapshot{PartyID: "party-1", Count: 1}, nil
+	return opsservice.PartySnapshot{
+		PartyID: "party-1",
+		Count:   1,
+		Queue: &opsservice.PartyQueueState{
+			PartyID:   "party-1",
+			QueueName: "casual-2v2",
+			Status:    "queued",
+		},
+	}, nil
 }
 
 type fakeGuildReader struct{}

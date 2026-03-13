@@ -54,6 +54,15 @@ type PartyMemberState struct {
 	Location  string `json:"location,omitempty"`
 }
 
+// PartyQueueState is the operator-facing active queue enrollment for a party.
+type PartyQueueState struct {
+	PartyID   string `json:"party_id"`
+	QueueName string `json:"queue_name"`
+	Status    string `json:"status"`
+	JoinedBy  string `json:"joined_by"`
+	JoinedAt  string `json:"joined_at,omitempty"`
+}
+
 // GuildMemberState is the operator-facing guild member runtime shape.
 type GuildMemberState struct {
 	PlayerID  string `json:"player_id"`
@@ -69,6 +78,7 @@ type PartySnapshot struct {
 	PartyID string             `json:"party_id"`
 	Count   int                `json:"count"`
 	Members []PartyMemberState `json:"members"`
+	Queue   *PartyQueueState   `json:"queue,omitempty"`
 }
 
 // GuildSnapshot aggregates current guild runtime state.

@@ -43,9 +43,19 @@ Base purpose: operator-facing read queries across runtime-aware service boundari
 {
   "party_id": "party-1",
   "count": 2,
-  "members": []
+  "members": [],
+  "queue": {
+    "party_id": "party-1",
+    "queue_name": "casual-2v2",
+    "status": "queued",
+    "joined_by": "p1",
+    "joined_at": "2026-03-13T10:00:00Z"
+  }
 }
 ```
+
+- Rules
+- `queue` is omitted when the party has no active queue enrollment
 
 ## Guild Snapshot
 
