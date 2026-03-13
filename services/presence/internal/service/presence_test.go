@@ -1,6 +1,44 @@
 package service
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/xyun1996/social_backend/services/presence/internal/domain"
+)
+
+type recordingPresenceStore struct {
+	presences map[string]storedPresence
+}
+
+type storedPresence struct {
+	playerID string
+	status   string
+}
+
+func newRecordingPresenceStore() *recordingPresenceStore {
+	return &recordingPresenceStore{
+		presences: make(map[string]storedPresence),
+	}
+}
+
+func (s *recordingPresenceStore) SavePresence(presence domain.Presence) error {
+	s.presences[presence.PlayerID] = storedPresence{
+		playerID: presence.PlayerID,
+		status:   presence.Status,
+	}
+	return nil
+}
+
+func (s *recordingPresenceStore) GetPresence(playerID string) (domain.Presence, bool, error) {
+	record, ok := s.presences[playerID]
+	if !ok {
+		return domain.Presence{}, false, nil
+	}
+	return domain.Presence{
+		PlayerID: record.playerID,
+		Status:   record.status,
+	}, true, nil
+}
 
 func TestConnectHeartbeatDisconnectLifecycle(t *testing.T) {
 	t.Parallel()
@@ -45,5 +83,25 @@ func TestHeartbeatRejectsDifferentSession(t *testing.T) {
 
 	if _, err := svc.Heartbeat("p1", "sess-2", "", ""); err == nil {
 		t.Fatalf("expected heartbeat with different session to fail")
+	}
+}
+
+func TestConnectUsesInjectedStore(t *testing.T) {
+	t.Parallel()
+
+	store := newRecordingPresenceStore()
+	svc := NewPresenceServiceWithStore(store)
+
+	presence, err := svc.Connect("p9", "sess-9", "", "")
+	if err != nil {
+		t.Fatalf("connect returned error: %+v", err)
+	}
+
+	record, ok := store.presences["p9"]
+	if !ok {
+		t.Fatalf("expected presence to be stored")
+	}
+	if record.playerID != "p9" || record.status != statusOnline || presence.PlayerID != "p9" {
+		t.Fatalf("unexpected stored presence: %+v", record)
 	}
 }

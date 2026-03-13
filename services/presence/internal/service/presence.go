@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	apperrors "github.com/xyun1996/social_backend/pkg/errors"
@@ -17,16 +16,27 @@ const (
 
 // PresenceService provides an in-memory prototype for online state reporting.
 type PresenceService struct {
-	mu        sync.RWMutex
-	presences map[string]domain.Presence
-	now       func() time.Time
+	store PresenceStore
+	now   func() time.Time
 }
 
 // NewPresenceService constructs an in-memory presence service.
 func NewPresenceService() *PresenceService {
 	return &PresenceService{
-		presences: make(map[string]domain.Presence),
-		now:       time.Now,
+		store: newMemoryPresenceStore(),
+		now:   time.Now,
+	}
+}
+
+// NewPresenceServiceWithStore constructs a presence service with a custom store.
+func NewPresenceServiceWithStore(store PresenceStore) *PresenceService {
+	if store == nil {
+		return NewPresenceService()
+	}
+
+	return &PresenceService{
+		store: store,
+		now:   time.Now,
 	}
 }
 
@@ -36,9 +46,6 @@ func (s *PresenceService) Connect(playerID string, sessionID string, realmID str
 		err := apperrors.New("invalid_request", "player_id and session_id are required", http.StatusBadRequest)
 		return domain.Presence{}, &err
 	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	now := s.now()
 	presence := domain.Presence{
@@ -52,7 +59,10 @@ func (s *PresenceService) Connect(playerID string, sessionID string, realmID str
 		ConnectedAt:     &now,
 	}
 
-	s.presences[playerID] = presence
+	if err := s.store.SavePresence(presence); err != nil {
+		internal := apperrors.Internal()
+		return domain.Presence{}, &internal
+	}
 	return presence, nil
 }
 
@@ -63,10 +73,11 @@ func (s *PresenceService) Heartbeat(playerID string, sessionID string, realmID s
 		return domain.Presence{}, &err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	presence, ok := s.presences[playerID]
+	presence, ok, err := s.store.GetPresence(playerID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Presence{}, &internal
+	}
 	if !ok {
 		err := apperrors.New("not_found", "presence not found", http.StatusNotFound)
 		return domain.Presence{}, &err
@@ -84,7 +95,10 @@ func (s *PresenceService) Heartbeat(playerID string, sessionID string, realmID s
 	presence.LastHeartbeatAt = now
 	presence.LastSeenAt = now
 	presence.DisconnectedAt = nil
-	s.presences[playerID] = presence
+	if err := s.store.SavePresence(presence); err != nil {
+		internal := apperrors.Internal()
+		return domain.Presence{}, &internal
+	}
 	return presence, nil
 }
 
@@ -95,10 +109,11 @@ func (s *PresenceService) Disconnect(playerID string, sessionID string) (domain.
 		return domain.Presence{}, &err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	presence, ok := s.presences[playerID]
+	presence, ok, err := s.store.GetPresence(playerID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Presence{}, &internal
+	}
 	if !ok {
 		err := apperrors.New("not_found", "presence not found", http.StatusNotFound)
 		return domain.Presence{}, &err
@@ -113,7 +128,10 @@ func (s *PresenceService) Disconnect(playerID string, sessionID string) (domain.
 	presence.Status = statusOffline
 	presence.LastSeenAt = now
 	presence.DisconnectedAt = &now
-	s.presences[playerID] = presence
+	if err := s.store.SavePresence(presence); err != nil {
+		internal := apperrors.Internal()
+		return domain.Presence{}, &internal
+	}
 	return presence, nil
 }
 
@@ -124,10 +142,11 @@ func (s *PresenceService) GetPresence(playerID string) (domain.Presence, *apperr
 		return domain.Presence{}, &err
 	}
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	presence, ok := s.presences[playerID]
+	presence, ok, err := s.store.GetPresence(playerID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Presence{}, &internal
+	}
 	if !ok {
 		err := apperrors.New("not_found", "presence not found", http.StatusNotFound)
 		return domain.Presence{}, &err
@@ -137,5 +156,5 @@ func (s *PresenceService) GetPresence(playerID string) (domain.Presence, *apperr
 }
 
 func (s *PresenceService) String() string {
-	return fmt.Sprintf("presence-service(players=%d)", len(s.presences))
+	return fmt.Sprintf("presence-service(store=%T)", s.store)
 }

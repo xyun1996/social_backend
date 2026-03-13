@@ -77,7 +77,7 @@ Invite can optionally depend on `worker` for async expiry job intent in local ru
 Worker can depend on `invite` and `chat` for executable async job handling in local runs.
 Worker also supports an optional background drain loop via `WORKER_AUTO_RUN=true`.
 `pkg/db` now includes a shared MySQL foundation, and `identity` can optionally run with a MySQL-backed store via `IDENTITY_STORE=mysql`.
-`pkg/db` now also includes a shared Redis foundation, and `presence` has the first service-local repo/redis skeleton.
+`pkg/db` now also includes a shared Redis foundation, and `presence` can optionally run with a Redis-backed store via `PRESENCE_STORE=redis`.
 
 - `make run-identity`
 - `make run-gateway`
