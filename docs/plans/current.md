@@ -130,6 +130,7 @@ Advance the prototype stack into durable local runtime shape by closing MySQL an
 - [docs/plans/v1/tasks/085-complete-local-durable-run-targets.md](v1/tasks/085-complete-local-durable-run-targets.md)
 - [docs/plans/v1/tasks/086-align-config-docs-with-durable-status-flags.md](v1/tasks/086-align-config-docs-with-durable-status-flags.md)
 - [docs/plans/v1/tasks/087-add-local-durable-status-check-script.md](v1/tasks/087-add-local-durable-status-check-script.md)
+- [docs/plans/v1/tasks/088-add-db-helper-tests.md](v1/tasks/088-add-db-helper-tests.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)
