@@ -1,4 +1,4 @@
-.PHONY: help bootstrap test proto lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker run-identity-mysql run-social-mysql run-invite-mysql run-chat-mysql run-party-mysql run-guild-mysql run-presence-redis run-worker-redis run-gateway-redis run-ops-durable test-local-durable bootstrap-local-mysql verify-local-mysql-migrations
+.PHONY: help bootstrap test proto lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker run-identity-mysql run-social-mysql run-invite-mysql run-chat-mysql run-party-mysql run-guild-mysql run-presence-redis run-worker-redis run-gateway-redis run-ops-durable test-local-durable bootstrap-local-mysql verify-local-mysql-migrations check-local-durable-status
 
 help:
 	@echo "Available targets:"
@@ -31,6 +31,7 @@ help:
 	@echo "  test-local-durable - run opt-in durable integration tests against local MySQL and Redis"
 	@echo "  bootstrap-local-mysql - bootstrap owned MySQL schemas without serving traffic"
 	@echo "  verify-local-mysql-migrations - inspect required schema_migrations rows on local MySQL"
+	@echo "  check-local-durable-status - query ops for local MySQL and Redis durable status"
 
 bootstrap:
 	@echo "Repository scaffold is in place."
@@ -122,3 +123,6 @@ bootstrap-local-mysql:
 
 verify-local-mysql-migrations:
 	set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && go run ./scripts/dev/cmd/verify_mysql_migrations
+
+check-local-durable-status:
+	set OPS_BASE_URL=http://localhost:8088 && go run ./scripts/dev/cmd/check_local_durable_status

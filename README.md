@@ -109,6 +109,7 @@ Worker also supports an optional background drain loop via `WORKER_AUTO_RUN=true
 - `make run-ops-durable`
 - `make test-local-durable`
 - `make bootstrap-local-mysql`
+- `make check-local-durable-status`
 
 Starter service defaults:
 
@@ -142,3 +143,4 @@ Durable-mode shortcuts:
 - `make run-ops-durable`
 - `make test-local-durable`
 - `make bootstrap-local-mysql`
+- `make check-local-durable-status`

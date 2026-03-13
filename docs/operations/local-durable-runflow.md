@@ -24,11 +24,13 @@ Start the services that already have optional durable backends against the local
 - `make test-local-durable`
 - `make bootstrap-local-mysql`
 - `make verify-local-mysql-migrations`
+- `make check-local-durable-status`
 
 ## Notes
 
 - The MySQL-backed targets explicitly enable `*_AUTO_MIGRATE=true`.
 - `run-ops-durable` enables both `OPS_MYSQL_STATUS=true` and `OPS_REDIS_STATUS=true` so `ops` can inspect durable bootstrap and runtime state together.
+- `check-local-durable-status` calls the `ops` durable status endpoints and prints the current MySQL bootstrap and Redis runtime snapshots.
 - The owned MySQL bootstrap is now idempotent, so repeated local restarts do not fail just because tables already exist.
 - `verify-local-mysql-migrations` reads `schema_migrations` and checks that every MySQL-backed service recorded its owned migration ids.
 - `test-local-durable` runs the opt-in durable integration tests against local MySQL and Redis and leaves default `go test ./...` behavior unchanged.
