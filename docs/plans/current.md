@@ -71,6 +71,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/023-document-persistence-boundaries.md](v1/tasks/023-document-persistence-boundaries.md)
 - [docs/plans/v1/tasks/024-enqueue-invite-expiry-jobs.md](v1/tasks/024-enqueue-invite-expiry-jobs.md)
 - [docs/plans/v1/tasks/025-enqueue-chat-offline-delivery-jobs.md](v1/tasks/025-enqueue-chat-offline-delivery-jobs.md)
+- [docs/plans/v1/tasks/026-ops-player-overview-aggregation.md](v1/tasks/026-ops-player-overview-aggregation.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)

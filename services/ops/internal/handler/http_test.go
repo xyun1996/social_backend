@@ -34,12 +34,19 @@ func (f *fakeWorkerReader) GetWorkerSnapshot(context.Context, string, string) (o
 	return opsservice.WorkerSnapshot{Count: 1}, nil
 }
 
+type fakeSocialReader struct{}
+
+func (f *fakeSocialReader) GetSocialSnapshot(context.Context, string) (opsservice.SocialSnapshot, *apperrors.Error) {
+	return opsservice.SocialSnapshot{PlayerID: "p1", Friends: []string{"p2"}, Blocks: []string{"p3"}}, nil
+}
+
 func TestOpsEndpoints(t *testing.T) {
 	t.Parallel()
 
-	h := NewHTTPHandler(opsservice.NewOpsService(&fakePresenceReader{}, &fakePartyReader{}, &fakeGuildReader{}, &fakeWorkerReader{}))
+	h := NewHTTPHandler(opsservice.NewOpsService(&fakePresenceReader{}, &fakePartyReader{}, &fakeGuildReader{}, &fakeWorkerReader{}, &fakeSocialReader{}))
 
 	tests := []string{
+		"/v1/ops/players/p1/overview",
 		"/v1/ops/players/p1/presence",
 		"/v1/ops/parties/party-1",
 		"/v1/ops/guilds/guild-1",

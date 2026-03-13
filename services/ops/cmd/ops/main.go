@@ -10,6 +10,7 @@ import (
 	guildclient "github.com/xyun1996/social_backend/services/ops/internal/client/guild"
 	partyclient "github.com/xyun1996/social_backend/services/ops/internal/client/party"
 	presenceclient "github.com/xyun1996/social_backend/services/ops/internal/client/presence"
+	socialclient "github.com/xyun1996/social_backend/services/ops/internal/client/social"
 	workerclient "github.com/xyun1996/social_backend/services/ops/internal/client/worker"
 	"github.com/xyun1996/social_backend/services/ops/internal/handler"
 	"github.com/xyun1996/social_backend/services/ops/internal/service"
@@ -22,12 +23,14 @@ func main() {
 	partyURL := valueOrDefault(os.Getenv("PARTY_BASE_URL"), "http://localhost:8085")
 	guildURL := valueOrDefault(os.Getenv("GUILD_BASE_URL"), "http://localhost:8086")
 	workerURL := valueOrDefault(os.Getenv("WORKER_BASE_URL"), "http://localhost:8089")
+	socialURL := valueOrDefault(os.Getenv("SOCIAL_BASE_URL"), "http://localhost:8082")
 
 	mux := handler.NewHTTPHandler(service.NewOpsService(
 		presenceclient.NewHTTPClient(presenceURL),
 		partyclient.NewHTTPClient(partyURL),
 		guildclient.NewHTTPClient(guildURL),
 		workerclient.NewHTTPClient(workerURL),
+		socialclient.NewHTTPClient(socialURL),
 	)).Routes()
 
 	service := app.NewHTTPService(cfg.Name, cfg.Addr, logger, mux)

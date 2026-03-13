@@ -20,6 +20,23 @@ type PresenceRecord struct {
 	DisconnectedAt  string `json:"disconnected_at,omitempty"`
 }
 
+// SocialSnapshot aggregates current social relationship state for a player.
+type SocialSnapshot struct {
+	PlayerID string   `json:"player_id"`
+	Friends  []string `json:"friends"`
+	Blocks   []string `json:"blocks"`
+}
+
+// PlayerOverview aggregates the operator-facing player runtime state.
+type PlayerOverview struct {
+	PlayerID  string         `json:"player_id"`
+	Presence  PresenceRecord `json:"presence"`
+	Friends   []string       `json:"friends"`
+	Blocks    []string       `json:"blocks"`
+	FriendCnt int            `json:"friend_count"`
+	BlockCnt  int            `json:"block_count"`
+}
+
 // PartyMemberState is the operator-facing party member runtime shape.
 type PartyMemberState struct {
 	PlayerID  string `json:"player_id"`
@@ -97,21 +114,28 @@ type WorkerReader interface {
 	GetWorkerSnapshot(ctx context.Context, status string, jobType string) (WorkerSnapshot, *apperrors.Error)
 }
 
+// SocialReader exposes the social read boundary for ops.
+type SocialReader interface {
+	GetSocialSnapshot(ctx context.Context, playerID string) (SocialSnapshot, *apperrors.Error)
+}
+
 // OpsService provides operator-facing read aggregation.
 type OpsService struct {
 	presence PresenceReader
 	parties  PartyReader
 	guilds   GuildReader
 	worker   WorkerReader
+	social   SocialReader
 }
 
 // NewOpsService constructs the operator read service.
-func NewOpsService(presence PresenceReader, parties PartyReader, guilds GuildReader, worker WorkerReader) *OpsService {
+func NewOpsService(presence PresenceReader, parties PartyReader, guilds GuildReader, worker WorkerReader, social SocialReader) *OpsService {
 	return &OpsService{
 		presence: presence,
 		parties:  parties,
 		guilds:   guilds,
 		worker:   worker,
+		social:   social,
 	}
 }
 
@@ -151,6 +175,37 @@ func (s *OpsService) GetWorkerSnapshot(ctx context.Context, status string, jobTy
 	return s.worker.GetWorkerSnapshot(ctx, status, jobType)
 }
 
+// GetPlayerOverview returns the operator-facing player runtime overview.
+func (s *OpsService) GetPlayerOverview(ctx context.Context, playerID string) (PlayerOverview, *apperrors.Error) {
+	if s.presence == nil {
+		err := apperrors.New("dependency_missing", "presence reader is not configured", 500)
+		return PlayerOverview{}, &err
+	}
+	if s.social == nil {
+		err := apperrors.New("dependency_missing", "social reader is not configured", 500)
+		return PlayerOverview{}, &err
+	}
+
+	presence, appErr := s.presence.GetPresence(ctx, playerID)
+	if appErr != nil {
+		return PlayerOverview{}, appErr
+	}
+
+	social, appErr := s.social.GetSocialSnapshot(ctx, playerID)
+	if appErr != nil {
+		return PlayerOverview{}, appErr
+	}
+
+	return PlayerOverview{
+		PlayerID:  playerID,
+		Presence:  presence,
+		Friends:   social.Friends,
+		Blocks:    social.Blocks,
+		FriendCnt: len(social.Friends),
+		BlockCnt:  len(social.Blocks),
+	}, nil
+}
+
 func (s *OpsService) String() string {
-	return fmt.Sprintf("ops-service(presence=%t,party=%t,guild=%t,worker=%t)", s.presence != nil, s.parties != nil, s.guilds != nil, s.worker != nil)
+	return fmt.Sprintf("ops-service(presence=%t,party=%t,guild=%t,worker=%t,social=%t)", s.presence != nil, s.parties != nil, s.guilds != nil, s.worker != nil, s.social != nil)
 }

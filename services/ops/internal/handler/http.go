@@ -21,6 +21,7 @@ func NewHTTPHandler(ops *opsservice.OpsService) *HTTPHandler {
 func (h *HTTPHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", h.handleHealth)
+	mux.HandleFunc("GET /v1/ops/players/{playerID}/overview", h.handlePlayerOverview)
 	mux.HandleFunc("GET /v1/ops/players/{playerID}/presence", h.handlePlayerPresence)
 	mux.HandleFunc("GET /v1/ops/parties/{partyID}", h.handlePartySnapshot)
 	mux.HandleFunc("GET /v1/ops/guilds/{guildID}", h.handleGuildSnapshot)
@@ -33,6 +34,15 @@ func (h *HTTPHandler) handleHealth(w http.ResponseWriter, _ *http.Request) {
 		Service: "ops",
 		Status:  "ok",
 	})
+}
+
+func (h *HTTPHandler) handlePlayerOverview(w http.ResponseWriter, r *http.Request) {
+	record, appErr := h.ops.GetPlayerOverview(r.Context(), r.PathValue("playerID"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+	transport.WriteJSON(w, http.StatusOK, record)
 }
 
 func (h *HTTPHandler) handlePlayerPresence(w http.ResponseWriter, r *http.Request) {

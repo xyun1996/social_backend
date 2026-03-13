@@ -11,6 +11,25 @@ Base purpose: operator-facing read queries across runtime-aware service boundari
 - `GET /v1/ops/players/{playerID}/presence`
 - Response `200`: presence snapshot shape
 
+## Player Overview
+
+- `GET /v1/ops/players/{playerID}/overview`
+- Response `200`
+
+```json
+{
+  "player_id": "p1",
+  "presence": {
+    "player_id": "p1",
+    "status": "online"
+  },
+  "friends": ["p2"],
+  "blocks": ["p3"],
+  "friend_count": 1,
+  "block_count": 1
+}
+```
+
 ## Party Snapshot
 
 - `GET /v1/ops/parties/{partyID}`
