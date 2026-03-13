@@ -147,3 +147,37 @@ func TestListMemberStatesIncludesPresence(t *testing.T) {
 		t.Fatalf("unexpected member states: %+v", states)
 	}
 }
+
+func TestPartyServiceWithInjectedStores(t *testing.T) {
+	t.Parallel()
+
+	parties := newMemoryPartyStore()
+	ready := newMemoryReadyStateStore()
+	svc := NewPartyServiceWithStores(parties, ready, &fakeInviteClient{}, nil)
+	svc.newPartyID = func() (string, error) { return "party-1", nil }
+
+	party, err := svc.CreateParty("p1")
+	if err != nil {
+		t.Fatalf("create party returned error: %+v", err)
+	}
+
+	if _, readyErr := svc.SetReady(party.ID, "p1", true); readyErr != nil {
+		t.Fatalf("set ready returned error: %+v", readyErr)
+	}
+
+	storedParty, ok, getErr := parties.GetParty(party.ID)
+	if getErr != nil {
+		t.Fatalf("party store get returned error: %v", getErr)
+	}
+	if !ok || storedParty.ID != party.ID {
+		t.Fatalf("unexpected stored party: %+v", storedParty)
+	}
+
+	readyStates, listErr := ready.ListReadyStates(party.ID)
+	if listErr != nil {
+		t.Fatalf("ready store list returned error: %v", listErr)
+	}
+	if len(readyStates) != 1 || !readyStates[0].IsReady {
+		t.Fatalf("unexpected stored ready states: %+v", readyStates)
+	}
+}

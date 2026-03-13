@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
-	"sync"
 	"time"
 
 	apperrors "github.com/xyun1996/social_backend/pkg/errors"
@@ -63,9 +62,8 @@ type MemberState struct {
 
 // PartyService provides an in-memory prototype for leader, member, and ready flows.
 type PartyService struct {
-	mu         sync.RWMutex
-	parties    map[string]domain.Party
-	ready      map[string]map[string]domain.ReadyState
+	parties    PartyStore
+	ready      ReadyStateStore
 	invites    InviteClient
 	presence   PresenceReader
 	now        func() time.Time
@@ -74,9 +72,14 @@ type PartyService struct {
 
 // NewPartyService constructs an in-memory party service.
 func NewPartyService(invites InviteClient, presence PresenceReader) *PartyService {
+	return NewPartyServiceWithStores(newMemoryPartyStore(), newMemoryReadyStateStore(), invites, presence)
+}
+
+// NewPartyServiceWithStores constructs the party service with injected persistence boundaries.
+func NewPartyServiceWithStores(parties PartyStore, ready ReadyStateStore, invites InviteClient, presence PresenceReader) *PartyService {
 	return &PartyService{
-		parties:  make(map[string]domain.Party),
-		ready:    make(map[string]map[string]domain.ReadyState),
+		parties:  parties,
+		ready:    ready,
 		invites:  invites,
 		presence: presence,
 		now:      time.Now,
@@ -93,9 +96,6 @@ func (s *PartyService) CreateParty(leaderID string) (domain.Party, *apperrors.Er
 		return domain.Party{}, &err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	partyID, idErr := s.newPartyID()
 	if idErr != nil {
 		internal := apperrors.Internal()
@@ -109,7 +109,10 @@ func (s *PartyService) CreateParty(leaderID string) (domain.Party, *apperrors.Er
 		CreatedAt: s.now(),
 	}
 
-	s.parties[party.ID] = party
+	if err := s.parties.SaveParty(party); err != nil {
+		internal := apperrors.Internal()
+		return domain.Party{}, &internal
+	}
 	return party, nil
 }
 
@@ -120,10 +123,11 @@ func (s *PartyService) GetParty(partyID string) (domain.Party, *apperrors.Error)
 		return domain.Party{}, &err
 	}
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	party, ok := s.parties[partyID]
+	party, ok, err := s.parties.GetParty(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Party{}, &internal
+	}
 	if !ok {
 		err := apperrors.New("not_found", "party not found", http.StatusNotFound)
 		return domain.Party{}, &err
@@ -139,9 +143,11 @@ func (s *PartyService) CreateInvite(ctx context.Context, partyID string, actorPl
 		return Invite{}, &err
 	}
 
-	s.mu.RLock()
-	party, ok := s.parties[partyID]
-	s.mu.RUnlock()
+	party, ok, err := s.parties.GetParty(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return Invite{}, &internal
+	}
 	if !ok {
 		err := apperrors.New("not_found", "party not found", http.StatusNotFound)
 		return Invite{}, &err
@@ -187,10 +193,11 @@ func (s *PartyService) JoinWithInvite(ctx context.Context, partyID string, invit
 		return domain.Party{}, &err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	party, ok := s.parties[partyID]
+	party, ok, err := s.parties.GetParty(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Party{}, &internal
+	}
 	if !ok {
 		err := apperrors.New("not_found", "party not found", http.StatusNotFound)
 		return domain.Party{}, &err
@@ -202,7 +209,10 @@ func (s *PartyService) JoinWithInvite(ctx context.Context, partyID string, invit
 
 	party.MemberIDs = append(party.MemberIDs, actorPlayerID)
 	slices.Sort(party.MemberIDs)
-	s.parties[party.ID] = party
+	if err := s.parties.SaveParty(party); err != nil {
+		internal := apperrors.Internal()
+		return domain.Party{}, &internal
+	}
 	return party, nil
 }
 
@@ -213,10 +223,11 @@ func (s *PartyService) SetReady(partyID string, actorPlayerID string, isReady bo
 		return domain.ReadyState{}, &err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	party, ok := s.parties[partyID]
+	party, ok, err := s.parties.GetParty(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.ReadyState{}, &internal
+	}
 	if !ok {
 		err := apperrors.New("not_found", "party not found", http.StatusNotFound)
 		return domain.ReadyState{}, &err
@@ -238,10 +249,6 @@ func (s *PartyService) SetReady(partyID string, actorPlayerID string, isReady bo
 		}
 	}
 
-	if s.ready[partyID] == nil {
-		s.ready[partyID] = make(map[string]domain.ReadyState)
-	}
-
 	state := domain.ReadyState{
 		PartyID:   partyID,
 		PlayerID:  actorPlayerID,
@@ -249,7 +256,10 @@ func (s *PartyService) SetReady(partyID string, actorPlayerID string, isReady bo
 		UpdatedAt: s.now(),
 	}
 
-	s.ready[partyID][actorPlayerID] = state
+	if err := s.ready.SaveReadyState(state); err != nil {
+		internal := apperrors.Internal()
+		return domain.ReadyState{}, &internal
+	}
 	return state, nil
 }
 
@@ -260,18 +270,29 @@ func (s *PartyService) ListReadyStates(partyID string) ([]domain.ReadyState, *ap
 		return nil, &err
 	}
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	party, ok := s.parties[partyID]
+	party, ok, err := s.parties.GetParty(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
+	}
 	if !ok {
 		err := apperrors.New("not_found", "party not found", http.StatusNotFound)
 		return nil, &err
 	}
 
+	storedStates, err := s.ready.ListReadyStates(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
+	}
+	byPlayer := make(map[string]domain.ReadyState, len(storedStates))
+	for _, state := range storedStates {
+		byPlayer[state.PlayerID] = state
+	}
+
 	readyStates := make([]domain.ReadyState, 0, len(party.MemberIDs))
 	for _, memberID := range party.MemberIDs {
-		state, ok := s.ready[partyID][memberID]
+		state, ok := byPlayer[memberID]
 		if !ok {
 			state = domain.ReadyState{
 				PartyID:  partyID,
@@ -292,13 +313,24 @@ func (s *PartyService) ListMemberStates(ctx context.Context, partyID string) ([]
 		return nil, &err
 	}
 
-	s.mu.RLock()
-	party, ok := s.parties[partyID]
-	readyCopy := s.ready[partyID]
-	s.mu.RUnlock()
+	party, ok, err := s.parties.GetParty(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
+	}
 	if !ok {
 		err := apperrors.New("not_found", "party not found", http.StatusNotFound)
 		return nil, &err
+	}
+
+	readyStates, err := s.ready.ListReadyStates(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
+	}
+	readyByPlayer := make(map[string]domain.ReadyState, len(readyStates))
+	for _, state := range readyStates {
+		readyByPlayer[state.PlayerID] = state
 	}
 
 	states := make([]MemberState, 0, len(party.MemberIDs))
@@ -309,7 +341,7 @@ func (s *PartyService) ListMemberStates(ctx context.Context, partyID string) ([]
 			Presence: presenceOffline,
 		}
 
-		if ready, ok := readyCopy[memberID]; ok {
+		if ready, ok := readyByPlayer[memberID]; ok {
 			memberState.IsReady = ready.IsReady
 		}
 
@@ -333,5 +365,9 @@ func (s *PartyService) ListMemberStates(ctx context.Context, partyID string) ([]
 }
 
 func (s *PartyService) String() string {
-	return fmt.Sprintf("party-service(parties=%d)", len(s.parties))
+	parties, err := s.parties.ListParties()
+	if err != nil {
+		return "party-service(parties=unknown)"
+	}
+	return fmt.Sprintf("party-service(parties=%d)", len(parties))
 }
