@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	apperrors "github.com/xyun1996/social_backend/pkg/errors"
@@ -18,18 +17,31 @@ const (
 
 // AuthService provides a local in-memory auth flow for early development.
 type AuthService struct {
-	mu              sync.RWMutex
-	refreshSessions map[string]domain.Session
-	accessSessions  map[string]domain.Session
-	now             func() time.Time
+	accounts AccountStore
+	sessions SessionStore
+	now      func() time.Time
 }
 
 // NewAuthService constructs an in-memory auth service.
 func NewAuthService() *AuthService {
+	stores := newMemoryStores()
 	return &AuthService{
-		refreshSessions: make(map[string]domain.Session),
-		accessSessions:  make(map[string]domain.Session),
-		now:             time.Now,
+		accounts: accountStoreWithLock(stores),
+		sessions: sessionStoreWithLock(stores),
+		now:      time.Now,
+	}
+}
+
+// NewAuthServiceWithStores constructs an auth service with custom persistence stores.
+func NewAuthServiceWithStores(accounts AccountStore, sessions SessionStore) *AuthService {
+	if accounts == nil || sessions == nil {
+		return NewAuthService()
+	}
+
+	return &AuthService{
+		accounts: accounts,
+		sessions: sessions,
+		now:      time.Now,
 	}
 }
 
@@ -46,10 +58,14 @@ func (s *AuthService) Login(accountID string, playerID string) (domain.TokenPair
 		return domain.TokenPair{}, &internal
 	}
 
-	s.mu.Lock()
-	s.refreshSessions[session.RefreshToken] = session
-	s.accessSessions[session.AccessToken] = session
-	s.mu.Unlock()
+	if err := s.accounts.UpsertAccount(accountID, playerID); err != nil {
+		internal := apperrors.Internal()
+		return domain.TokenPair{}, &internal
+	}
+	if err := s.sessions.SaveSession(session); err != nil {
+		internal := apperrors.Internal()
+		return domain.TokenPair{}, &internal
+	}
 
 	return pair, nil
 }
@@ -61,17 +77,20 @@ func (s *AuthService) Refresh(refreshToken string) (domain.TokenPair, *apperrors
 		return domain.TokenPair{}, &err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	session, ok := s.refreshSessions[refreshToken]
+	session, ok, err := s.sessions.GetSessionByRefreshToken(refreshToken)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.TokenPair{}, &internal
+	}
 	if !ok {
 		err := apperrors.New("unauthorized", "refresh token is invalid", 401)
 		return domain.TokenPair{}, &err
 	}
 
-	delete(s.refreshSessions, refreshToken)
-	delete(s.accessSessions, session.AccessToken)
+	if err := s.sessions.DeleteSessionByRefreshToken(refreshToken); err != nil {
+		internal := apperrors.Internal()
+		return domain.TokenPair{}, &internal
+	}
 
 	pair, newSession, err := s.issueTokens(session.AccountID, session.PlayerID)
 	if err != nil {
@@ -79,8 +98,14 @@ func (s *AuthService) Refresh(refreshToken string) (domain.TokenPair, *apperrors
 		return domain.TokenPair{}, &internal
 	}
 
-	s.refreshSessions[newSession.RefreshToken] = newSession
-	s.accessSessions[newSession.AccessToken] = newSession
+	if err := s.accounts.UpsertAccount(newSession.AccountID, newSession.PlayerID); err != nil {
+		internal := apperrors.Internal()
+		return domain.TokenPair{}, &internal
+	}
+	if err := s.sessions.SaveSession(newSession); err != nil {
+		internal := apperrors.Internal()
+		return domain.TokenPair{}, &internal
+	}
 	return pair, nil
 }
 
@@ -91,9 +116,11 @@ func (s *AuthService) Introspect(accessToken string) (domain.Subject, *apperrors
 		return domain.Subject{}, &err
 	}
 
-	s.mu.RLock()
-	session, ok := s.accessSessions[accessToken]
-	s.mu.RUnlock()
+	session, ok, err := s.sessions.GetSessionByAccessToken(accessToken)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Subject{}, &internal
+	}
 	if !ok {
 		err := apperrors.New("unauthorized", "access token is invalid", 401)
 		return domain.Subject{}, &err
@@ -103,6 +130,52 @@ func (s *AuthService) Introspect(accessToken string) (domain.Subject, *apperrors
 		AccountID: session.AccountID,
 		PlayerID:  session.PlayerID,
 	}, nil
+}
+
+type lockedAccountStore struct {
+	stores *memoryStores
+}
+
+func accountStoreWithLock(stores *memoryStores) *lockedAccountStore {
+	return &lockedAccountStore{stores: stores}
+}
+
+func (s *lockedAccountStore) UpsertAccount(accountID string, playerID string) error {
+	s.stores.mu.Lock()
+	defer s.stores.mu.Unlock()
+	return s.stores.accounts.UpsertAccount(accountID, playerID)
+}
+
+type lockedSessionStore struct {
+	stores *memoryStores
+}
+
+func sessionStoreWithLock(stores *memoryStores) *lockedSessionStore {
+	return &lockedSessionStore{stores: stores}
+}
+
+func (s *lockedSessionStore) SaveSession(session domain.Session) error {
+	s.stores.mu.Lock()
+	defer s.stores.mu.Unlock()
+	return s.stores.sessions.SaveSession(session)
+}
+
+func (s *lockedSessionStore) GetSessionByRefreshToken(refreshToken string) (domain.Session, bool, error) {
+	s.stores.mu.RLock()
+	defer s.stores.mu.RUnlock()
+	return s.stores.sessions.GetSessionByRefreshToken(refreshToken)
+}
+
+func (s *lockedSessionStore) GetSessionByAccessToken(accessToken string) (domain.Session, bool, error) {
+	s.stores.mu.RLock()
+	defer s.stores.mu.RUnlock()
+	return s.stores.sessions.GetSessionByAccessToken(accessToken)
+}
+
+func (s *lockedSessionStore) DeleteSessionByRefreshToken(refreshToken string) error {
+	s.stores.mu.Lock()
+	defer s.stores.mu.Unlock()
+	return s.stores.sessions.DeleteSessionByRefreshToken(refreshToken)
 }
 
 func (s *AuthService) issueTokens(accountID string, playerID string) (domain.TokenPair, domain.Session, error) {

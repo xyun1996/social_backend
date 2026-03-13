@@ -1,6 +1,87 @@
 package service
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/xyun1996/social_backend/services/identity/internal/domain"
+)
+
+type recordingAccountStore struct {
+	accountID string
+	playerID  string
+}
+
+func (s *recordingAccountStore) UpsertAccount(accountID string, playerID string) error {
+	s.accountID = accountID
+	s.playerID = playerID
+	return nil
+}
+
+type recordingSessionStore struct {
+	sessionsByRefresh map[string]sessionRecord
+	sessionsByAccess  map[string]sessionRecord
+}
+
+type sessionRecord struct {
+	accountID    string
+	playerID     string
+	accessToken  string
+	refreshToken string
+}
+
+func newRecordingSessionStore() *recordingSessionStore {
+	return &recordingSessionStore{
+		sessionsByRefresh: make(map[string]sessionRecord),
+		sessionsByAccess:  make(map[string]sessionRecord),
+	}
+}
+
+func (s *recordingSessionStore) SaveSession(session domain.Session) error {
+	record := sessionRecord{
+		accountID:    session.AccountID,
+		playerID:     session.PlayerID,
+		accessToken:  session.AccessToken,
+		refreshToken: session.RefreshToken,
+	}
+	s.sessionsByRefresh[session.RefreshToken] = record
+	s.sessionsByAccess[session.AccessToken] = record
+	return nil
+}
+
+func (s *recordingSessionStore) GetSessionByRefreshToken(refreshToken string) (domain.Session, bool, error) {
+	record, ok := s.sessionsByRefresh[refreshToken]
+	if !ok {
+		return domain.Session{}, false, nil
+	}
+	return domain.Session{
+		AccountID:    record.accountID,
+		PlayerID:     record.playerID,
+		AccessToken:  record.accessToken,
+		RefreshToken: record.refreshToken,
+	}, true, nil
+}
+
+func (s *recordingSessionStore) GetSessionByAccessToken(accessToken string) (domain.Session, bool, error) {
+	record, ok := s.sessionsByAccess[accessToken]
+	if !ok {
+		return domain.Session{}, false, nil
+	}
+	return domain.Session{
+		AccountID:    record.accountID,
+		PlayerID:     record.playerID,
+		AccessToken:  record.accessToken,
+		RefreshToken: record.refreshToken,
+	}, true, nil
+}
+
+func (s *recordingSessionStore) DeleteSessionByRefreshToken(refreshToken string) error {
+	record, ok := s.sessionsByRefresh[refreshToken]
+	if ok {
+		delete(s.sessionsByRefresh, refreshToken)
+		delete(s.sessionsByAccess, record.accessToken)
+	}
+	return nil
+}
 
 func TestLoginIssuesTokenPair(t *testing.T) {
 	t.Parallel()
@@ -60,5 +141,28 @@ func TestIntrospectReturnsSubjectForAccessToken(t *testing.T) {
 
 	if subject.AccountID != "account-1" || subject.PlayerID != "player-1" {
 		t.Fatalf("unexpected subject: %+v", subject)
+	}
+}
+
+func TestLoginUsesInjectedStores(t *testing.T) {
+	t.Parallel()
+
+	accounts := &recordingAccountStore{}
+	sessions := newRecordingSessionStore()
+	svc := NewAuthServiceWithStores(accounts, sessions)
+
+	pair, err := svc.Login("account-9", "player-9")
+	if err != nil {
+		t.Fatalf("login returned error: %+v", err)
+	}
+
+	if accounts.accountID != "account-9" || accounts.playerID != "player-9" {
+		t.Fatalf("unexpected stored account mapping: %+v", accounts)
+	}
+	if _, ok := sessions.sessionsByAccess[pair.AccessToken]; !ok {
+		t.Fatalf("expected access token to be stored")
+	}
+	if _, ok := sessions.sessionsByRefresh[pair.RefreshToken]; !ok {
+		t.Fatalf("expected refresh token to be stored")
 	}
 }
