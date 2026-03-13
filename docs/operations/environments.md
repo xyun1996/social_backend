@@ -46,5 +46,6 @@
 - `PRESENCE_STORE`: `memory` or `redis`
 - `WORKER_STORE`: `memory` or `redis`
 - `GATEWAY_STORE`: `memory` or `redis`
+- `OPS_MYSQL_STATUS`: enable MySQL `schema_migrations` reads in `ops` when `true`
+- `OPS_REDIS_STATUS`: enable Redis runtime-state reads in `ops` when `true`
 - `WORKER_AUTO_RUN`: enable the worker background drain loop when `true`
-- `PRESENCE_AUTO_PING`: validate Redis connectivity on startup when `true`

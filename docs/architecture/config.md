@@ -49,6 +49,8 @@ Shared keys currently documented there:
 - `PRESENCE_STORE=memory`
 - `GATEWAY_STORE=memory`
 - `WORKER_STORE=memory`
+- `OPS_MYSQL_STATUS=false`
+- `OPS_REDIS_STATUS=false`
 
 ## Future Work
 
@@ -57,3 +59,4 @@ Shared keys currently documented there:
 - Shared Redis foundation currently reads `REDIS_ADDR`, `REDIS_USERNAME`, `REDIS_PASSWORD`, and `REDIS_DB`.
 - Service-local runtime selection currently uses `*_STORE` toggles, while owned schema bootstrap uses `*_AUTO_MIGRATE=true` for MySQL-backed services.
 - MySQL-backed bootstrap records service-owned progress in `schema_migrations`, so repeated local bootstrap skips already applied migration ids.
+- `ops` uses `OPS_MYSQL_STATUS` and `OPS_REDIS_STATUS` to opt into durable status readers without making MySQL or Redis mandatory for the default read path.
