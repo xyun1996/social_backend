@@ -104,6 +104,7 @@ Worker also supports an optional background drain loop via `WORKER_AUTO_RUN=true
 - `make run-presence-redis`
 - `make run-worker-redis`
 - `make test-local-durable`
+- `make bootstrap-local-mysql`
 
 Starter service defaults:
 
@@ -132,3 +133,4 @@ Durable-mode shortcuts:
 - `make run-presence-redis`
 - `make run-worker-redis`
 - `make test-local-durable`
+- `make bootstrap-local-mysql`

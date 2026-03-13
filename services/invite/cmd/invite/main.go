@@ -27,6 +27,10 @@ func main() {
 		panic(err)
 	}
 	defer cleanup()
+	if bootstrapOnlyEnabled() {
+		logger.Info("bootstrap-only mode completed")
+		return
+	}
 
 	mux := handler.NewHTTPHandler(inviteService).Routes()
 
@@ -35,6 +39,10 @@ func main() {
 		logger.Error("service exited with error", "error", err)
 		panic(err)
 	}
+}
+
+func bootstrapOnlyEnabled() bool {
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("BOOTSTRAP_ONLY")), "true")
 }
 
 func buildInviteService() (*service.InviteService, func(), error) {

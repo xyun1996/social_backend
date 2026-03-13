@@ -28,6 +28,10 @@ func main() {
 		panic(err)
 	}
 	defer cleanup()
+	if bootstrapOnlyEnabled() {
+		logger.Info("bootstrap-only mode completed")
+		return
+	}
 
 	mux := handler.NewHTTPHandler(guilds).Routes()
 	httpService := app.NewHTTPService(cfg.Name, cfg.Addr, logger, mux)
@@ -79,4 +83,8 @@ func valueOrDefault(value string, fallback string) string {
 	}
 
 	return value
+}
+
+func bootstrapOnlyEnabled() bool {
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("BOOTSTRAP_ONLY")), "true")
 }
