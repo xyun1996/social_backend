@@ -74,6 +74,26 @@ Base purpose: operator-facing read queries across runtime-aware service boundari
 }
 ```
 
+## Durable Summary
+
+- `GET /v1/ops/durable/summary`
+- Response `200`
+
+```json
+{
+  "mysql": {
+    "count": 2,
+    "services": []
+  },
+  "redis": {
+    "presence_record_count": 1,
+    "gateway_session_count": 1,
+    "worker_job_count": 2,
+    "worker_status_counters": []
+  }
+}
+```
+
 ## MySQL Bootstrap Snapshot
 
 - `GET /v1/ops/bootstrap/mysql`

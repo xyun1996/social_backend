@@ -670,6 +670,76 @@ func TestLocalDurableOpsReadsRedisRuntimeSnapshot(t *testing.T) {
 	}
 }
 
+func TestLocalDurableOpsReadsDurableSummary(t *testing.T) {
+	requireLocalDurableTests(t)
+
+	mysqlConfig, sqlDB := newLocalMySQLTestDatabase(t)
+	redisConfig, redisClient := newLocalRedisTestClient(t)
+
+	presence := presencetestkit.NewDurableServer(redisConfig, redisClient)
+	defer presence.Close()
+	worker := workertestkit.NewDurableServer(redisConfig, redisClient)
+	defer worker.Close()
+	invite := invitetestkit.NewDurableServer(mysqlConfig, sqlDB, "")
+	defer invite.Close()
+	social := socialtestkit.NewDurableServer(mysqlConfig, sqlDB)
+	defer social.Close()
+	party := partytestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL())
+	defer party.Close()
+	guild := guildtestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL())
+	defer guild.Close()
+	identity := identitytestkit.NewDurableServer(mysqlConfig, sqlDB)
+	defer identity.Close()
+	gateway := gatewaytestkit.NewDurableServer(redisConfig, redisClient, identity.URL(), presence.URL(), "")
+	defer gateway.Close()
+
+	postJSON(t, presence.URL()+"/v1/presence/connect", map[string]any{
+		"player_id":  "p1",
+		"session_id": "sess-1",
+		"realm_id":   "realm-1",
+		"location":   "lobby",
+	}, nil)
+	postJSON(t, worker.URL()+"/v1/jobs", map[string]any{
+		"type":    "invite.expire",
+		"payload": `{"invite_id":"inv-1"}`,
+	}, nil)
+
+	var tokenPair struct {
+		AccessToken string `json:"access_token"`
+	}
+	postJSON(t, identity.URL()+"/v1/auth/login", map[string]any{
+		"account_id": "a1",
+		"player_id":  "p1",
+	}, &tokenPair)
+	postJSON(t, gateway.URL()+"/v1/realtime/handshake", map[string]any{
+		"access_token": tokenPair.AccessToken,
+		"session_id":   "sess-1",
+		"realm_id":     "realm-1",
+		"location":     "lobby",
+	}, nil)
+
+	ops := opstestkit.NewDurableServer(mysqlConfig, sqlDB, redisConfig, redisClient, presence.URL(), party.URL(), guild.URL(), worker.URL(), social.URL())
+	defer ops.Close()
+
+	var summary struct {
+		MySQL *struct {
+			Count int `json:"count"`
+		} `json:"mysql"`
+		Redis *struct {
+			PresenceRecordCount int `json:"presence_record_count"`
+			GatewaySessionCount int `json:"gateway_session_count"`
+			WorkerJobCount      int `json:"worker_job_count"`
+		} `json:"redis"`
+	}
+	getJSON(t, ops.URL()+"/v1/ops/durable/summary", &summary)
+	if summary.MySQL == nil || summary.MySQL.Count != 5 || summary.Redis == nil {
+		t.Fatalf("unexpected durable summary: %+v", summary)
+	}
+	if summary.Redis.PresenceRecordCount != 1 || summary.Redis.GatewaySessionCount != 1 || summary.Redis.WorkerJobCount != 1 {
+		t.Fatalf("unexpected redis summary payload: %+v", summary)
+	}
+}
+
 func requireLocalDurableTests(t *testing.T) {
 	t.Helper()
 	if !strings.EqualFold(strings.TrimSpace(os.Getenv("ENABLE_LOCAL_DURABLE_TESTS")), "true") {

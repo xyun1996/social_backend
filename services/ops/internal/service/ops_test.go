@@ -183,3 +183,38 @@ func TestGetRedisRuntimeSnapshot(t *testing.T) {
 		t.Fatalf("unexpected redis runtime snapshot: %+v", record)
 	}
 }
+
+func TestGetDurableSummary(t *testing.T) {
+	t.Parallel()
+
+	svc := NewOpsService(
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		&fakeBootstrapReader{
+			record: MySQLBootstrapSnapshot{
+				Count: 1,
+				Services: []MySQLBootstrapService{
+					{Service: "chat", Count: 1, MigrationIDs: []string{"001_chat_core"}},
+				},
+			},
+		},
+		&fakeRedisRuntimeReader{
+			record: RedisRuntimeSnapshot{
+				PresenceRecordCount: 1,
+				GatewaySessionCount: 1,
+				WorkerJobCount:      2,
+			},
+		},
+	)
+
+	record, err := svc.GetDurableSummary(context.Background())
+	if err != nil {
+		t.Fatalf("get durable summary returned error: %+v", err)
+	}
+	if record.MySQL == nil || record.Redis == nil {
+		t.Fatalf("unexpected durable summary: %+v", record)
+	}
+}

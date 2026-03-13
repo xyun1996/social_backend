@@ -128,6 +128,12 @@ type RedisRuntimeSnapshot struct {
 	WorkerStatusCounters []RedisWorkerStatusCount `json:"worker_status_counters"`
 }
 
+// DurableSummary aggregates optional durable status readers into one operator view.
+type DurableSummary struct {
+	MySQL *MySQLBootstrapSnapshot `json:"mysql,omitempty"`
+	Redis *RedisRuntimeSnapshot   `json:"redis,omitempty"`
+}
+
 // PresenceReader exposes the presence read boundary for ops.
 type PresenceReader interface {
 	GetPresence(ctx context.Context, playerID string) (PresenceRecord, *apperrors.Error)
@@ -239,6 +245,34 @@ func (s *OpsService) GetRedisRuntimeSnapshot(ctx context.Context) (RedisRuntimeS
 		return RedisRuntimeSnapshot{}, &err
 	}
 	return s.redis.GetRedisRuntimeSnapshot(ctx)
+}
+
+// GetDurableSummary returns the currently configured durable status readers as one operator view.
+func (s *OpsService) GetDurableSummary(ctx context.Context) (DurableSummary, *apperrors.Error) {
+	summary := DurableSummary{}
+
+	if s.bootstrap != nil {
+		record, appErr := s.bootstrap.GetMySQLBootstrapSnapshot(ctx)
+		if appErr != nil {
+			return DurableSummary{}, appErr
+		}
+		summary.MySQL = &record
+	}
+
+	if s.redis != nil {
+		record, appErr := s.redis.GetRedisRuntimeSnapshot(ctx)
+		if appErr != nil {
+			return DurableSummary{}, appErr
+		}
+		summary.Redis = &record
+	}
+
+	if summary.MySQL == nil && summary.Redis == nil {
+		err := apperrors.New("dependency_missing", "no durable status readers are configured", 500)
+		return DurableSummary{}, &err
+	}
+
+	return summary, nil
 }
 
 // GetPlayerOverview returns the operator-facing player runtime overview.

@@ -14,8 +14,7 @@ func main() {
 		baseURL = "http://localhost:8088"
 	}
 
-	printJSON("MySQL bootstrap", fetchJSON(baseURL+"/v1/ops/bootstrap/mysql"))
-	printJSON("Redis runtime", fetchJSON(baseURL+"/v1/ops/runtime/redis"))
+	printJSON("Durable summary", fetchJSON(baseURL+"/v1/ops/durable/summary"))
 }
 
 func fetchJSON(url string) any {

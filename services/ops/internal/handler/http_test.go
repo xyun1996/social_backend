@@ -72,6 +72,7 @@ func TestOpsEndpoints(t *testing.T) {
 		"/v1/ops/parties/party-1",
 		"/v1/ops/guilds/guild-1",
 		"/v1/ops/jobs?status=queued",
+		"/v1/ops/durable/summary",
 		"/v1/ops/bootstrap/mysql",
 		"/v1/ops/runtime/redis",
 	}
