@@ -54,12 +54,14 @@ Use Redis for hot or short-lived state:
 
 - MySQL-owned: invite lifecycle records, TTL deadline metadata, response timestamps
 - Redis-owned: optional expiry scheduling hints if worker polling is introduced
+- Code foundation now lives under `services/invite/internal/repo/mysql`
 
 ### `chat`
 
 - MySQL-owned: conversations, membership, messages, read cursors
 - Redis-owned: optional recent-message cache, delivery planning cache, replay acceleration windows
 - Rule: durable message order remains chat-owned and must not depend on gateway buffering
+- Code foundation now lives under `services/chat/internal/repo/mysql`
 
 ### `party`
 

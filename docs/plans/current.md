@@ -95,6 +95,8 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/047-integration-gateway-resume-trim-flow.md](v1/tasks/047-integration-gateway-resume-trim-flow.md)
 - [docs/plans/v1/tasks/048-identity-mysql-startup-bootstrap.md](v1/tasks/048-identity-mysql-startup-bootstrap.md)
 - [docs/plans/v1/tasks/049-presence-redis-startup-validation.md](v1/tasks/049-presence-redis-startup-validation.md)
+- [docs/plans/v1/tasks/050-invite-mysql-repo-foundation.md](v1/tasks/050-invite-mysql-repo-foundation.md)
+- [docs/plans/v1/tasks/051-chat-mysql-repo-foundation.md](v1/tasks/051-chat-mysql-repo-foundation.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)
