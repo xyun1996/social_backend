@@ -86,6 +86,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/038-chat-replay-resume-alignment.md](v1/tasks/038-chat-replay-resume-alignment.md)
 - [docs/plans/v1/tasks/039-identity-mysql-repo-integration.md](v1/tasks/039-identity-mysql-repo-integration.md)
 - [docs/plans/v1/tasks/040-presence-redis-repo-integration.md](v1/tasks/040-presence-redis-repo-integration.md)
+- [docs/plans/v1/tasks/041-worker-proto-alignment.md](v1/tasks/041-worker-proto-alignment.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)

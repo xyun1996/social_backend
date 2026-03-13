@@ -29,3 +29,4 @@ Current proto baselines cover boundaries that already have explicit cross-servic
 - These proto files are design baselines only.
 - Code generation is not wired yet.
 - `api/proto/` now covers all currently executable control-plane service boundaries.
+- `worker.proto` now includes execution result semantics so executor and background-drain flows do not live only in HTTP docs.

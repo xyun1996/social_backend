@@ -44,10 +44,39 @@ message ListJobsResponse {
   repeated Job jobs = 1;
 }
 
+message ExecutionResult {
+  string worker_id = 1;
+  string type = 2;
+  int32 processed = 3;
+  int32 completed = 4;
+  int32 failed = 5;
+  Job last_job = 6;
+}
+
+message ExecuteNextRequest {
+  string worker_id = 1;
+  string type = 2;
+}
+
+message ExecuteUntilEmptyRequest {
+  string worker_id = 1;
+  string type = 2;
+  int32 limit = 3;
+}
+
+message BackgroundRunConfig {
+  string worker_id = 1;
+  string type = 2;
+  int32 limit = 3;
+  int32 interval_ms = 4;
+}
+
 service WorkerService {
   rpc EnqueueJob(EnqueueJobRequest) returns (Job);
   rpc ClaimJob(ClaimJobRequest) returns (Job);
   rpc CompleteJob(TransitionJobRequest) returns (Job);
   rpc FailJob(TransitionJobRequest) returns (Job);
   rpc ListJobs(ListJobsRequest) returns (ListJobsResponse);
+  rpc ExecuteNext(ExecuteNextRequest) returns (ExecutionResult);
+  rpc ExecuteUntilEmpty(ExecuteUntilEmptyRequest) returns (ExecutionResult);
 }
