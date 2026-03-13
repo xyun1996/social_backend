@@ -145,3 +145,23 @@ func TestRunBackgroundProcessesQueuedJobs(t *testing.T) {
 		t.Fatalf("background runner did not process queued job in time")
 	}
 }
+
+func TestWorkerServiceWithInjectedStore(t *testing.T) {
+	t.Parallel()
+
+	store := newMemoryJobStore()
+	svc := NewWorkerServiceWithStore(store)
+
+	job, err := svc.Enqueue("invite.expire", `{}`)
+	if err != nil {
+		t.Fatalf("enqueue returned error: %+v", err)
+	}
+
+	stored, ok, getErr := store.GetJob(job.ID)
+	if getErr != nil {
+		t.Fatalf("store get returned error: %v", getErr)
+	}
+	if !ok || stored.ID != job.ID {
+		t.Fatalf("unexpected stored job: %+v (ok=%v)", stored, ok)
+	}
+}

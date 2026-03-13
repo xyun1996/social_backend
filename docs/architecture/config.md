@@ -43,6 +43,7 @@ Shared keys currently documented there:
 - `SOCIAL_STORE=memory`
 - `SOCIAL_AUTO_MIGRATE=false`
 - `PRESENCE_STORE=memory`
+- `WORKER_STORE=memory`
 
 ## Future Work
 

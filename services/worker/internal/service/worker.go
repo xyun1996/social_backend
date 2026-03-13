@@ -43,9 +43,8 @@ const (
 
 // WorkerService provides an in-memory async job queue prototype.
 type WorkerService struct {
+	store    JobStore
 	mu       sync.RWMutex
-	jobs     map[string]domain.Job
-	order    []string
 	handlers map[string]JobHandler
 	now      func() time.Time
 	newJobID func() (string, error)
@@ -53,9 +52,13 @@ type WorkerService struct {
 
 // NewWorkerService constructs an in-memory worker service.
 func NewWorkerService() *WorkerService {
+	return NewWorkerServiceWithStore(newMemoryJobStore())
+}
+
+// NewWorkerServiceWithStore constructs the worker service with an injected job store.
+func NewWorkerServiceWithStore(store JobStore) *WorkerService {
 	return &WorkerService{
-		jobs:     make(map[string]domain.Job),
-		order:    make([]string, 0),
+		store:    store,
 		handlers: make(map[string]JobHandler),
 		now:      time.Now,
 		newJobID: func() (string, error) {
@@ -82,9 +85,6 @@ func (s *WorkerService) Enqueue(jobType string, payload string) (domain.Job, *ap
 		return domain.Job{}, &err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	jobID, idErr := s.newJobID()
 	if idErr != nil {
 		internal := apperrors.Internal()
@@ -100,8 +100,10 @@ func (s *WorkerService) Enqueue(jobType string, payload string) (domain.Job, *ap
 		CreatedAt: s.now(),
 	}
 
-	s.jobs[job.ID] = job
-	s.order = append(s.order, job.ID)
+	if err := s.store.SaveJob(job); err != nil {
+		internal := apperrors.Internal()
+		return domain.Job{}, &internal
+	}
 	return job, nil
 }
 
@@ -112,12 +114,13 @@ func (s *WorkerService) ClaimNext(workerID string, jobType string) (domain.Job, 
 		return domain.Job{}, &err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	now := s.now()
-	for _, id := range s.order {
-		job := s.jobs[id]
+	jobs, err := s.store.ListJobs()
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Job{}, &internal
+	}
+	for _, job := range jobs {
 		if jobType != "" && job.Type != jobType {
 			continue
 		}
@@ -129,13 +132,17 @@ func (s *WorkerService) ClaimNext(workerID string, jobType string) (domain.Job, 
 		job.Attempts++
 		job.ClaimedBy = workerID
 		job.ClaimedAt = &now
+		job.CompletedAt = nil
 		job.LastError = ""
-		s.jobs[id] = job
+		if err := s.store.SaveJob(job); err != nil {
+			internal := apperrors.Internal()
+			return domain.Job{}, &internal
+		}
 		return job, nil
 	}
 
-	err := apperrors.New("not_found", "no claimable job found", http.StatusNotFound)
-	return domain.Job{}, &err
+	notFound := apperrors.New("not_found", "no claimable job found", http.StatusNotFound)
+	return domain.Job{}, &notFound
 }
 
 // Complete marks a claimed job as completed.
@@ -154,22 +161,24 @@ func (s *WorkerService) Fail(jobID string, workerID string, lastError string) (d
 
 // ListJobs returns jobs filtered by optional status and type.
 func (s *WorkerService) ListJobs(status string, jobType string) ([]domain.Job, *apperrors.Error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	jobs, err := s.store.ListJobs()
+	if err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
+	}
 
-	jobs := make([]domain.Job, 0, len(s.order))
-	for _, id := range s.order {
-		job := s.jobs[id]
+	filtered := make([]domain.Job, 0, len(jobs))
+	for _, job := range jobs {
 		if status != "" && job.Status != status {
 			continue
 		}
 		if jobType != "" && job.Type != jobType {
 			continue
 		}
-		jobs = append(jobs, job)
+		filtered = append(filtered, job)
 	}
 
-	slices.SortFunc(jobs, func(a domain.Job, b domain.Job) int {
+	slices.SortFunc(filtered, func(a domain.Job, b domain.Job) int {
 		if !a.CreatedAt.Equal(b.CreatedAt) {
 			if a.CreatedAt.Before(b.CreatedAt) {
 				return -1
@@ -186,7 +195,7 @@ func (s *WorkerService) ListJobs(status string, jobType string) ([]domain.Job, *
 		}
 	})
 
-	return jobs, nil
+	return filtered, nil
 }
 
 // ExecuteNext claims and executes the next available job for the worker.
@@ -302,10 +311,11 @@ func (s *WorkerService) transition(jobID string, workerID string, targetStatus s
 		return domain.Job{}, &err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	job, ok := s.jobs[jobID]
+	job, ok, err := s.store.GetJob(jobID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Job{}, &internal
+	}
 	if !ok {
 		err := apperrors.New("not_found", "job not found", http.StatusNotFound)
 		return domain.Job{}, &err
@@ -326,8 +336,13 @@ func (s *WorkerService) transition(jobID string, workerID string, targetStatus s
 	job.LastError = lastError
 	if targetStatus == jobCompleted {
 		job.CompletedAt = &now
+	} else {
+		job.CompletedAt = nil
 	}
-	s.jobs[jobID] = job
+	if err := s.store.SaveJob(job); err != nil {
+		internal := apperrors.Internal()
+		return domain.Job{}, &internal
+	}
 	return job, nil
 }
 
@@ -338,5 +353,9 @@ func (s *WorkerService) lookupHandler(jobType string) JobHandler {
 }
 
 func (s *WorkerService) String() string {
-	return fmt.Sprintf("worker-service(jobs=%d)", len(s.jobs))
+	jobs, err := s.store.ListJobs()
+	if err != nil {
+		return "worker-service(jobs=unknown)"
+	}
+	return fmt.Sprintf("worker-service(jobs=%d)", len(jobs))
 }
