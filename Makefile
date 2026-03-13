@@ -4,7 +4,7 @@ help:
 	@echo "Available targets:"
 	@echo "  bootstrap - verify basic repo structure"
 	@echo "  test      - reserved for future Go test entrypoint"
-	@echo "  proto     - reserved for future protocol generation"
+	@echo "  proto     - lint and generate Go bindings from api/proto via buf"
 	@echo "  lint      - reserved for future lint entrypoint"
 	@echo "  format    - reserved for future format entrypoint"
 	@echo "  docs      - show current documentation entrypoints"
@@ -41,7 +41,7 @@ test:
 	go test ./...
 
 proto:
-	@echo "Protocol generation pipeline is not configured yet. Define proto sources under api/proto first."
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/proto-generate.ps1
 
 lint:
 	@echo "Lint pipeline placeholder. Wire golangci-lint or equivalent when modules are added."

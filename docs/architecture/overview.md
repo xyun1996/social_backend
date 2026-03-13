@@ -39,6 +39,7 @@ This project is a reusable social backend for medium-light multiplayer games. Th
 - [Bounded Contexts](bounded-contexts.md)
 - [Dependencies](dependencies.md)
 - [Protocols](protocols.md)
+- [Proto generation workflow](../operations/proto-generation.md)
 
 ## Governance View
 

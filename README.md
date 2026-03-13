@@ -40,6 +40,7 @@ docs/       Plans, architecture, operations, releases, memory, templates
 - Release history: [docs/releases](docs/releases)
 - Templates: [docs/templates](docs/templates)
 - Local durable troubleshooting: [docs/operations/local-durable-troubleshooting.md](docs/operations/local-durable-troubleshooting.md)
+- Proto generation: [docs/operations/proto-generation.md](docs/operations/proto-generation.md)
 
 ## Tooling Status
 
@@ -111,6 +112,7 @@ Worker also supports an optional background drain loop via `WORKER_AUTO_RUN=true
 - `make test-local-durable`
 - `make bootstrap-local-mysql`
 - `make check-local-durable-status`
+- `make proto`
 
 Starter service defaults:
 
