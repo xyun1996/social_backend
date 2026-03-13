@@ -5,6 +5,8 @@
 - Purpose: fast developer iteration
 - Expected dependencies: local MySQL, Redis, optional tracing backend
 - Tolerance: mock integrations acceptable
+- Default local MySQL: `localhost:3306`, user `root`, password `1234`, database `social_backend`
+- Default local Redis: `localhost:6379`, no username, no password, database `0`
 
 ## Dev
 
@@ -25,3 +27,4 @@
 
 - Document environment differences before relying on environment-specific behavior.
 - Avoid introducing runtime assumptions that only exist in local development.
+- Keep local-only credentials in committed example files only when they are explicitly disposable developer defaults.

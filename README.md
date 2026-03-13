@@ -63,6 +63,7 @@ This repository currently provides the project scaffold, governance documents, a
 Example environment files live under [configs/examples](configs/examples).
 
 Gateway depends on both `identity` and `presence` base URLs in local runs.
+Shared local infrastructure defaults live in `configs/examples/local-infra.env.example`.
 
 - `make run-identity`
 - `make run-gateway`
@@ -83,3 +84,8 @@ Starter service defaults:
 - `party` listens on `:8085`
 - `guild` listens on `:8086`
 - `presence` listens on `:8087`
+
+Local infrastructure defaults:
+
+- MySQL: `localhost:3306`, user `root`, password `1234`, database `social_backend`
+- Redis: `localhost:6379`, no username, no password, database `0`
