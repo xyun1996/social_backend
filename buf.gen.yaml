@@ -5,10 +5,12 @@ managed:
 
 plugins:
   - remote: buf.build/protocolbuffers/go
-    out: gen/proto/go
+    out: .
     opt:
-      - paths=source_relative
+      - paths=import
+      - module=github.com/xyun1996/social_backend
   - remote: buf.build/grpc/go
-    out: gen/proto/go
+    out: .
     opt:
-      - paths=source_relative
+      - paths=import
+      - module=github.com/xyun1996/social_backend
