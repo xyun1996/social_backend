@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http/httptest"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/xyun1996/social_backend/pkg/db"
 	guildclient "github.com/xyun1996/social_backend/services/ops/internal/client/guild"
 	partyclient "github.com/xyun1996/social_backend/services/ops/internal/client/party"
@@ -12,6 +13,7 @@ import (
 	workerclient "github.com/xyun1996/social_backend/services/ops/internal/client/worker"
 	opshandler "github.com/xyun1996/social_backend/services/ops/internal/handler"
 	mysqlrepo "github.com/xyun1996/social_backend/services/ops/internal/repo/mysql"
+	redisrepo "github.com/xyun1996/social_backend/services/ops/internal/repo/redis"
 	opsservice "github.com/xyun1996/social_backend/services/ops/internal/service"
 )
 
@@ -29,13 +31,14 @@ func NewServer(presenceBaseURL string, partyBaseURL string, guildBaseURL string,
 		workerclient.NewHTTPClient(workerBaseURL),
 		socialclient.NewHTTPClient(socialBaseURL),
 		nil,
+		nil,
 	)
 	server := httptest.NewServer(opshandler.NewHTTPHandler(ops).Routes())
 	return &Server{server: server}
 }
 
 // NewDurableServer constructs an ops HTTP server with optional MySQL bootstrap visibility.
-func NewDurableServer(mysqlConfig db.MySQLConfig, sqlDB *sql.DB, presenceBaseURL string, partyBaseURL string, guildBaseURL string, workerBaseURL string, socialBaseURL string) *Server {
+func NewDurableServer(mysqlConfig db.MySQLConfig, sqlDB *sql.DB, redisConfig db.RedisConfig, redisClient *redis.Client, presenceBaseURL string, partyBaseURL string, guildBaseURL string, workerBaseURL string, socialBaseURL string) *Server {
 	ops := opsservice.NewOpsService(
 		presenceclient.NewHTTPClient(presenceBaseURL),
 		partyclient.NewHTTPClient(partyBaseURL),
@@ -43,6 +46,7 @@ func NewDurableServer(mysqlConfig db.MySQLConfig, sqlDB *sql.DB, presenceBaseURL
 		workerclient.NewHTTPClient(workerBaseURL),
 		socialclient.NewHTTPClient(socialBaseURL),
 		mysqlrepo.NewBootstrapReader(sqlDB),
+		redisrepo.NewRuntimeReader(redisConfig, redisClient),
 	)
 	_ = mysqlConfig
 	server := httptest.NewServer(opshandler.NewHTTPHandler(ops).Routes())

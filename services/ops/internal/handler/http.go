@@ -27,6 +27,7 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("GET /v1/ops/guilds/{guildID}", h.handleGuildSnapshot)
 	mux.HandleFunc("GET /v1/ops/jobs", h.handleWorkerSnapshot)
 	mux.HandleFunc("GET /v1/ops/bootstrap/mysql", h.handleMySQLBootstrapSnapshot)
+	mux.HandleFunc("GET /v1/ops/runtime/redis", h.handleRedisRuntimeSnapshot)
 	return mux
 }
 
@@ -84,6 +85,15 @@ func (h *HTTPHandler) handleWorkerSnapshot(w http.ResponseWriter, r *http.Reques
 
 func (h *HTTPHandler) handleMySQLBootstrapSnapshot(w http.ResponseWriter, r *http.Request) {
 	record, appErr := h.ops.GetMySQLBootstrapSnapshot(r.Context())
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+	transport.WriteJSON(w, http.StatusOK, record)
+}
+
+func (h *HTTPHandler) handleRedisRuntimeSnapshot(w http.ResponseWriter, r *http.Request) {
+	record, appErr := h.ops.GetRedisRuntimeSnapshot(r.Context())
 	if appErr != nil {
 		transport.WriteError(w, *appErr)
 		return

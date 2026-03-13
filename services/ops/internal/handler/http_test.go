@@ -51,10 +51,20 @@ func (f *fakeBootstrapReader) GetMySQLBootstrapSnapshot(context.Context) (opsser
 	}, nil
 }
 
+type fakeRedisRuntimeReader struct{}
+
+func (f *fakeRedisRuntimeReader) GetRedisRuntimeSnapshot(context.Context) (opsservice.RedisRuntimeSnapshot, *apperrors.Error) {
+	return opsservice.RedisRuntimeSnapshot{
+		PresenceRecordCount: 1,
+		GatewaySessionCount: 1,
+		WorkerJobCount:      1,
+	}, nil
+}
+
 func TestOpsEndpoints(t *testing.T) {
 	t.Parallel()
 
-	h := NewHTTPHandler(opsservice.NewOpsService(&fakePresenceReader{}, &fakePartyReader{}, &fakeGuildReader{}, &fakeWorkerReader{}, &fakeSocialReader{}, &fakeBootstrapReader{}))
+	h := NewHTTPHandler(opsservice.NewOpsService(&fakePresenceReader{}, &fakePartyReader{}, &fakeGuildReader{}, &fakeWorkerReader{}, &fakeSocialReader{}, &fakeBootstrapReader{}, &fakeRedisRuntimeReader{}))
 
 	tests := []string{
 		"/v1/ops/players/p1/overview",
@@ -63,6 +73,7 @@ func TestOpsEndpoints(t *testing.T) {
 		"/v1/ops/guilds/guild-1",
 		"/v1/ops/jobs?status=queued",
 		"/v1/ops/bootstrap/mysql",
+		"/v1/ops/runtime/redis",
 	}
 
 	for _, path := range tests {

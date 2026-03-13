@@ -8,6 +8,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/redis/go-redis/v9"
 	"github.com/xyun1996/social_backend/pkg/app"
 	"github.com/xyun1996/social_backend/pkg/config"
 	"github.com/xyun1996/social_backend/pkg/db"
@@ -19,6 +20,7 @@ import (
 	workerclient "github.com/xyun1996/social_backend/services/ops/internal/client/worker"
 	"github.com/xyun1996/social_backend/services/ops/internal/handler"
 	mysqlrepo "github.com/xyun1996/social_backend/services/ops/internal/repo/mysql"
+	redisrepo "github.com/xyun1996/social_backend/services/ops/internal/repo/redis"
 	"github.com/xyun1996/social_backend/services/ops/internal/service"
 )
 
@@ -48,25 +50,54 @@ func main() {
 
 func buildOpsService(presenceURL string, partyURL string, guildURL string, workerURL string, socialURL string) (*service.OpsService, func(), error) {
 	var bootstrapReader service.BootstrapReader
-	cleanup := func() {}
+	var redisRuntimeReader service.RedisRuntimeReader
+	cleanups := make([]func(), 0, 2)
 
 	if strings.EqualFold(strings.TrimSpace(os.Getenv("OPS_MYSQL_STATUS")), "true") {
 		mysqlConfig := db.LoadMySQLConfig()
 		sqlDB, err := sql.Open("mysql", mysqlConfig.DSN())
 		if err != nil {
-			return nil, cleanup, err
+			return nil, func() {}, err
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 		if err := sqlDB.PingContext(ctx); err != nil {
 			_ = sqlDB.Close()
-			return nil, cleanup, err
+			return nil, func() {}, err
 		}
 
 		bootstrapReader = mysqlrepo.NewBootstrapReader(sqlDB)
-		cleanup = func() {
+		cleanups = append(cleanups, func() {
 			_ = sqlDB.Close()
+		})
+	}
+
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("OPS_REDIS_STATUS")), "true") {
+		redisConfig := db.LoadRedisConfig()
+		redisClient := redis.NewClient(&redis.Options{
+			Addr:     redisConfig.Addr,
+			Username: redisConfig.Username,
+			Password: redisConfig.Password,
+			DB:       redisConfig.DB,
+		})
+
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if err := redisClient.Ping(ctx).Err(); err != nil {
+			_ = redisClient.Close()
+			return nil, func() {}, err
+		}
+
+		redisRuntimeReader = redisrepo.NewRuntimeReader(redisConfig, redisClient)
+		cleanups = append(cleanups, func() {
+			_ = redisClient.Close()
+		})
+	}
+
+	cleanup := func() {
+		for _, closer := range cleanups {
+			closer()
 		}
 	}
 
@@ -77,6 +108,7 @@ func buildOpsService(presenceURL string, partyURL string, guildURL string, worke
 		workerclient.NewHTTPClient(workerURL),
 		socialclient.NewHTTPClient(socialURL),
 		bootstrapReader,
+		redisRuntimeReader,
 	), cleanup, nil
 }
 

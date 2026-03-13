@@ -61,12 +61,21 @@ func (f *fakeBootstrapReader) GetMySQLBootstrapSnapshot(context.Context) (MySQLB
 	return f.record, f.err
 }
 
+type fakeRedisRuntimeReader struct {
+	record RedisRuntimeSnapshot
+	err    *apperrors.Error
+}
+
+func (f *fakeRedisRuntimeReader) GetRedisRuntimeSnapshot(context.Context) (RedisRuntimeSnapshot, *apperrors.Error) {
+	return f.record, f.err
+}
+
 func TestGetPlayerPresence(t *testing.T) {
 	t.Parallel()
 
 	svc := NewOpsService(&fakePresenceReader{
 		record: PresenceRecord{PlayerID: "p1", Status: "online"},
-	}, nil, nil, nil, nil, nil)
+	}, nil, nil, nil, nil, nil, nil)
 
 	record, err := svc.GetPlayerPresence(context.Background(), "p1")
 	if err != nil {
@@ -82,7 +91,7 @@ func TestGetPartySnapshot(t *testing.T) {
 
 	svc := NewOpsService(nil, &fakePartyReader{
 		record: PartySnapshot{PartyID: "party-1", Count: 1},
-	}, nil, nil, nil, nil)
+	}, nil, nil, nil, nil, nil)
 
 	record, err := svc.GetPartySnapshot(context.Background(), "party-1")
 	if err != nil {
@@ -98,7 +107,7 @@ func TestGetWorkerSnapshot(t *testing.T) {
 
 	svc := NewOpsService(nil, nil, nil, &fakeWorkerReader{
 		record: WorkerSnapshot{Count: 1},
-	}, nil, nil)
+	}, nil, nil, nil)
 
 	record, err := svc.GetWorkerSnapshot(context.Background(), "queued", "invite.expire")
 	if err != nil {
@@ -118,6 +127,7 @@ func TestGetPlayerOverview(t *testing.T) {
 		nil,
 		nil,
 		&fakeSocialReader{record: SocialSnapshot{PlayerID: "p1", Friends: []string{"p2"}, Blocks: []string{"p3"}, PendingInbox: []string{"p4"}, PendingOutbox: []string{"p5"}}},
+		nil,
 		nil,
 	)
 
@@ -140,7 +150,7 @@ func TestGetMySQLBootstrapSnapshot(t *testing.T) {
 				{Service: "chat", Count: 1, MigrationIDs: []string{"001_chat_core"}},
 			},
 		},
-	})
+	}, nil)
 
 	record, err := svc.GetMySQLBootstrapSnapshot(context.Background())
 	if err != nil {
@@ -148,5 +158,28 @@ func TestGetMySQLBootstrapSnapshot(t *testing.T) {
 	}
 	if record.Count != 1 || len(record.Services) != 1 || record.Services[0].Service != "chat" {
 		t.Fatalf("unexpected mysql bootstrap snapshot: %+v", record)
+	}
+}
+
+func TestGetRedisRuntimeSnapshot(t *testing.T) {
+	t.Parallel()
+
+	svc := NewOpsService(nil, nil, nil, nil, nil, nil, &fakeRedisRuntimeReader{
+		record: RedisRuntimeSnapshot{
+			PresenceRecordCount: 1,
+			GatewaySessionCount: 1,
+			WorkerJobCount:      2,
+			WorkerStatusCounters: []RedisWorkerStatusCount{
+				{Status: "queued", Count: 2},
+			},
+		},
+	})
+
+	record, err := svc.GetRedisRuntimeSnapshot(context.Background())
+	if err != nil {
+		t.Fatalf("get redis runtime returned error: %+v", err)
+	}
+	if record.PresenceRecordCount != 1 || record.GatewaySessionCount != 1 || record.WorkerJobCount != 2 {
+		t.Fatalf("unexpected redis runtime snapshot: %+v", record)
 	}
 }

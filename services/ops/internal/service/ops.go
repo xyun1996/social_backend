@@ -113,6 +113,21 @@ type MySQLBootstrapSnapshot struct {
 	Services []MySQLBootstrapService `json:"services"`
 }
 
+// RedisWorkerStatusCount summarizes worker jobs by Redis-backed status.
+type RedisWorkerStatusCount struct {
+	Status string `json:"status"`
+	Count  int    `json:"count"`
+}
+
+// RedisRuntimeSnapshot aggregates Redis-backed runtime state.
+type RedisRuntimeSnapshot struct {
+	RedisURL             string                   `json:"redis_url,omitempty"`
+	PresenceRecordCount  int                      `json:"presence_record_count"`
+	GatewaySessionCount  int                      `json:"gateway_session_count"`
+	WorkerJobCount       int                      `json:"worker_job_count"`
+	WorkerStatusCounters []RedisWorkerStatusCount `json:"worker_status_counters"`
+}
+
 // PresenceReader exposes the presence read boundary for ops.
 type PresenceReader interface {
 	GetPresence(ctx context.Context, playerID string) (PresenceRecord, *apperrors.Error)
@@ -143,6 +158,11 @@ type BootstrapReader interface {
 	GetMySQLBootstrapSnapshot(ctx context.Context) (MySQLBootstrapSnapshot, *apperrors.Error)
 }
 
+// RedisRuntimeReader exposes Redis runtime state for ops.
+type RedisRuntimeReader interface {
+	GetRedisRuntimeSnapshot(ctx context.Context) (RedisRuntimeSnapshot, *apperrors.Error)
+}
+
 // OpsService provides operator-facing read aggregation.
 type OpsService struct {
 	presence  PresenceReader
@@ -151,10 +171,11 @@ type OpsService struct {
 	worker    WorkerReader
 	social    SocialReader
 	bootstrap BootstrapReader
+	redis     RedisRuntimeReader
 }
 
 // NewOpsService constructs the operator read service.
-func NewOpsService(presence PresenceReader, parties PartyReader, guilds GuildReader, worker WorkerReader, social SocialReader, bootstrap BootstrapReader) *OpsService {
+func NewOpsService(presence PresenceReader, parties PartyReader, guilds GuildReader, worker WorkerReader, social SocialReader, bootstrap BootstrapReader, redis RedisRuntimeReader) *OpsService {
 	return &OpsService{
 		presence:  presence,
 		parties:   parties,
@@ -162,6 +183,7 @@ func NewOpsService(presence PresenceReader, parties PartyReader, guilds GuildRea
 		worker:    worker,
 		social:    social,
 		bootstrap: bootstrap,
+		redis:     redis,
 	}
 }
 
@@ -210,6 +232,15 @@ func (s *OpsService) GetMySQLBootstrapSnapshot(ctx context.Context) (MySQLBootst
 	return s.bootstrap.GetMySQLBootstrapSnapshot(ctx)
 }
 
+// GetRedisRuntimeSnapshot returns the operator-facing Redis runtime state.
+func (s *OpsService) GetRedisRuntimeSnapshot(ctx context.Context) (RedisRuntimeSnapshot, *apperrors.Error) {
+	if s.redis == nil {
+		err := apperrors.New("dependency_missing", "redis runtime reader is not configured", 500)
+		return RedisRuntimeSnapshot{}, &err
+	}
+	return s.redis.GetRedisRuntimeSnapshot(ctx)
+}
+
 // GetPlayerOverview returns the operator-facing player runtime overview.
 func (s *OpsService) GetPlayerOverview(ctx context.Context, playerID string) (PlayerOverview, *apperrors.Error) {
 	if s.presence == nil {
@@ -246,5 +277,5 @@ func (s *OpsService) GetPlayerOverview(ctx context.Context, playerID string) (Pl
 }
 
 func (s *OpsService) String() string {
-	return fmt.Sprintf("ops-service(presence=%t,party=%t,guild=%t,worker=%t,social=%t,bootstrap=%t)", s.presence != nil, s.parties != nil, s.guilds != nil, s.worker != nil, s.social != nil, s.bootstrap != nil)
+	return fmt.Sprintf("ops-service(presence=%t,party=%t,guild=%t,worker=%t,social=%t,bootstrap=%t,redis=%t)", s.presence != nil, s.parties != nil, s.guilds != nil, s.worker != nil, s.social != nil, s.bootstrap != nil, s.redis != nil)
 }

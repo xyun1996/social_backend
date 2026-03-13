@@ -590,7 +590,7 @@ func TestLocalDurableOpsReadsMySQLBootstrapSnapshot(t *testing.T) {
 	guild := guildtestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL())
 	defer guild.Close()
 
-	ops := opstestkit.NewDurableServer(mysqlConfig, sqlDB, presence.URL(), party.URL(), guild.URL(), "", social.URL())
+	ops := opstestkit.NewDurableServer(mysqlConfig, sqlDB, redisConfig, redisClient, presence.URL(), party.URL(), guild.URL(), "", social.URL())
 	defer ops.Close()
 
 	var snapshot struct {
@@ -604,6 +604,69 @@ func TestLocalDurableOpsReadsMySQLBootstrapSnapshot(t *testing.T) {
 	getJSON(t, ops.URL()+"/v1/ops/bootstrap/mysql", &snapshot)
 	if snapshot.Count != 6 {
 		t.Fatalf("unexpected mysql bootstrap snapshot count: %+v", snapshot)
+	}
+}
+
+func TestLocalDurableOpsReadsRedisRuntimeSnapshot(t *testing.T) {
+	requireLocalDurableTests(t)
+
+	mysqlConfig, sqlDB := newLocalMySQLTestDatabase(t)
+	redisConfig, redisClient := newLocalRedisTestClient(t)
+
+	presence := presencetestkit.NewDurableServer(redisConfig, redisClient)
+	defer presence.Close()
+	worker := workertestkit.NewDurableServer(redisConfig, redisClient)
+	defer worker.Close()
+
+	mysqlBackedInvite := invitetestkit.NewDurableServer(mysqlConfig, sqlDB, "")
+	defer mysqlBackedInvite.Close()
+
+	identity := identitytestkit.NewDurableServer(mysqlConfig, sqlDB)
+	defer identity.Close()
+	gateway := gatewaytestkit.NewDurableServer(redisConfig, redisClient, identity.URL(), presence.URL(), "")
+	defer gateway.Close()
+
+	postJSON(t, presence.URL()+"/v1/presence/connect", map[string]any{
+		"player_id":  "p1",
+		"session_id": "sess-1",
+		"realm_id":   "realm-1",
+		"location":   "lobby",
+	}, nil)
+	postJSON(t, worker.URL()+"/v1/jobs", map[string]any{
+		"type":    "invite.expire",
+		"payload": `{"invite_id":"inv-1"}`,
+	}, nil)
+
+	var tokenPair struct {
+		AccessToken string `json:"access_token"`
+	}
+	postJSON(t, identity.URL()+"/v1/auth/login", map[string]any{
+		"account_id": "a1",
+		"player_id":  "p1",
+	}, &tokenPair)
+	postJSON(t, gateway.URL()+"/v1/realtime/handshake", map[string]any{
+		"access_token": tokenPair.AccessToken,
+		"session_id":   "sess-1",
+		"realm_id":     "realm-1",
+		"location":     "lobby",
+	}, nil)
+
+	ops := opstestkit.NewDurableServer(mysqlConfig, sqlDB, redisConfig, redisClient, presence.URL(), "", "", worker.URL(), "")
+	defer ops.Close()
+
+	var snapshot struct {
+		PresenceRecordCount  int `json:"presence_record_count"`
+		GatewaySessionCount  int `json:"gateway_session_count"`
+		WorkerJobCount       int `json:"worker_job_count"`
+		WorkerStatusCounters []struct {
+			Status string `json:"status"`
+			Count  int    `json:"count"`
+		} `json:"worker_status_counters"`
+	}
+	_ = mysqlBackedInvite
+	getJSON(t, ops.URL()+"/v1/ops/runtime/redis", &snapshot)
+	if snapshot.PresenceRecordCount != 1 || snapshot.GatewaySessionCount != 1 || snapshot.WorkerJobCount != 1 {
+		t.Fatalf("unexpected redis runtime snapshot: %+v", snapshot)
 	}
 }
 

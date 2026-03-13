@@ -96,3 +96,23 @@ Base purpose: operator-facing read queries across runtime-aware service boundari
   ]
 }
 ```
+
+## Redis Runtime Snapshot
+
+- `GET /v1/ops/runtime/redis`
+- Response `200`
+
+```json
+{
+  "redis_url": "redis://localhost:6379/0",
+  "presence_record_count": 1,
+  "gateway_session_count": 1,
+  "worker_job_count": 2,
+  "worker_status_counters": [
+    {
+      "status": "queued",
+      "count": 2
+    }
+  ]
+}
+```
