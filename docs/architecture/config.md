@@ -38,3 +38,4 @@ Shared keys currently documented there:
 ## Future Work
 
 - Decide on exact config format and loading library when Go modules are introduced.
+- Shared MySQL foundation currently reads `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, and `MYSQL_DATABASE`.

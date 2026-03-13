@@ -79,6 +79,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/031-invite-worker-expiry-consumer.md](v1/tasks/031-invite-worker-expiry-consumer.md)
 - [docs/plans/v1/tasks/032-chat-offline-replay-delivery-consumer.md](v1/tasks/032-chat-offline-replay-delivery-consumer.md)
 - [docs/plans/v1/tasks/033-social-request-reads-and-ops-expansion.md](v1/tasks/033-social-request-reads-and-ops-expansion.md)
+- [docs/plans/v1/tasks/034-mysql-repo-foundation.md](v1/tasks/034-mysql-repo-foundation.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)

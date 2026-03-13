@@ -32,6 +32,7 @@ Use Redis for hot or short-lived state:
 
 - MySQL-owned: account, player, refresh-token lineage if refresh durability is required
 - Redis-owned: optional short-lived token introspection cache
+- First code foundation lives under `services/identity/internal/repo/mysql`
 
 ### `gateway`
 
