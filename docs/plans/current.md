@@ -94,6 +94,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/046-integration-gateway-ack-compaction-flow.md](v1/tasks/046-integration-gateway-ack-compaction-flow.md)
 - [docs/plans/v1/tasks/047-integration-gateway-resume-trim-flow.md](v1/tasks/047-integration-gateway-resume-trim-flow.md)
 - [docs/plans/v1/tasks/048-identity-mysql-startup-bootstrap.md](v1/tasks/048-identity-mysql-startup-bootstrap.md)
+- [docs/plans/v1/tasks/049-presence-redis-startup-validation.md](v1/tasks/049-presence-redis-startup-validation.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)
