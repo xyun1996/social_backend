@@ -102,43 +102,43 @@ run-worker:
 	go run ./services/worker/cmd/worker
 
 run-identity-mysql:
-	set APP_ENV=local && set IDENTITY_STORE=mysql && set IDENTITY_AUTO_MIGRATE=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && go run ./services/identity/cmd/identity
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/run-identity-mysql.ps1
 
 run-social-mysql:
-	set APP_ENV=local && set SOCIAL_STORE=mysql && set SOCIAL_AUTO_MIGRATE=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && go run ./services/social/cmd/social
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/run-social-mysql.ps1
 
 run-invite-mysql:
-	set APP_ENV=local && set INVITE_STORE=mysql && set INVITE_AUTO_MIGRATE=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && go run ./services/invite/cmd/invite
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/run-invite-mysql.ps1
 
 run-chat-mysql:
-	set APP_ENV=local && set CHAT_STORE=mysql && set CHAT_AUTO_MIGRATE=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && go run ./services/chat/cmd/chat
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/run-chat-mysql.ps1
 
 run-party-mysql:
-	set APP_ENV=local && set PARTY_STORE=mysql && set PARTY_AUTO_MIGRATE=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && go run ./services/party/cmd/party
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/run-party-mysql.ps1
 
 run-guild-mysql:
-	set APP_ENV=local && set GUILD_STORE=mysql && set GUILD_AUTO_MIGRATE=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && go run ./services/guild/cmd/guild
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/run-guild-mysql.ps1
 
 run-presence-redis:
-	set APP_ENV=local && set PRESENCE_STORE=redis && set REDIS_ADDR=localhost:6379 && set REDIS_USERNAME= && set REDIS_PASSWORD= && set REDIS_DB=0 && go run ./services/presence/cmd/presence
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/run-presence-redis.ps1
 
 run-worker-redis:
-	set APP_ENV=local && set WORKER_STORE=redis && set REDIS_ADDR=localhost:6379 && set REDIS_USERNAME= && set REDIS_PASSWORD= && set REDIS_DB=0 && go run ./services/worker/cmd/worker
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/run-worker-redis.ps1
 
 run-gateway-redis:
-	set APP_ENV=local && set GATEWAY_STORE=redis && set REDIS_ADDR=localhost:6379 && set REDIS_USERNAME= && set REDIS_PASSWORD= && set REDIS_DB=0 && go run ./services/gateway/cmd/gateway
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/run-gateway-redis.ps1
 
 run-ops-durable:
-	set APP_ENV=local && set OPS_MYSQL_STATUS=true && set OPS_REDIS_STATUS=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && set REDIS_ADDR=localhost:6379 && set REDIS_USERNAME= && set REDIS_PASSWORD= && set REDIS_DB=0 && go run ./services/ops/cmd/ops
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/run-ops-durable.ps1
 
 test-local-durable:
-	set ENABLE_LOCAL_DURABLE_TESTS=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && set REDIS_ADDR=localhost:6379 && set REDIS_USERNAME= && set REDIS_PASSWORD= && go test ./services/integration -run TestLocalDurable -v
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/test-local-durable.ps1
 
 bootstrap-local-mysql:
 	powershell -ExecutionPolicy Bypass -File ./scripts/dev/bootstrap-local-mysql.ps1
 
 verify-local-mysql-migrations:
-	set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && go run ./scripts/dev/cmd/verify_mysql_migrations
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/verify-local-mysql-migrations.ps1
 
 check-local-durable-status:
-	set OPS_BASE_URL=http://localhost:8088 && set REQUIRE_MYSQL_SUMMARY=true && set REQUIRE_REDIS_SUMMARY=true && set EXPECTED_MYSQL_SERVICES=identity,social,invite,chat,party,guild && go run ./scripts/dev/cmd/check_local_durable_status
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/check-local-durable-status.ps1
