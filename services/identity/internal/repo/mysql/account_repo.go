@@ -39,12 +39,12 @@ func (r *Repository) DSN() string {
 // SchemaStatements returns the first-round identity schema ownership.
 func (r *Repository) SchemaStatements() []string {
 	return []string{
-		`CREATE TABLE identity_accounts (
+		`CREATE TABLE IF NOT EXISTS identity_accounts (
 			account_id VARCHAR(64) PRIMARY KEY,
 			player_id VARCHAR(64) NOT NULL,
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);`,
-		`CREATE TABLE identity_refresh_tokens (
+		`CREATE TABLE IF NOT EXISTS identity_refresh_tokens (
 			token_id VARCHAR(64) PRIMARY KEY,
 			account_id VARCHAR(64) NOT NULL,
 			player_id VARCHAR(64) NOT NULL,

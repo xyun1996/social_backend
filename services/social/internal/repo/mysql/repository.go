@@ -42,7 +42,7 @@ func (r *Repository) DSN() string {
 // SchemaStatements returns the social-owned schema statements.
 func (r *Repository) SchemaStatements() []string {
 	return []string{
-		`CREATE TABLE social_friend_requests (
+		`CREATE TABLE IF NOT EXISTS social_friend_requests (
 			request_id VARCHAR(64) PRIMARY KEY,
 			from_player_id VARCHAR(64) NOT NULL,
 			to_player_id VARCHAR(64) NOT NULL,
@@ -51,14 +51,14 @@ func (r *Repository) SchemaStatements() []string {
 			UNIQUE KEY uq_social_friend_requests_pair (from_player_id, to_player_id),
 			INDEX idx_social_friend_requests_to_player (to_player_id, status)
 		);`,
-		`CREATE TABLE social_friendships (
+		`CREATE TABLE IF NOT EXISTS social_friendships (
 			player_id VARCHAR(64) NOT NULL,
 			friend_player_id VARCHAR(64) NOT NULL,
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY (player_id, friend_player_id),
 			INDEX idx_social_friendships_friend (friend_player_id)
 		);`,
-		`CREATE TABLE social_blocks (
+		`CREATE TABLE IF NOT EXISTS social_blocks (
 			player_id VARCHAR(64) NOT NULL,
 			blocked_player_id VARCHAR(64) NOT NULL,
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

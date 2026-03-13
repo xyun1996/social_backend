@@ -39,7 +39,7 @@ func (r *Repository) DSN() string {
 // SchemaStatements returns the first-round invite schema ownership.
 func (r *Repository) SchemaStatements() []string {
 	return []string{
-		`CREATE TABLE invites (
+		`CREATE TABLE IF NOT EXISTS invites (
 			invite_id VARCHAR(64) PRIMARY KEY,
 			domain_name VARCHAR(32) NOT NULL,
 			resource_id VARCHAR(64) NOT NULL,
