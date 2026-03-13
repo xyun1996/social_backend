@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
-	"sync"
 	"time"
 
 	apperrors "github.com/xyun1996/social_backend/pkg/errors"
@@ -34,8 +33,7 @@ type JobScheduler interface {
 
 // InviteService provides an in-memory prototype for cross-domain invite flows.
 type InviteService struct {
-	mu          sync.RWMutex
-	invites     map[string]domain.Invite
+	invites     InviteStore
 	now         func() time.Time
 	newInviteID func() (string, error)
 	scheduler   JobScheduler
@@ -44,12 +42,26 @@ type InviteService struct {
 // NewInviteService constructs an in-memory invite service.
 func NewInviteService(scheduler JobScheduler) *InviteService {
 	return &InviteService{
-		invites:   make(map[string]domain.Invite),
+		invites:   newMemoryInviteStore(),
 		now:       time.Now,
 		scheduler: scheduler,
 		newInviteID: func() (string, error) {
 			return idgen.Token(8)
 		},
+	}
+}
+
+// NewInviteServiceWithStore constructs an invite service with a custom store.
+func NewInviteServiceWithStore(store InviteStore, scheduler JobScheduler) *InviteService {
+	if store == nil {
+		return NewInviteService(scheduler)
+	}
+
+	return &InviteService{
+		invites:     store,
+		now:         time.Now,
+		scheduler:   scheduler,
+		newInviteID: func() (string, error) { return idgen.Token(8) },
 	}
 }
 
@@ -71,12 +83,21 @@ func (s *InviteService) CreateInvite(domainName string, resourceID string, fromP
 
 	now := s.now()
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	allInvites, storeErr := s.invites.ListInvites()
+	if storeErr != nil {
+		internal := apperrors.Internal()
+		return domain.Invite{}, &internal
+	}
 
-	s.expirePendingLocked(now)
+	for _, invite := range allInvites {
+		if invite.Status == inviteStatusPending && s.isExpired(invite, now) {
+			invite.Status = inviteStatusExpired
+			if err := s.invites.SaveInvite(invite); err != nil {
+				internal := apperrors.Internal()
+				return domain.Invite{}, &internal
+			}
+		}
 
-	for _, invite := range s.invites {
 		if invite.Domain == domainName &&
 			invite.ResourceID == resourceID &&
 			invite.FromPlayerID == fromPlayerID &&
@@ -122,7 +143,10 @@ func (s *InviteService) CreateInvite(domainName string, resourceID string, fromP
 		}
 	}
 
-	s.invites[invite.ID] = invite
+	if err := s.invites.SaveInvite(invite); err != nil {
+		internal := apperrors.Internal()
+		return domain.Invite{}, &internal
+	}
 	return invite, nil
 }
 
@@ -135,18 +159,22 @@ func (s *InviteService) GetInvite(inviteID string) (domain.Invite, *apperrors.Er
 
 	now := s.now()
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	invite, ok := s.invites[inviteID]
+	invite, ok, err := s.invites.GetInvite(inviteID)
 	if !ok {
 		err := apperrors.New("not_found", "invite not found", http.StatusNotFound)
 		return domain.Invite{}, &err
 	}
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Invite{}, &internal
+	}
 
 	if invite.Status == inviteStatusPending && s.isExpired(invite, now) {
 		invite.Status = inviteStatusExpired
-		s.invites[invite.ID] = invite
+		if err := s.invites.SaveInvite(invite); err != nil {
+			internal := apperrors.Internal()
+			return domain.Invite{}, &internal
+		}
 	}
 
 	return invite, nil
@@ -159,18 +187,22 @@ func (s *InviteService) ExpireInvite(inviteID string) (domain.Invite, *apperrors
 		return domain.Invite{}, &err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	invite, ok := s.invites[inviteID]
+	invite, ok, err := s.invites.GetInvite(inviteID)
 	if !ok {
 		err := apperrors.New("not_found", "invite not found", http.StatusNotFound)
 		return domain.Invite{}, &err
 	}
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Invite{}, &internal
+	}
 
 	if invite.Status == inviteStatusPending {
 		invite.Status = inviteStatusExpired
-		s.invites[invite.ID] = invite
+		if err := s.invites.SaveInvite(invite); err != nil {
+			internal := apperrors.Internal()
+			return domain.Invite{}, &internal
+		}
 	}
 
 	return invite, nil
@@ -190,13 +222,14 @@ func (s *InviteService) RespondInvite(inviteID string, actorPlayerID string, act
 
 	now := s.now()
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	invite, ok := s.invites[inviteID]
+	invite, ok, err := s.invites.GetInvite(inviteID)
 	if !ok {
 		err := apperrors.New("not_found", "invite not found", http.StatusNotFound)
 		return domain.Invite{}, &err
+	}
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Invite{}, &internal
 	}
 
 	if invite.ToPlayerID != actorPlayerID {
@@ -206,7 +239,10 @@ func (s *InviteService) RespondInvite(inviteID string, actorPlayerID string, act
 
 	if s.isExpired(invite, now) {
 		invite.Status = inviteStatusExpired
-		s.invites[invite.ID] = invite
+		if err := s.invites.SaveInvite(invite); err != nil {
+			internal := apperrors.Internal()
+			return domain.Invite{}, &internal
+		}
 		err := apperrors.New("invite_expired", "invite has expired", http.StatusConflict)
 		return invite, &err
 	}
@@ -226,7 +262,10 @@ func (s *InviteService) RespondInvite(inviteID string, actorPlayerID string, act
 		invite.Status = inviteStatusDeclined
 	}
 
-	s.invites[invite.ID] = invite
+	if err := s.invites.SaveInvite(invite); err != nil {
+		internal := apperrors.Internal()
+		return domain.Invite{}, &internal
+	}
 	return invite, nil
 }
 
@@ -248,13 +287,22 @@ func (s *InviteService) ListInvites(playerID string, role string, status string)
 
 	now := s.now()
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.expirePendingLocked(now)
+	allInvites, storeErr := s.invites.ListInvites()
+	if storeErr != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
+	}
 
 	invites := make([]domain.Invite, 0)
-	for _, invite := range s.invites {
+	for _, invite := range allInvites {
+		if invite.Status == inviteStatusPending && s.isExpired(invite, now) {
+			invite.Status = inviteStatusExpired
+			if err := s.invites.SaveInvite(invite); err != nil {
+				internal := apperrors.Internal()
+				return nil, &internal
+			}
+		}
+
 		if !matchesRole(invite, playerID, role) {
 			continue
 		}
@@ -298,23 +346,14 @@ func matchesRole(invite domain.Invite, playerID string, role string) bool {
 	}
 }
 
-func (s *InviteService) expirePendingLocked(now time.Time) {
-	for id, invite := range s.invites {
-		if invite.Status != inviteStatusPending {
-			continue
-		}
-
-		if s.isExpired(invite, now) {
-			invite.Status = inviteStatusExpired
-			s.invites[id] = invite
-		}
-	}
-}
-
 func (s *InviteService) isExpired(invite domain.Invite, now time.Time) bool {
 	return !invite.ExpiresAt.After(now)
 }
 
 func (s *InviteService) String() string {
-	return fmt.Sprintf("invite-service(invites=%d)", len(s.invites))
+	invites, err := s.invites.ListInvites()
+	if err != nil {
+		return "invite-service(invites=unknown)"
+	}
+	return fmt.Sprintf("invite-service(invites=%d)", len(invites))
 }

@@ -100,6 +100,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/052-social-mysql-repo-foundation.md](v1/tasks/052-social-mysql-repo-foundation.md)
 - [docs/plans/v1/tasks/053-worker-redis-repo-foundation.md](v1/tasks/053-worker-redis-repo-foundation.md)
 - [docs/plans/v1/tasks/054-chat-store-boundary-refactor.md](v1/tasks/054-chat-store-boundary-refactor.md)
+- [docs/plans/v1/tasks/055-invite-store-boundary-refactor.md](v1/tasks/055-invite-store-boundary-refactor.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)

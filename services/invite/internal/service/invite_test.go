@@ -6,6 +6,7 @@ import (
 	"time"
 
 	apperrors "github.com/xyun1996/social_backend/pkg/errors"
+	"github.com/xyun1996/social_backend/services/invite/internal/domain"
 )
 
 type fakeScheduler struct {
@@ -20,6 +21,32 @@ func (f *fakeScheduler) EnqueueJob(_ context.Context, jobType string, payload st
 	f.payload = payload
 	f.calls++
 	return f.err
+}
+
+type recordingInviteStore struct {
+	invites map[string]domain.Invite
+}
+
+func newRecordingInviteStore() *recordingInviteStore {
+	return &recordingInviteStore{invites: make(map[string]domain.Invite)}
+}
+
+func (s *recordingInviteStore) ListInvites() ([]domain.Invite, error) {
+	invites := make([]domain.Invite, 0, len(s.invites))
+	for _, invite := range s.invites {
+		invites = append(invites, invite)
+	}
+	return invites, nil
+}
+
+func (s *recordingInviteStore) SaveInvite(invite domain.Invite) error {
+	s.invites[invite.ID] = invite
+	return nil
+}
+
+func (s *recordingInviteStore) GetInvite(inviteID string) (domain.Invite, bool, error) {
+	invite, ok := s.invites[inviteID]
+	return invite, ok, nil
 }
 
 func TestCreateAndAcceptInvite(t *testing.T) {
@@ -172,5 +199,27 @@ func TestExpireInviteTransitionsPendingInvite(t *testing.T) {
 	}
 	if expired.Status != inviteStatusExpired {
 		t.Fatalf("unexpected expired status: %q", expired.Status)
+	}
+}
+
+func TestInviteServiceUsesInjectedStore(t *testing.T) {
+	t.Parallel()
+
+	store := newRecordingInviteStore()
+	svc := NewInviteServiceWithStore(store, nil)
+
+	invite, err := svc.CreateInvite("party", "party-1", "p1", "p2", time.Minute)
+	if err != nil {
+		t.Fatalf("create invite returned error: %+v", err)
+	}
+	responded, err := svc.RespondInvite(invite.ID, "p2", inviteActionAccept)
+	if err != nil {
+		t.Fatalf("respond invite returned error: %+v", err)
+	}
+
+	if stored, ok := store.invites[invite.ID]; !ok {
+		t.Fatalf("expected invite to be stored")
+	} else if stored.Status != responded.Status {
+		t.Fatalf("unexpected stored invite status: %+v", stored)
 	}
 }
