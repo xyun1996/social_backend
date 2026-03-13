@@ -1,10 +1,11 @@
-.PHONY: help bootstrap test proto lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker run-identity-mysql run-social-mysql run-invite-mysql run-chat-mysql run-party-mysql run-guild-mysql run-presence-redis run-worker-redis run-gateway-redis run-ops-durable test-local-durable bootstrap-local-mysql verify-local-mysql-migrations check-local-durable-status
+.PHONY: help bootstrap test proto proto-check lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker run-identity-mysql run-social-mysql run-invite-mysql run-chat-mysql run-party-mysql run-guild-mysql run-presence-redis run-worker-redis run-gateway-redis run-ops-durable test-local-durable bootstrap-local-mysql verify-local-mysql-migrations check-local-durable-status
 
 help:
 	@echo "Available targets:"
 	@echo "  bootstrap - verify basic repo structure"
 	@echo "  test      - reserved for future Go test entrypoint"
 	@echo "  proto     - lint and generate Go bindings from api/proto via buf"
+	@echo "  proto-check - run proto smoke tests and buf lint when available"
 	@echo "  lint      - reserved for future lint entrypoint"
 	@echo "  format    - reserved for future format entrypoint"
 	@echo "  docs      - show current documentation entrypoints"
@@ -42,6 +43,9 @@ test:
 
 proto:
 	powershell -ExecutionPolicy Bypass -File ./scripts/dev/proto-generate.ps1
+
+proto-check:
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/proto-check.ps1
 
 lint:
 	@echo "Lint pipeline placeholder. Wire golangci-lint or equivalent when modules are added."

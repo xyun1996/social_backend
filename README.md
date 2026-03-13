@@ -112,6 +112,8 @@ Worker also supports an optional background drain loop via `WORKER_AUTO_RUN=true
 - `make test-local-durable`
 - `make bootstrap-local-mysql`
 - `make check-local-durable-status`
+- `make proto-check`
+- `make proto`
 - `make proto`
 
 Starter service defaults:
