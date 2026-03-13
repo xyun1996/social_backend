@@ -1,4 +1,4 @@
-.PHONY: help bootstrap test proto lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker run-identity-mysql run-social-mysql run-invite-mysql run-chat-mysql run-presence-redis run-worker-redis test-local-durable bootstrap-local-mysql verify-local-mysql-migrations
+.PHONY: help bootstrap test proto lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker run-identity-mysql run-social-mysql run-invite-mysql run-chat-mysql run-party-mysql run-guild-mysql run-presence-redis run-worker-redis run-gateway-redis run-ops-durable test-local-durable bootstrap-local-mysql verify-local-mysql-migrations
 
 help:
 	@echo "Available targets:"
@@ -22,8 +22,12 @@ help:
 	@echo "  run-social-mysql   - start social against local MySQL"
 	@echo "  run-invite-mysql   - start invite against local MySQL"
 	@echo "  run-chat-mysql     - start chat against local MySQL"
+	@echo "  run-party-mysql    - start party against local MySQL"
+	@echo "  run-guild-mysql    - start guild against local MySQL"
 	@echo "  run-presence-redis - start presence against local Redis"
 	@echo "  run-worker-redis   - start worker against local Redis"
+	@echo "  run-gateway-redis  - start gateway against local Redis"
+	@echo "  run-ops-durable    - start ops with MySQL and Redis status readers enabled"
 	@echo "  test-local-durable - run opt-in durable integration tests against local MySQL and Redis"
 	@echo "  bootstrap-local-mysql - bootstrap owned MySQL schemas without serving traffic"
 	@echo "  verify-local-mysql-migrations - inspect required schema_migrations rows on local MySQL"
@@ -92,11 +96,23 @@ run-invite-mysql:
 run-chat-mysql:
 	set APP_ENV=local && set CHAT_STORE=mysql && set CHAT_AUTO_MIGRATE=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && go run ./services/chat/cmd/chat
 
+run-party-mysql:
+	set APP_ENV=local && set PARTY_STORE=mysql && set PARTY_AUTO_MIGRATE=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && go run ./services/party/cmd/party
+
+run-guild-mysql:
+	set APP_ENV=local && set GUILD_STORE=mysql && set GUILD_AUTO_MIGRATE=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && go run ./services/guild/cmd/guild
+
 run-presence-redis:
 	set APP_ENV=local && set PRESENCE_STORE=redis && set REDIS_ADDR=localhost:6379 && set REDIS_USERNAME= && set REDIS_PASSWORD= && set REDIS_DB=0 && go run ./services/presence/cmd/presence
 
 run-worker-redis:
 	set APP_ENV=local && set WORKER_STORE=redis && set REDIS_ADDR=localhost:6379 && set REDIS_USERNAME= && set REDIS_PASSWORD= && set REDIS_DB=0 && go run ./services/worker/cmd/worker
+
+run-gateway-redis:
+	set APP_ENV=local && set GATEWAY_STORE=redis && set REDIS_ADDR=localhost:6379 && set REDIS_USERNAME= && set REDIS_PASSWORD= && set REDIS_DB=0 && go run ./services/gateway/cmd/gateway
+
+run-ops-durable:
+	set APP_ENV=local && set OPS_MYSQL_STATUS=true && set OPS_REDIS_STATUS=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && set REDIS_ADDR=localhost:6379 && set REDIS_USERNAME= && set REDIS_PASSWORD= && set REDIS_DB=0 && go run ./services/ops/cmd/ops
 
 test-local-durable:
 	set ENABLE_LOCAL_DURABLE_TESTS=true && set MYSQL_HOST=localhost && set MYSQL_PORT=3306 && set MYSQL_USER=root && set MYSQL_PASSWORD=1234 && set MYSQL_DATABASE=social_backend && set REDIS_ADDR=localhost:6379 && set REDIS_USERNAME= && set REDIS_PASSWORD= && go test ./services/integration -run TestLocalDurable -v

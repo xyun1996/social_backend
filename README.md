@@ -101,8 +101,12 @@ Worker also supports an optional background drain loop via `WORKER_AUTO_RUN=true
 - `make run-social-mysql`
 - `make run-invite-mysql`
 - `make run-chat-mysql`
+- `make run-party-mysql`
+- `make run-guild-mysql`
 - `make run-presence-redis`
 - `make run-worker-redis`
+- `make run-gateway-redis`
+- `make run-ops-durable`
 - `make test-local-durable`
 - `make bootstrap-local-mysql`
 
@@ -130,7 +134,11 @@ Durable-mode shortcuts:
 - `make run-social-mysql`
 - `make run-invite-mysql`
 - `make run-chat-mysql`
+- `make run-party-mysql`
+- `make run-guild-mysql`
 - `make run-presence-redis`
 - `make run-worker-redis`
+- `make run-gateway-redis`
+- `make run-ops-durable`
 - `make test-local-durable`
 - `make bootstrap-local-mysql`

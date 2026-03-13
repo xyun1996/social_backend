@@ -127,6 +127,7 @@ Advance the prototype stack into durable local runtime shape by closing MySQL an
 - [docs/plans/v1/tasks/082-ops-redis-runtime-visibility.md](v1/tasks/082-ops-redis-runtime-visibility.md)
 - [docs/plans/v1/tasks/083-shared-durable-connection-helpers.md](v1/tasks/083-shared-durable-connection-helpers.md)
 - [docs/plans/v1/tasks/084-ops-repo-reader-tests.md](v1/tasks/084-ops-repo-reader-tests.md)
+- [docs/plans/v1/tasks/085-complete-local-durable-run-targets.md](v1/tasks/085-complete-local-durable-run-targets.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)
