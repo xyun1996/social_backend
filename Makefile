@@ -1,12 +1,14 @@
-.PHONY: help bootstrap test proto proto-check check-contracts lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker run-identity-mysql run-social-mysql run-invite-mysql run-chat-mysql run-party-mysql run-guild-mysql run-presence-redis run-worker-redis run-gateway-redis run-ops-durable test-local-durable bootstrap-local-mysql verify-local-mysql-migrations check-local-durable-status
+.PHONY: help bootstrap test proto proto-check proto-lint check-contracts check-dev lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker run-identity-mysql run-social-mysql run-invite-mysql run-chat-mysql run-party-mysql run-guild-mysql run-presence-redis run-worker-redis run-gateway-redis run-ops-durable test-local-durable bootstrap-local-mysql verify-local-mysql-migrations check-local-durable-status
 
 help:
 	@echo "Available targets:"
 	@echo "  bootstrap - verify basic repo structure"
 	@echo "  test      - reserved for future Go test entrypoint"
 	@echo "  proto     - lint and generate Go bindings from api/proto via buf"
-	@echo "  proto-check - run proto smoke tests and buf lint when available"
+	@echo "  proto-check - run lightweight proto smoke tests"
+	@echo "  proto-lint - run proto smoke tests and require buf lint"
 	@echo "  check-contracts - print and validate current HTTP/proto/TCP contract inventory"
+	@echo "  check-dev - run go test, proto checks, and contract inventory checks"
 	@echo "  lint      - reserved for future lint entrypoint"
 	@echo "  format    - reserved for future format entrypoint"
 	@echo "  docs      - show current documentation entrypoints"
@@ -48,8 +50,14 @@ proto:
 proto-check:
 	powershell -ExecutionPolicy Bypass -File ./scripts/dev/proto-check.ps1
 
+proto-lint:
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/proto-check.ps1 -RequireBuf -RunBufLint
+
 check-contracts:
 	go run ./scripts/dev/cmd/check_contract_inventory
+
+check-dev:
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/dev-check.ps1
 
 lint:
 	@echo "Lint pipeline placeholder. Wire golangci-lint or equivalent when modules are added."

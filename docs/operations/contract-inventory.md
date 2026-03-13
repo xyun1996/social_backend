@@ -7,6 +7,7 @@ Provide a human-friendly inventory and gate for the repository's current HTTP, p
 ## Entry Points
 
 - `make check-contracts`
+- `make check-dev`
 - `go run ./scripts/dev/cmd/check_contract_inventory`
 
 ## What It Checks

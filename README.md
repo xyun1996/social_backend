@@ -115,6 +115,7 @@ Worker also supports an optional background drain loop via `WORKER_AUTO_RUN=true
 - `make proto-check`
 - `make proto`
 - `make check-contracts`
+- `make check-dev`
 - `make proto`
 
 Starter service defaults:
