@@ -20,6 +20,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - Presence-backed runtime behavior for chat and party
 - HTTP and error contract baseline documentation
 - Proto and realtime transport baseline documentation
+- Persistence boundary documentation for MySQL and Redis rollout
 - Documentation alignment between active plan, milestones, tasks, and ADRs
 - Continued prototype hardening through explicit service clients
 
@@ -45,6 +46,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - HTTP contracts are still baseline-level, so deeper per-service specs and future proto contracts remain to be written.
 - Guild and chat push behavior still need richer runtime rules beyond current prototype reads.
 - Internal proto coverage now spans all runnable control-plane services, but generated clients and transport binding are still deferred.
+- Storage integration is still design-only, so repo and migration work remain ahead of the current prototype layer.
 - Without disciplined updates, future plan drift could appear between `current`, milestones, tasks, and ADRs.
 
 ## Key Dependencies
@@ -65,6 +67,8 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/019-expand-proto-contracts.md](v1/tasks/019-expand-proto-contracts.md)
 - [docs/plans/v1/tasks/020-ops-worker-queue-visibility.md](v1/tasks/020-ops-worker-queue-visibility.md)
 - [docs/plans/v1/tasks/021-complete-proto-contract-coverage.md](v1/tasks/021-complete-proto-contract-coverage.md)
+- [docs/plans/v1/tasks/022-document-tcp-realtime-contract-baseline.md](v1/tasks/022-document-tcp-realtime-contract-baseline.md)
+- [docs/plans/v1/tasks/023-document-persistence-boundaries.md](v1/tasks/023-document-persistence-boundaries.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)

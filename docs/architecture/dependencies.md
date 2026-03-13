@@ -12,6 +12,7 @@
 
 - MySQL is the default long-lived relational store.
 - Redis is the default short-lived cache, presence, queue, and hot-message store.
+- Storage ownership stays service-local; see `docs/architecture/persistence.md`.
 
 ## Documentation Dependencies
 

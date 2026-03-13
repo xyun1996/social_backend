@@ -35,6 +35,7 @@ This project is a reusable social backend for medium-light multiplayer games. Th
 - [Module Design](module-design.md)
 - [Technical Principles](technical-principles.md)
 - [Runtime Flows](runtime-flows.md)
+- [Persistence Boundaries](persistence.md)
 - [Bounded Contexts](bounded-contexts.md)
 - [Dependencies](dependencies.md)
 - [Protocols](protocols.md)

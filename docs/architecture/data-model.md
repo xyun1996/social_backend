@@ -30,6 +30,17 @@ Use consistent metadata fields where applicable:
 
 - MySQL for durable relational state
 - Redis for hot state, presence, queue metadata, and short-lived messaging caches
+- Service ownership for durable versus hot state is detailed in `docs/architecture/persistence.md`
+
+## Candidate Durable Entities
+
+- `identity`: account, player, refresh token lineage
+- `social`: friend_request, friendship_edge, block_edge
+- `invite`: invite
+- `chat`: conversation, conversation_member, message, read_cursor
+- `party`: party, party_member
+- `guild`: guild, guild_member, guild_role_assignment
+- `worker`: job_intent when durable retries are required
 
 ## Audit Requirements
 
