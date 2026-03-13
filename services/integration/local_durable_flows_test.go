@@ -14,8 +14,10 @@ import (
 	"github.com/xyun1996/social_backend/pkg/db"
 	chattestkit "github.com/xyun1996/social_backend/services/chat/testkit"
 	gatewaytestkit "github.com/xyun1996/social_backend/services/gateway/testkit"
+	guildtestkit "github.com/xyun1996/social_backend/services/guild/testkit"
 	identitytestkit "github.com/xyun1996/social_backend/services/identity/testkit"
 	invitetestkit "github.com/xyun1996/social_backend/services/invite/testkit"
+	partytestkit "github.com/xyun1996/social_backend/services/party/testkit"
 	presencetestkit "github.com/xyun1996/social_backend/services/presence/testkit"
 	socialtestkit "github.com/xyun1996/social_backend/services/social/testkit"
 	workertestkit "github.com/xyun1996/social_backend/services/worker/testkit"
@@ -268,6 +270,179 @@ func TestLocalDurableChatWorkerOfflineDeliveryFlow(t *testing.T) {
 	}
 	if chat.OfflineDeliveryCount(conversation.ID) != 1 {
 		t.Fatalf("expected one durable offline delivery receipt")
+	}
+}
+
+func TestLocalDurablePartyInviteJoinReadyFlow(t *testing.T) {
+	requireLocalDurableTests(t)
+
+	mysqlConfig, sqlDB := newLocalMySQLTestDatabase(t)
+	invite := invitetestkit.NewDurableServer(mysqlConfig, sqlDB, "")
+	defer invite.Close()
+
+	redisConfig, redisClient := newLocalRedisTestClient(t)
+	presence := presencetestkit.NewDurableServer(redisConfig, redisClient)
+	defer presence.Close()
+
+	party := partytestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL())
+	defer party.Close()
+
+	var createdParty struct {
+		ID string `json:"id"`
+	}
+	postJSON(t, party.URL()+"/v1/parties", map[string]any{
+		"leader_id": "p1",
+	}, &createdParty)
+
+	var createdInvite struct {
+		ID string `json:"id"`
+	}
+	postJSON(t, party.URL()+"/v1/parties/"+createdParty.ID+"/invites", map[string]any{
+		"actor_player_id": "p1",
+		"to_player_id":    "p2",
+	}, &createdInvite)
+
+	postJSON(t, invite.URL()+"/v1/invites/"+createdInvite.ID+"/accept", map[string]any{
+		"actor_player_id": "p2",
+	}, nil)
+
+	postJSON(t, party.URL()+"/v1/parties/"+createdParty.ID+"/join", map[string]any{
+		"invite_id":       createdInvite.ID,
+		"actor_player_id": "p2",
+	}, nil)
+
+	postJSON(t, presence.URL()+"/v1/presence/connect", map[string]any{
+		"player_id":  "p2",
+		"session_id": "sess-2",
+		"realm_id":   "realm-1",
+		"location":   "lobby",
+	}, nil)
+
+	var readyState struct {
+		IsReady bool `json:"is_ready"`
+	}
+	postJSON(t, party.URL()+"/v1/parties/"+createdParty.ID+"/ready", map[string]any{
+		"actor_player_id": "p2",
+		"is_ready":        true,
+	}, &readyState)
+	if !readyState.IsReady {
+		t.Fatalf("expected durable party ready state to be true")
+	}
+
+	var members struct {
+		Count   int `json:"count"`
+		Members []struct {
+			PlayerID string `json:"player_id"`
+			Presence string `json:"presence"`
+			IsReady  bool   `json:"is_ready"`
+		} `json:"members"`
+	}
+	getJSON(t, party.URL()+"/v1/parties/"+createdParty.ID+"/members", &members)
+	if members.Count != 2 {
+		t.Fatalf("unexpected durable party members payload: %+v", members)
+	}
+}
+
+func TestLocalDurableGuildInviteJoinFlow(t *testing.T) {
+	requireLocalDurableTests(t)
+
+	mysqlConfig, sqlDB := newLocalMySQLTestDatabase(t)
+	invite := invitetestkit.NewDurableServer(mysqlConfig, sqlDB, "")
+	defer invite.Close()
+
+	redisConfig, redisClient := newLocalRedisTestClient(t)
+	presence := presencetestkit.NewDurableServer(redisConfig, redisClient)
+	defer presence.Close()
+
+	guild := guildtestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL())
+	defer guild.Close()
+
+	var createdGuild struct {
+		ID string `json:"id"`
+	}
+	postJSON(t, guild.URL()+"/v1/guilds", map[string]any{
+		"name":     "Durable Guild",
+		"owner_id": "p1",
+	}, &createdGuild)
+
+	var createdInvite struct {
+		ID string `json:"id"`
+	}
+	postJSON(t, guild.URL()+"/v1/guilds/"+createdGuild.ID+"/invites", map[string]any{
+		"actor_player_id": "p1",
+		"to_player_id":    "p2",
+	}, &createdInvite)
+
+	postJSON(t, invite.URL()+"/v1/invites/"+createdInvite.ID+"/accept", map[string]any{
+		"actor_player_id": "p2",
+	}, nil)
+
+	postJSON(t, guild.URL()+"/v1/guilds/"+createdGuild.ID+"/join", map[string]any{
+		"invite_id":       createdInvite.ID,
+		"actor_player_id": "p2",
+	}, nil)
+
+	postJSON(t, presence.URL()+"/v1/presence/connect", map[string]any{
+		"player_id":  "p2",
+		"session_id": "sess-2",
+		"realm_id":   "realm-1",
+		"location":   "hall",
+	}, nil)
+
+	var members struct {
+		Count   int `json:"count"`
+		Members []struct {
+			PlayerID string `json:"player_id"`
+			Role     string `json:"role"`
+			Presence string `json:"presence"`
+		} `json:"members"`
+	}
+	getJSON(t, guild.URL()+"/v1/guilds/"+createdGuild.ID+"/members", &members)
+	if members.Count != 2 {
+		t.Fatalf("unexpected durable guild members payload: %+v", members)
+	}
+}
+
+func TestLocalDurableGatewayRedisPersistsSessionAcrossRestart(t *testing.T) {
+	requireLocalDurableTests(t)
+
+	mysqlConfig, sqlDB := newLocalMySQLTestDatabase(t)
+	identity := identitytestkit.NewDurableServer(mysqlConfig, sqlDB)
+	defer identity.Close()
+
+	redisConfig, redisClient := newLocalRedisTestClient(t)
+	presence := presencetestkit.NewDurableServer(redisConfig, redisClient)
+	defer presence.Close()
+
+	gatewayA := gatewaytestkit.NewDurableServer(redisConfig, redisClient, identity.URL(), presence.URL(), "")
+
+	var tokenPair struct {
+		AccessToken string `json:"access_token"`
+	}
+	postJSON(t, identity.URL()+"/v1/auth/login", map[string]any{
+		"account_id": "a1",
+		"player_id":  "p1",
+	}, &tokenPair)
+
+	postJSON(t, gatewayA.URL()+"/v1/realtime/handshake", map[string]any{
+		"access_token": tokenPair.AccessToken,
+		"session_id":   "sess-1",
+		"realm_id":     "realm-1",
+		"location":     "lobby",
+	}, nil)
+	gatewayA.Close()
+
+	gatewayB := gatewaytestkit.NewDurableServer(redisConfig, redisClient, identity.URL(), presence.URL(), "")
+	defer gatewayB.Close()
+
+	var session struct {
+		SessionID string `json:"session_id"`
+		PlayerID  string `json:"player_id"`
+		State     string `json:"state"`
+	}
+	getJSON(t, gatewayB.URL()+"/v1/realtime/sessions/sess-1", &session)
+	if session.SessionID != "sess-1" || session.PlayerID != "p1" || session.State != "active" {
+		t.Fatalf("unexpected durable gateway session payload: %+v", session)
 	}
 }
 

@@ -121,6 +121,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/073-guild-store-and-mysql-startup.md](v1/tasks/073-guild-store-and-mysql-startup.md)
 - [docs/plans/v1/tasks/074-gateway-redis-session-store.md](v1/tasks/074-gateway-redis-session-store.md)
 - [docs/plans/v1/tasks/075-bootstrap-policy-and-tooling.md](v1/tasks/075-bootstrap-policy-and-tooling.md)
+- [docs/plans/v1/tasks/076-expand-durable-runtime-coverage.md](v1/tasks/076-expand-durable-runtime-coverage.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)
