@@ -10,6 +10,7 @@ Use one file per meaningful operator or incident workflow once implementation be
 - Message replay lag investigation
 - Worker retry backlog recovery
 - Operator mute or system broadcast procedure
+- [Local durable bootstrap and status triage](local-durable-troubleshooting.md)
 
 ## Rules
 

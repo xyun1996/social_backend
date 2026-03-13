@@ -39,6 +39,7 @@ docs/       Plans, architecture, operations, releases, memory, templates
 - Memory and ADRs: [docs/memory](docs/memory)
 - Release history: [docs/releases](docs/releases)
 - Templates: [docs/templates](docs/templates)
+- Local durable troubleshooting: [docs/operations/local-durable-troubleshooting.md](docs/operations/local-durable-troubleshooting.md)
 
 ## Tooling Status
 

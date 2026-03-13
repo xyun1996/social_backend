@@ -36,4 +36,5 @@ Start the services that already have optional durable backends against the local
 - `test-local-durable` runs the opt-in durable integration tests against local MySQL and Redis and leaves default `go test ./...` behavior unchanged.
 - `bootstrap-local-mysql` runs each MySQL-backed service once in `BOOTSTRAP_ONLY=true` mode and then verifies `schema_migrations`, so schema initialization is an explicit step instead of a side effect of starting long-lived processes.
 - The status script can still be relaxed for partial topologies by overriding `REQUIRE_MYSQL_SUMMARY`, `REQUIRE_REDIS_SUMMARY`, or `EXPECTED_MYSQL_SERVICES`.
+- Use [Local durable bootstrap and status triage](local-durable-troubleshooting.md) when bootstrap or status checks fail.
 - These targets are for local iteration only; production startup should not assume inline schema bootstrap.
