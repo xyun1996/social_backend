@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package social_backend.worker.v1;
+
+option go_package = "github.com/xyun1996/social_backend/api/proto/worker/v1;workerv1";
+
+import "google/protobuf/timestamp.proto";
+
+message Job {
+  string id = 1;
+  string type = 2;
+  string payload = 3;
+  string status = 4;
+  int32 attempts = 5;
+  string last_error = 6;
+  string claimed_by = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp claimed_at = 9;
+  google.protobuf.Timestamp completed_at = 10;
+}
+
+message EnqueueJobRequest {
+  string type = 1;
+  string payload = 2;
+}
+
+message ClaimJobRequest {
+  string worker_id = 1;
+  string type = 2;
+}
+
+message TransitionJobRequest {
+  string job_id = 1;
+  string worker_id = 2;
+  string last_error = 3;
+}
+
+message ListJobsRequest {
+  string status = 1;
+  string type = 2;
+}
+
+message ListJobsResponse {
+  repeated Job jobs = 1;
+}
+
+service WorkerService {
+  rpc EnqueueJob(EnqueueJobRequest) returns (Job);
+  rpc ClaimJob(ClaimJobRequest) returns (Job);
+  rpc CompleteJob(TransitionJobRequest) returns (Job);
+  rpc FailJob(TransitionJobRequest) returns (Job);
+  rpc ListJobs(ListJobsRequest) returns (ListJobsResponse);
+}

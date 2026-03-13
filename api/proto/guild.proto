@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package social_backend.guild.v1;
+
+option go_package = "github.com/xyun1996/social_backend/api/proto/guild/v1;guildv1";
+
+import "google/protobuf/timestamp.proto";
+import "invite.proto";
+
+message GuildMember {
+  string player_id = 1;
+  string role = 2;
+  google.protobuf.Timestamp joined_at = 3;
+}
+
+message Guild {
+  string id = 1;
+  string name = 2;
+  string owner_id = 3;
+  repeated GuildMember members = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message MemberState {
+  string player_id = 1;
+  string role = 2;
+  string presence = 3;
+  string session_id = 4;
+  string realm_id = 5;
+  string location = 6;
+}
+
+message CreateGuildRequest {
+  string name = 1;
+  string owner_id = 2;
+}
+
+message GetGuildRequest {
+  string guild_id = 1;
+}
+
+message CreateGuildInviteRequest {
+  string guild_id = 1;
+  string actor_player_id = 2;
+  string to_player_id = 3;
+}
+
+message JoinGuildRequest {
+  string guild_id = 1;
+  string invite_id = 2;
+  string actor_player_id = 3;
+}
+
+message ListMemberStatesResponse {
+  string guild_id = 1;
+  repeated MemberState members = 2;
+}
+
+service GuildService {
+  rpc CreateGuild(CreateGuildRequest) returns (Guild);
+  rpc GetGuild(GetGuildRequest) returns (Guild);
+  rpc CreateGuildInvite(CreateGuildInviteRequest) returns (social_backend.invite.v1.Invite);
+  rpc JoinGuild(JoinGuildRequest) returns (Guild);
+  rpc ListMemberStates(GetGuildRequest) returns (ListMemberStatesResponse);
+}

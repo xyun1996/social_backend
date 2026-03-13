@@ -9,6 +9,11 @@ Current proto baselines cover boundaries that already have explicit cross-servic
 - `identity`
 - `presence`
 - `invite`
+- `chat`
+- `party`
+- `guild`
+- `ops`
+- `worker`
 
 ## Rules
 

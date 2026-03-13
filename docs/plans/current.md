@@ -60,6 +60,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/016-proto-contract-baseline.md](v1/tasks/016-proto-contract-baseline.md)
 - [docs/plans/v1/tasks/017-ops-http-read-prototype.md](v1/tasks/017-ops-http-read-prototype.md)
 - [docs/plans/v1/tasks/018-worker-http-prototype.md](v1/tasks/018-worker-http-prototype.md)
+- [docs/plans/v1/tasks/019-expand-proto-contracts.md](v1/tasks/019-expand-proto-contracts.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/errors/README.md](../api/errors/README.md)
 - [docs/memory/constraints.md](../memory/constraints.md)

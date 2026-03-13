@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package social_backend.party.v1;
+
+option go_package = "github.com/xyun1996/social_backend/api/proto/party/v1;partyv1";
+
+import "google/protobuf/timestamp.proto";
+import "invite.proto";
+
+message Party {
+  string id = 1;
+  string leader_id = 2;
+  repeated string member_ids = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+message ReadyState {
+  string party_id = 1;
+  string player_id = 2;
+  bool is_ready = 3;
+  google.protobuf.Timestamp updated_at = 4;
+}
+
+message MemberState {
+  string player_id = 1;
+  bool is_leader = 2;
+  bool is_ready = 3;
+  string presence = 4;
+  string session_id = 5;
+  string realm_id = 6;
+  string location = 7;
+}
+
+message CreatePartyRequest {
+  string leader_id = 1;
+}
+
+message GetPartyRequest {
+  string party_id = 1;
+}
+
+message CreatePartyInviteRequest {
+  string party_id = 1;
+  string actor_player_id = 2;
+  string to_player_id = 3;
+}
+
+message JoinPartyRequest {
+  string party_id = 1;
+  string invite_id = 2;
+  string actor_player_id = 3;
+}
+
+message SetReadyRequest {
+  string party_id = 1;
+  string actor_player_id = 2;
+  bool is_ready = 3;
+}
+
+message ListReadyStatesResponse {
+  string party_id = 1;
+  repeated ReadyState ready_states = 2;
+}
+
+message ListMemberStatesResponse {
+  string party_id = 1;
+  repeated MemberState members = 2;
+}
+
+service PartyService {
+  rpc CreateParty(CreatePartyRequest) returns (Party);
+  rpc GetParty(GetPartyRequest) returns (Party);
+  rpc CreatePartyInvite(CreatePartyInviteRequest) returns (social_backend.invite.v1.Invite);
+  rpc JoinParty(JoinPartyRequest) returns (Party);
+  rpc SetReady(SetReadyRequest) returns (ReadyState);
+  rpc ListReadyStates(GetPartyRequest) returns (ListReadyStatesResponse);
+  rpc ListMemberStates(GetPartyRequest) returns (ListMemberStatesResponse);
+}

@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package social_backend.ops.v1;
+
+option go_package = "github.com/xyun1996/social_backend/api/proto/ops/v1;opsv1";
+
+message PresenceRecord {
+  string player_id = 1;
+  string status = 2;
+  string session_id = 3;
+  string realm_id = 4;
+  string location = 5;
+  string last_heartbeat_at = 6;
+  string last_seen_at = 7;
+  string connected_at = 8;
+  string disconnected_at = 9;
+}
+
+message PartyMemberState {
+  string player_id = 1;
+  bool is_leader = 2;
+  bool is_ready = 3;
+  string presence = 4;
+  string session_id = 5;
+  string realm_id = 6;
+  string location = 7;
+}
+
+message GuildMemberState {
+  string player_id = 1;
+  string role = 2;
+  string presence = 3;
+  string session_id = 4;
+  string realm_id = 5;
+  string location = 6;
+}
+
+message PartySnapshot {
+  string party_id = 1;
+  repeated PartyMemberState members = 2;
+}
+
+message GuildSnapshot {
+  string guild_id = 1;
+  repeated GuildMemberState members = 2;
+}
+
+message GetPlayerPresenceRequest {
+  string player_id = 1;
+}
+
+message GetPartySnapshotRequest {
+  string party_id = 1;
+}
+
+message GetGuildSnapshotRequest {
+  string guild_id = 1;
+}
+
+service OpsService {
+  rpc GetPlayerPresence(GetPlayerPresenceRequest) returns (PresenceRecord);
+  rpc GetPartySnapshot(GetPartySnapshotRequest) returns (PartySnapshot);
+  rpc GetGuildSnapshot(GetGuildSnapshotRequest) returns (GuildSnapshot);
+}

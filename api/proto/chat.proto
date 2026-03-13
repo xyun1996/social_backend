@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package social_backend.chat.v1;
+
+option go_package = "github.com/xyun1996/social_backend/api/proto/chat/v1;chatv1";
+
+import "google/protobuf/timestamp.proto";
+
+message Conversation {
+  string id = 1;
+  string kind = 2;
+  string resource_id = 3;
+  repeated string member_player_ids = 4;
+  int64 last_seq = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message Message {
+  string id = 1;
+  string conversation_id = 2;
+  int64 seq = 3;
+  string sender_player_id = 4;
+  string body = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message ReadCursor {
+  string conversation_id = 1;
+  string player_id = 2;
+  int64 ack_seq = 3;
+  google.protobuf.Timestamp updated_at = 4;
+}
+
+message DeliveryTarget {
+  string player_id = 1;
+  string presence = 2;
+  string delivery_mode = 3;
+  string session_id = 4;
+  string realm_id = 5;
+  string location = 6;
+}
+
+message CreateConversationRequest {
+  string kind = 1;
+  string resource_id = 2;
+  repeated string member_player_ids = 3;
+}
+
+message ListConversationsRequest {
+  string player_id = 1;
+}
+
+message ListConversationsResponse {
+  string player_id = 1;
+  repeated Conversation conversations = 2;
+}
+
+message SendMessageRequest {
+  string conversation_id = 1;
+  string sender_player_id = 2;
+  string body = 3;
+}
+
+message ReplayMessagesRequest {
+  string conversation_id = 1;
+  string player_id = 2;
+  int64 after_seq = 3;
+  int32 limit = 4;
+}
+
+message ReplayMessagesResponse {
+  string conversation_id = 1;
+  string player_id = 2;
+  int64 after_seq = 3;
+  repeated Message messages = 4;
+}
+
+message AckConversationRequest {
+  string conversation_id = 1;
+  string player_id = 2;
+  int64 ack_seq = 3;
+}
+
+message PlanDeliveryRequest {
+  string conversation_id = 1;
+  string sender_player_id = 2;
+}
+
+message PlanDeliveryResponse {
+  string conversation_id = 1;
+  string sender_player_id = 2;
+  repeated DeliveryTarget targets = 3;
+}
+
+service ChatService {
+  rpc CreateConversation(CreateConversationRequest) returns (Conversation);
+  rpc ListConversations(ListConversationsRequest) returns (ListConversationsResponse);
+  rpc SendMessage(SendMessageRequest) returns (Message);
+  rpc ReplayMessages(ReplayMessagesRequest) returns (ReplayMessagesResponse);
+  rpc AckConversation(AckConversationRequest) returns (ReadCursor);
+  rpc PlanDelivery(PlanDeliveryRequest) returns (PlanDeliveryResponse);
+}
