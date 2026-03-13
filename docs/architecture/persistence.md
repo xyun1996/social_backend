@@ -43,6 +43,7 @@ Use Redis for hot or short-lived state:
 
 - Redis-owned: player online state, heartbeat, realm/location/session snapshot
 - Rule: presence stays the authority for online state even if gateway keeps transport-local connection objects
+- First code foundation lives under `services/presence/internal/repo/redis`
 
 ### `social`
 
