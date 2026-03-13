@@ -43,6 +43,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 
 - HTTP contracts are still baseline-level, so deeper per-service specs and future proto contracts remain to be written.
 - Guild and chat push behavior still need richer runtime rules beyond current prototype reads.
+- Internal proto coverage now spans all runnable control-plane services, but generated clients and transport binding are still deferred.
 - Without disciplined updates, future plan drift could appear between `current`, milestones, tasks, and ADRs.
 
 ## Key Dependencies
@@ -62,6 +63,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/018-worker-http-prototype.md](v1/tasks/018-worker-http-prototype.md)
 - [docs/plans/v1/tasks/019-expand-proto-contracts.md](v1/tasks/019-expand-proto-contracts.md)
 - [docs/plans/v1/tasks/020-ops-worker-queue-visibility.md](v1/tasks/020-ops-worker-queue-visibility.md)
+- [docs/plans/v1/tasks/021-complete-proto-contract-coverage.md](v1/tasks/021-complete-proto-contract-coverage.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/errors/README.md](../api/errors/README.md)
 - [docs/memory/constraints.md](../memory/constraints.md)

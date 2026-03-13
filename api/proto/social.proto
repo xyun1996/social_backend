@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package social_backend.social.v1;
+
+option go_package = "github.com/xyun1996/social_backend/api/proto/social/v1;socialv1";
+
+message FriendRequest {
+  string id = 1;
+  string from_player_id = 2;
+  string to_player_id = 3;
+  string status = 4;
+  string created_at = 5;
+}
+
+message BlockRecord {
+  string player_id = 1;
+  string blocked_id = 2;
+  string created_at = 3;
+}
+
+message SendFriendRequestRequest {
+  string from_player_id = 1;
+  string to_player_id = 2;
+}
+
+message AcceptFriendRequestRequest {
+  string request_id = 1;
+  string actor_player_id = 2;
+}
+
+message ListFriendsRequest {
+  string player_id = 1;
+}
+
+message ListFriendsResponse {
+  string player_id = 1;
+  repeated string friends = 2;
+}
+
+message BlockPlayerRequest {
+  string player_id = 1;
+  string blocked_player_id = 2;
+}
+
+message ListBlocksRequest {
+  string player_id = 1;
+}
+
+message ListBlocksResponse {
+  string player_id = 1;
+  repeated string blocks = 2;
+}
+
+service SocialService {
+  rpc SendFriendRequest(SendFriendRequestRequest) returns (FriendRequest);
+  rpc AcceptFriendRequest(AcceptFriendRequestRequest) returns (FriendRequest);
+  rpc ListFriends(ListFriendsRequest) returns (ListFriendsResponse);
+  rpc BlockPlayer(BlockPlayerRequest) returns (BlockRecord);
+  rpc ListBlocks(ListBlocksRequest) returns (ListBlocksResponse);
+}

@@ -6,7 +6,9 @@ This directory contains the first baseline for internal service-to-service contr
 
 Current proto baselines cover boundaries that already have explicit cross-service HTTP clients:
 
+- `gateway`
 - `identity`
+- `social`
 - `presence`
 - `invite`
 - `chat`
@@ -26,4 +28,4 @@ Current proto baselines cover boundaries that already have explicit cross-servic
 
 - These proto files are design baselines only.
 - Code generation is not wired yet.
-- Chat, party, and guild can be added after their runtime behavior settles further.
+- `api/proto/` now covers all currently executable control-plane service boundaries.

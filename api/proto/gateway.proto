@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package social_backend.gateway.v1;
+
+option go_package = "github.com/xyun1996/social_backend/api/proto/gateway/v1;gatewayv1";
+
+message Subject {
+  string account_id = 1;
+  string player_id = 2;
+}
+
+message SessionPresenceUpdate {
+  string access_token = 1;
+  string session_id = 2;
+  string realm_id = 3;
+  string location = 4;
+}
+
+message PresenceSnapshot {
+  string player_id = 1;
+  string session_id = 2;
+  string state = 3;
+  string realm_id = 4;
+  string location = 5;
+  string last_heartbeat_at = 6;
+  string last_seen_at = 7;
+  string connected_at = 8;
+  string disconnected_at = 9;
+}
+
+message ResolveSessionRequest {
+  string access_token = 1;
+}
+
+service GatewayService {
+  rpc ResolveSession(ResolveSessionRequest) returns (Subject);
+  rpc ConnectPresence(SessionPresenceUpdate) returns (PresenceSnapshot);
+  rpc HeartbeatPresence(SessionPresenceUpdate) returns (PresenceSnapshot);
+  rpc DisconnectPresence(SessionPresenceUpdate) returns (PresenceSnapshot);
+}
