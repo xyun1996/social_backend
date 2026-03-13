@@ -68,6 +68,7 @@ Chat also depends on `presence` for delivery planning in local runs.
 Party also depends on `presence` for runtime-ready checks in local runs.
 Guild also depends on `presence` for member runtime views in local runs.
 Ops depends on `presence`, `party`, and `guild` for operator read aggregation in local runs.
+Worker is standalone in the current prototype and can be started independently in local runs.
 
 - `make run-identity`
 - `make run-gateway`
@@ -78,6 +79,7 @@ Ops depends on `presence`, `party`, and `guild` for operator read aggregation in
 - `make run-guild`
 - `make run-presence`
 - `make run-ops`
+- `make run-worker`
 
 Starter service defaults:
 
@@ -90,6 +92,7 @@ Starter service defaults:
 - `guild` listens on `:8086`
 - `presence` listens on `:8087`
 - `ops` listens on `:8088`
+- `worker` listens on `:8089`
 
 Local infrastructure defaults:
 
