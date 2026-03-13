@@ -19,6 +19,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 
 - Presence-backed runtime behavior for chat and party
 - HTTP and error contract baseline documentation
+- Proto and realtime transport baseline documentation
 - Documentation alignment between active plan, milestones, tasks, and ADRs
 - Continued prototype hardening through explicit service clients
 
@@ -65,6 +66,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/020-ops-worker-queue-visibility.md](v1/tasks/020-ops-worker-queue-visibility.md)
 - [docs/plans/v1/tasks/021-complete-proto-contract-coverage.md](v1/tasks/021-complete-proto-contract-coverage.md)
 - [api/http/README.md](../api/http/README.md)
+- [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)
 - [docs/memory/constraints.md](../memory/constraints.md)
 - [docs/memory/glossary.md](../memory/glossary.md)

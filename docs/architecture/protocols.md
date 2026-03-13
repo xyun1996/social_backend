@@ -17,6 +17,7 @@
 
 - Frame format, handshake, heartbeat, ack, and resume rules belong under `api/tcp/`.
 - Real-time envelope semantics should be shared across TCP and WebSocket where possible.
+- The current baseline lives under `api/tcp/gateway.md` and `api/tcp/chat.md`.
 
 ## HTTP Notes
 

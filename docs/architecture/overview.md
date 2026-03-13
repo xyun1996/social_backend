@@ -25,6 +25,7 @@ This project is a reusable social backend for medium-light multiplayer games. Th
 ## Repository View
 
 - `api/` for shared contracts
+- `api/http`, `api/proto`, and `api/tcp` hold the current wire-level baselines
 - `services/` for domain implementations
 - `pkg/` for shared infrastructure only
 - `docs/` for plans, architecture, operations, releases, and memory
