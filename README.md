@@ -78,6 +78,7 @@ Worker can depend on `invite` and `chat` for executable async job handling in lo
 Worker also supports an optional background drain loop via `WORKER_AUTO_RUN=true`.
 `pkg/db` now includes a shared MySQL foundation, and `identity` can optionally run with a MySQL-backed store via `IDENTITY_STORE=mysql`; `IDENTITY_AUTO_MIGRATE=true` applies the owned schema at startup.
 `invite` and `chat` now also have service-local MySQL repo foundations with explicit schema ownership, ready for later durable-path integration.
+`social` now has a service-local MySQL repo foundation, and `worker` now has a service-local Redis repo foundation for future queue claim and backlog state.
 `pkg/db` now also includes a shared Redis foundation, and `presence` can optionally run with a Redis-backed store via `PRESENCE_STORE=redis`; startup now pings Redis before serving traffic.
 
 - `make run-identity`

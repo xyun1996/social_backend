@@ -49,6 +49,7 @@ Use Redis for hot or short-lived state:
 
 - MySQL-owned: friend requests, accepted friendships, block relationships
 - Redis-owned: optional relationship read-through cache
+- Code foundation now lives under `services/social/internal/repo/mysql`
 
 ### `invite`
 
@@ -77,6 +78,7 @@ Use Redis for hot or short-lived state:
 
 - MySQL-owned: durable job intent when jobs must survive restarts
 - Redis-owned: claim state, retry scheduling hints, queue visibility, and hot dispatch bookkeeping
+- Code foundation now lives under `services/worker/internal/repo/redis`
 
 ### `ops`
 
