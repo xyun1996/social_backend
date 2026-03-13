@@ -97,3 +97,29 @@ func TestGetInviteEndpoint(t *testing.T) {
 		t.Fatalf("unexpected get status: got %d want %d", getRec.Code, http.StatusOK)
 	}
 }
+
+func TestExpireInviteEndpoint(t *testing.T) {
+	t.Parallel()
+
+	h := NewHTTPHandler(service.NewInviteService(nil))
+
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/invites", bytes.NewBufferString(`{"domain":"party","resource_id":"party-1","from_player_id":"p1","to_player_id":"p2"}`))
+	createRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(createRec, createReq)
+	if createRec.Code != http.StatusOK {
+		t.Fatalf("unexpected create status: got %d want %d", createRec.Code, http.StatusOK)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(createRec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal create response: %v", err)
+	}
+
+	inviteID, _ := payload["id"].(string)
+	expireReq := httptest.NewRequest(http.MethodPost, "/v1/internal/invites/"+inviteID+"/expire", nil)
+	expireRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(expireRec, expireReq)
+	if expireRec.Code != http.StatusOK {
+		t.Fatalf("unexpected expire status: got %d want %d", expireRec.Code, http.StatusOK)
+	}
+}

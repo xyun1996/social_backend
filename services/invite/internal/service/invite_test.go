@@ -156,3 +156,21 @@ func TestDuplicatePendingInviteDoesNotEnqueueAgain(t *testing.T) {
 		t.Fatalf("expected duplicate pending invite to return same id: %q vs %q", first.ID, second.ID)
 	}
 }
+
+func TestExpireInviteTransitionsPendingInvite(t *testing.T) {
+	t.Parallel()
+
+	svc := NewInviteService(nil)
+	invite, err := svc.CreateInvite("party", "party-1", "p1", "p2", time.Minute)
+	if err != nil {
+		t.Fatalf("create invite returned error: %+v", err)
+	}
+
+	expired, err := svc.ExpireInvite(invite.ID)
+	if err != nil {
+		t.Fatalf("expire invite returned error: %+v", err)
+	}
+	if expired.Status != inviteStatusExpired {
+		t.Fatalf("unexpected expired status: %q", expired.Status)
+	}
+}

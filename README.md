@@ -74,7 +74,7 @@ Ops depends on `presence`, `party`, and `guild` for operator read aggregation in
 Ops also depends on `worker` for queue visibility in local runs.
 Ops also depends on `social` for player overview aggregation in local runs.
 Invite can optionally depend on `worker` for async expiry job intent in local runs.
-Worker is standalone in the current prototype and can be started independently in local runs.
+Worker can depend on `invite` for executable invite expiry handling in local runs.
 
 - `make run-identity`
 - `make run-gateway`

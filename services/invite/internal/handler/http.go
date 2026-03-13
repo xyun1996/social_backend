@@ -41,6 +41,7 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("POST /v1/invites/{inviteID}/accept", h.handleAcceptInvite)
 	mux.HandleFunc("POST /v1/invites/{inviteID}/decline", h.handleDeclineInvite)
 	mux.HandleFunc("GET /v1/invites", h.handleListInvites)
+	mux.HandleFunc("POST /v1/internal/invites/{inviteID}/expire", h.handleExpireInvite)
 	return mux
 }
 
@@ -75,6 +76,16 @@ func (h *HTTPHandler) handleCreateInvite(w http.ResponseWriter, r *http.Request)
 
 func (h *HTTPHandler) handleGetInvite(w http.ResponseWriter, r *http.Request) {
 	invite, appErr := h.invites.GetInvite(r.PathValue("inviteID"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, invite)
+}
+
+func (h *HTTPHandler) handleExpireInvite(w http.ResponseWriter, r *http.Request) {
+	invite, appErr := h.invites.ExpireInvite(r.PathValue("inviteID"))
 	if appErr != nil {
 		transport.WriteError(w, *appErr)
 		return

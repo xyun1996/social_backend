@@ -152,6 +152,30 @@ func (s *InviteService) GetInvite(inviteID string) (domain.Invite, *apperrors.Er
 	return invite, nil
 }
 
+// ExpireInvite force-expires a pending invite and is idempotent for already terminal states.
+func (s *InviteService) ExpireInvite(inviteID string) (domain.Invite, *apperrors.Error) {
+	if inviteID == "" {
+		err := apperrors.New("invalid_request", "invite_id is required", http.StatusBadRequest)
+		return domain.Invite{}, &err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	invite, ok := s.invites[inviteID]
+	if !ok {
+		err := apperrors.New("not_found", "invite not found", http.StatusNotFound)
+		return domain.Invite{}, &err
+	}
+
+	if invite.Status == inviteStatusPending {
+		invite.Status = inviteStatusExpired
+		s.invites[invite.ID] = invite
+	}
+
+	return invite, nil
+}
+
 // RespondInvite accepts or declines a pending invite.
 func (s *InviteService) RespondInvite(inviteID string, actorPlayerID string, action string) (domain.Invite, *apperrors.Error) {
 	if inviteID == "" || actorPlayerID == "" {

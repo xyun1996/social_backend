@@ -50,6 +50,11 @@ Base purpose: shared cross-domain invite lifecycle for party, guild, and future 
 - Rules
 - Pending invite may transition to `expired` during fetch
 
+## Internal Expire Invite
+
+- `POST /v1/internal/invites/{inviteID}/expire`
+- Response `200`: invite shape with `status = expired` when the invite was still pending
+
 ## Accept Invite
 
 - `POST /v1/invites/{inviteID}/accept`
