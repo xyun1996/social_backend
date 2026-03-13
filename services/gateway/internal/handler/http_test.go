@@ -118,3 +118,40 @@ func TestPresenceConnectReportsAuthenticatedPlayer(t *testing.T) {
 		t.Fatalf("unexpected forwarded update: %+v", reporter.update)
 	}
 }
+
+func TestRealtimeHandshakeAndResumeEndpoints(t *testing.T) {
+	t.Parallel()
+
+	reporter := &stubPresenceReporter{
+		snapshot: gatewayservice.PresenceSnapshot{
+			PlayerID:        "p1",
+			Status:          "online",
+			SessionID:       "sess-1",
+			LastHeartbeatAt: "2026-03-13T10:00:00Z",
+		},
+	}
+	h := NewHTTPHandler(stubIntrospector{
+		subject: gatewayservice.Subject{AccountID: "a1", PlayerID: "p1"},
+	}, reporter)
+
+	handshakeReq := httptest.NewRequest(http.MethodPost, "/v1/realtime/handshake", bytes.NewBufferString(`{"access_token":"token-1","session_id":"sess-1","realm_id":"realm-1","location":"lobby","client_version":"dev"}`))
+	handshakeRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(handshakeRec, handshakeReq)
+	if handshakeRec.Code != http.StatusOK {
+		t.Fatalf("unexpected handshake status: got %d want %d", handshakeRec.Code, http.StatusOK)
+	}
+
+	resumeReq := httptest.NewRequest(http.MethodPost, "/v1/realtime/resume", bytes.NewBufferString(`{"access_token":"token-1","session_id":"sess-1","last_server_event_id":"evt-42"}`))
+	resumeRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(resumeRec, resumeReq)
+	if resumeRec.Code != http.StatusOK {
+		t.Fatalf("unexpected resume status: got %d want %d", resumeRec.Code, http.StatusOK)
+	}
+
+	getReq := httptest.NewRequest(http.MethodGet, "/v1/realtime/sessions/sess-1", nil)
+	getRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(getRec, getReq)
+	if getRec.Code != http.StatusOK {
+		t.Fatalf("unexpected get session status: got %d want %d", getRec.Code, http.StatusOK)
+	}
+}

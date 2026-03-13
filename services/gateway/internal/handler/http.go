@@ -14,17 +14,36 @@ import (
 type HTTPHandler struct {
 	introspector gatewayservice.Introspector
 	reporter     gatewayservice.PresenceReporter
+	realtime     *gatewayservice.RealtimeService
 }
 
 // NewHTTPHandler constructs a gateway HTTP handler.
 func NewHTTPHandler(introspector gatewayservice.Introspector, reporter gatewayservice.PresenceReporter) *HTTPHandler {
-	return &HTTPHandler{introspector: introspector, reporter: reporter}
+	return &HTTPHandler{
+		introspector: introspector,
+		reporter:     reporter,
+		realtime:     gatewayservice.NewRealtimeService(introspector, reporter),
+	}
 }
 
 type presenceRequest struct {
 	SessionID string `json:"session_id"`
 	RealmID   string `json:"realm_id"`
 	Location  string `json:"location"`
+}
+
+type handshakeRequest struct {
+	AccessToken   string `json:"access_token"`
+	SessionID     string `json:"session_id"`
+	RealmID       string `json:"realm_id"`
+	Location      string `json:"location"`
+	ClientVersion string `json:"client_version"`
+}
+
+type resumeRequest struct {
+	AccessToken       string `json:"access_token"`
+	SessionID         string `json:"session_id"`
+	LastServerEventID string `json:"last_server_event_id"`
 }
 
 // Routes returns the gateway HTTP routes.
@@ -35,6 +54,11 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("POST /v1/session/presence/connect", h.handlePresenceConnect)
 	mux.HandleFunc("POST /v1/session/presence/heartbeat", h.handlePresenceHeartbeat)
 	mux.HandleFunc("POST /v1/session/presence/disconnect", h.handlePresenceDisconnect)
+	mux.HandleFunc("POST /v1/realtime/handshake", h.handleRealtimeHandshake)
+	mux.HandleFunc("POST /v1/realtime/resume", h.handleRealtimeResume)
+	mux.HandleFunc("POST /v1/realtime/sessions/{sessionID}/heartbeat", h.handleRealtimeHeartbeat)
+	mux.HandleFunc("POST /v1/realtime/sessions/{sessionID}/close", h.handleRealtimeClose)
+	mux.HandleFunc("GET /v1/realtime/sessions/{sessionID}", h.handleRealtimeGetSession)
 	return mux
 }
 
@@ -71,6 +95,78 @@ func (h *HTTPHandler) handlePresenceHeartbeat(w http.ResponseWriter, r *http.Req
 
 func (h *HTTPHandler) handlePresenceDisconnect(w http.ResponseWriter, r *http.Request) {
 	h.handlePresenceUpdate(w, r, "disconnect")
+}
+
+func (h *HTTPHandler) handleRealtimeHandshake(w http.ResponseWriter, r *http.Request) {
+	var request handshakeRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	session, appErr := h.realtime.Handshake(r.Context(), gatewayservice.HandshakeRequest{
+		AccessToken:   request.AccessToken,
+		SessionID:     request.SessionID,
+		RealmID:       request.RealmID,
+		Location:      request.Location,
+		ClientVersion: request.ClientVersion,
+	})
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, session)
+}
+
+func (h *HTTPHandler) handleRealtimeResume(w http.ResponseWriter, r *http.Request) {
+	var request resumeRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	session, appErr := h.realtime.Resume(r.Context(), gatewayservice.ResumeRequest{
+		AccessToken:       request.AccessToken,
+		SessionID:         request.SessionID,
+		LastServerEventID: request.LastServerEventID,
+	})
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, session)
+}
+
+func (h *HTTPHandler) handleRealtimeHeartbeat(w http.ResponseWriter, r *http.Request) {
+	session, appErr := h.realtime.Heartbeat(r.Context(), r.PathValue("sessionID"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, session)
+}
+
+func (h *HTTPHandler) handleRealtimeClose(w http.ResponseWriter, r *http.Request) {
+	session, appErr := h.realtime.Close(r.Context(), r.PathValue("sessionID"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, session)
+}
+
+func (h *HTTPHandler) handleRealtimeGetSession(w http.ResponseWriter, r *http.Request) {
+	session, appErr := h.realtime.GetSession(r.PathValue("sessionID"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, session)
 }
 
 func (h *HTTPHandler) handlePresenceUpdate(w http.ResponseWriter, r *http.Request, action string) {
