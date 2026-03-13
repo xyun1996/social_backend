@@ -28,6 +28,12 @@ type ChatPlanner interface {
 	PlanDelivery(ctx context.Context, conversationID string, senderPlayerID string) ([]ChatDeliveryTarget, *apperrors.Error)
 }
 
+// ChatRuntime groups the chat boundaries gateway consumes during realtime flows.
+type ChatRuntime interface {
+	ChatPlanner
+	ChatAcker
+}
+
 // ChatMessageEnvelope is the gateway-owned realtime event shape for chat delivery.
 type ChatMessageEnvelope struct {
 	EventID        string `json:"event_id"`
@@ -65,11 +71,11 @@ type ChatDispatchResult struct {
 // DeliveryService routes chat delivery plans into gateway session inboxes.
 type DeliveryService struct {
 	realtime *RealtimeService
-	planner  ChatPlanner
+	planner  ChatRuntime
 }
 
 // NewDeliveryService constructs the gateway delivery prototype.
-func NewDeliveryService(realtime *RealtimeService, planner ChatPlanner) *DeliveryService {
+func NewDeliveryService(realtime *RealtimeService, planner ChatRuntime) *DeliveryService {
 	return &DeliveryService{realtime: realtime, planner: planner}
 }
 

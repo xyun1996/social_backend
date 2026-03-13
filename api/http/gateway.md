@@ -155,3 +155,19 @@ Authorization: Bearer <access_token>
   "events": []
 }
 ```
+
+## Realtime Chat Ack Prototype
+
+- `POST /v1/realtime/sessions/{sessionID}/acks`
+- Request
+
+```json
+{
+  "conversation_id": "conv-1",
+  "ack_seq": 3
+}
+```
+
+- Response `200`
+- Rules
+- Gateway resolves the `player_id` from the active session before forwarding the ack to chat

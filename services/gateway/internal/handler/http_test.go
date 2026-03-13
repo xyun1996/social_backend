@@ -43,12 +43,22 @@ func (s *stubPresenceReporter) Disconnect(_ context.Context, update gatewayservi
 }
 
 type stubChatPlanner struct {
-	targets []gatewayservice.ChatDeliveryTarget
-	err     *apperrors.Error
+	targets             []gatewayservice.ChatDeliveryTarget
+	err                 *apperrors.Error
+	ackedConversationID string
+	ackedPlayerID       string
+	ackedSeq            int64
 }
 
 func (s stubChatPlanner) PlanDelivery(context.Context, string, string) ([]gatewayservice.ChatDeliveryTarget, *apperrors.Error) {
 	return s.targets, s.err
+}
+
+func (s *stubChatPlanner) AckConversation(_ context.Context, conversationID string, playerID string, ackSeq int64) *apperrors.Error {
+	s.ackedConversationID = conversationID
+	s.ackedPlayerID = playerID
+	s.ackedSeq = ackSeq
+	return s.err
 }
 
 func TestSessionMeRequiresBearerToken(t *testing.T) {
@@ -178,7 +188,7 @@ func TestRealtimeChatDeliveryEnqueuesSessionEvent(t *testing.T) {
 	}
 	h := NewHTTPHandler(stubIntrospector{
 		subject: gatewayservice.Subject{AccountID: "a2", PlayerID: "p2"},
-	}, reporter, stubChatPlanner{
+	}, reporter, &stubChatPlanner{
 		targets: []gatewayservice.ChatDeliveryTarget{
 			{PlayerID: "p2", DeliveryMode: "online_push", SessionID: "sess-2"},
 			{PlayerID: "p3", DeliveryMode: "offline_replay"},
@@ -204,5 +214,39 @@ func TestRealtimeChatDeliveryEnqueuesSessionEvent(t *testing.T) {
 	h.Routes().ServeHTTP(eventsRec, eventsReq)
 	if eventsRec.Code != http.StatusOK {
 		t.Fatalf("unexpected events status: got %d want %d", eventsRec.Code, http.StatusOK)
+	}
+}
+
+func TestRealtimeChatAckUsesSessionPlayerIdentity(t *testing.T) {
+	t.Parallel()
+
+	reporter := &stubPresenceReporter{
+		snapshot: gatewayservice.PresenceSnapshot{
+			PlayerID:        "p2",
+			Status:          "online",
+			SessionID:       "sess-2",
+			LastHeartbeatAt: "2026-03-13T10:00:00Z",
+		},
+	}
+	planner := &stubChatPlanner{}
+	h := NewHTTPHandler(stubIntrospector{
+		subject: gatewayservice.Subject{AccountID: "a2", PlayerID: "p2"},
+	}, reporter, planner)
+
+	handshakeReq := httptest.NewRequest(http.MethodPost, "/v1/realtime/handshake", bytes.NewBufferString(`{"access_token":"token-2","session_id":"sess-2"}`))
+	handshakeRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(handshakeRec, handshakeReq)
+	if handshakeRec.Code != http.StatusOK {
+		t.Fatalf("unexpected handshake status: got %d want %d", handshakeRec.Code, http.StatusOK)
+	}
+
+	ackReq := httptest.NewRequest(http.MethodPost, "/v1/realtime/sessions/sess-2/acks", bytes.NewBufferString(`{"conversation_id":"conv-1","ack_seq":3}`))
+	ackRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(ackRec, ackReq)
+	if ackRec.Code != http.StatusOK {
+		t.Fatalf("unexpected ack status: got %d want %d", ackRec.Code, http.StatusOK)
+	}
+	if planner.ackedConversationID != "conv-1" || planner.ackedPlayerID != "p2" || planner.ackedSeq != 3 {
+		t.Fatalf("unexpected ack forwarding: %+v", planner)
 	}
 }

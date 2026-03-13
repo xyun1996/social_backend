@@ -16,16 +16,18 @@ type HTTPHandler struct {
 	reporter     gatewayservice.PresenceReporter
 	realtime     *gatewayservice.RealtimeService
 	delivery     *gatewayservice.DeliveryService
+	acks         *gatewayservice.AckService
 }
 
 // NewHTTPHandler constructs a gateway HTTP handler.
-func NewHTTPHandler(introspector gatewayservice.Introspector, reporter gatewayservice.PresenceReporter, planner gatewayservice.ChatPlanner) *HTTPHandler {
+func NewHTTPHandler(introspector gatewayservice.Introspector, reporter gatewayservice.PresenceReporter, chat gatewayservice.ChatRuntime) *HTTPHandler {
 	realtime := gatewayservice.NewRealtimeService(introspector, reporter)
 	return &HTTPHandler{
 		introspector: introspector,
 		reporter:     reporter,
 		realtime:     realtime,
-		delivery:     gatewayservice.NewDeliveryService(realtime, planner),
+		delivery:     gatewayservice.NewDeliveryService(realtime, chat),
+		acks:         gatewayservice.NewAckService(realtime, chat),
 	}
 }
 
@@ -58,6 +60,11 @@ type chatDispatchRequest struct {
 	SentAt         string `json:"sent_at"`
 }
 
+type chatAckRequest struct {
+	ConversationID string `json:"conversation_id"`
+	AckSeq         int64  `json:"ack_seq"`
+}
+
 // Routes returns the gateway HTTP routes.
 func (h *HTTPHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
@@ -73,6 +80,7 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("GET /v1/realtime/sessions/{sessionID}", h.handleRealtimeGetSession)
 	mux.HandleFunc("GET /v1/realtime/sessions/{sessionID}/events", h.handleRealtimeGetSessionEvents)
 	mux.HandleFunc("POST /v1/realtime/chat/deliveries", h.handleRealtimeChatDelivery)
+	mux.HandleFunc("POST /v1/realtime/sessions/{sessionID}/acks", h.handleRealtimeChatAck)
 	return mux
 }
 
@@ -214,6 +222,30 @@ func (h *HTTPHandler) handleRealtimeChatDelivery(w http.ResponseWriter, r *http.
 	}
 
 	transport.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h *HTTPHandler) handleRealtimeChatAck(w http.ResponseWriter, r *http.Request) {
+	var request chatAckRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	appErr := h.acks.AckConversation(r.Context(), gatewayservice.AckRequest{
+		SessionID:      r.PathValue("sessionID"),
+		ConversationID: request.ConversationID,
+		AckSeq:         request.AckSeq,
+	})
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, map[string]any{
+		"session_id":      r.PathValue("sessionID"),
+		"conversation_id": request.ConversationID,
+		"ack_seq":         request.AckSeq,
+	})
 }
 
 func (h *HTTPHandler) handlePresenceUpdate(w http.ResponseWriter, r *http.Request, action string) {

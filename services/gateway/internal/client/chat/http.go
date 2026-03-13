@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -61,6 +62,44 @@ func (c *HTTPClient) PlanDelivery(ctx context.Context, conversationID string, se
 	}
 
 	return payload.Targets, nil
+}
+
+// AckConversation forwards a read ack to the chat HTTP API.
+func (c *HTTPClient) AckConversation(ctx context.Context, conversationID string, playerID string, ackSeq int64) *apperrors.Error {
+	body, err := json.Marshal(map[string]any{
+		"player_id": playerID,
+		"ack_seq":   ackSeq,
+	})
+	if err != nil {
+		internal := apperrors.Internal()
+		return &internal
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("%s/v1/conversations/%s/ack", c.baseURL, url.PathEscape(conversationID)), bytes.NewReader(body))
+	if err != nil {
+		internal := apperrors.Internal()
+		return &internal
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		badGateway := apperrors.New("chat_unavailable", "chat service is unavailable", http.StatusBadGateway)
+		return &badGateway
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var appErr apperrors.Error
+		if decodeErr := json.NewDecoder(resp.Body).Decode(&appErr); decodeErr != nil {
+			badGateway := apperrors.New("chat_invalid_response", "chat service returned an invalid response", http.StatusBadGateway)
+			return &badGateway
+		}
+		appErr.Status = resp.StatusCode
+		return &appErr
+	}
+
+	return nil
 }
 
 func (c *HTTPClient) String() string {
