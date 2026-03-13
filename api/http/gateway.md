@@ -120,3 +120,38 @@ Authorization: Bearer <access_token>
 
 - `GET /v1/realtime/sessions/{sessionID}`
 - Response `200`: realtime session snapshot
+
+## Realtime Chat Dispatch Prototype
+
+- `POST /v1/realtime/chat/deliveries`
+- Request
+
+```json
+{
+  "conversation_id": "conv-1",
+  "sender_player_id": "p1",
+  "message_id": "msg-1",
+  "seq": 1,
+  "body": "hello",
+  "sent_at": "2026-03-13T10:00:00Z"
+}
+```
+
+- Response `200`: pushed and deferred delivery summary
+- Rules
+- Gateway resolves targets through the chat delivery planning boundary
+- `online_push` targets are written into active gateway session inboxes
+- `offline_replay` targets remain deferred for replay or worker follow-up
+
+## Realtime Session Events
+
+- `GET /v1/realtime/sessions/{sessionID}/events`
+- Response `200`
+
+```json
+{
+  "session_id": "sess-2",
+  "count": 1,
+  "events": []
+}
+```

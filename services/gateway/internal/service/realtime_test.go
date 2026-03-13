@@ -84,3 +84,28 @@ func TestRealtimeHandshakeResumeAndClose(t *testing.T) {
 		t.Fatalf("unexpected closed session: %+v", closed)
 	}
 }
+
+func TestEnqueueChatEvent(t *testing.T) {
+	t.Parallel()
+
+	presence := &fakePresence{snapshot: PresenceSnapshot{Status: "online", LastHeartbeatAt: "2026-03-13T10:00:00Z"}}
+	svc := NewRealtimeService(fakeIntrospector{subject: Subject{AccountID: "a1", PlayerID: "p1"}}, presence)
+	if _, err := svc.Handshake(context.Background(), HandshakeRequest{
+		AccessToken: "token-1",
+		SessionID:   "sess-1",
+	}); err != nil {
+		t.Fatalf("handshake returned error: %+v", err)
+	}
+
+	if appErr := svc.EnqueueChatEvent("sess-1", ChatMessageEnvelope{EventID: "evt-1", MessageID: "msg-1"}); appErr != nil {
+		t.Fatalf("enqueue event returned error: %+v", appErr)
+	}
+
+	inbox, err := svc.GetSessionEvents("sess-1")
+	if err != nil {
+		t.Fatalf("get session events returned error: %+v", err)
+	}
+	if inbox.Count != 1 || inbox.Events[0].EventID != "evt-1" {
+		t.Fatalf("unexpected inbox: %+v", inbox)
+	}
+}

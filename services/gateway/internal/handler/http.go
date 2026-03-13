@@ -15,14 +15,17 @@ type HTTPHandler struct {
 	introspector gatewayservice.Introspector
 	reporter     gatewayservice.PresenceReporter
 	realtime     *gatewayservice.RealtimeService
+	delivery     *gatewayservice.DeliveryService
 }
 
 // NewHTTPHandler constructs a gateway HTTP handler.
-func NewHTTPHandler(introspector gatewayservice.Introspector, reporter gatewayservice.PresenceReporter) *HTTPHandler {
+func NewHTTPHandler(introspector gatewayservice.Introspector, reporter gatewayservice.PresenceReporter, planner gatewayservice.ChatPlanner) *HTTPHandler {
+	realtime := gatewayservice.NewRealtimeService(introspector, reporter)
 	return &HTTPHandler{
 		introspector: introspector,
 		reporter:     reporter,
-		realtime:     gatewayservice.NewRealtimeService(introspector, reporter),
+		realtime:     realtime,
+		delivery:     gatewayservice.NewDeliveryService(realtime, planner),
 	}
 }
 
@@ -46,6 +49,15 @@ type resumeRequest struct {
 	LastServerEventID string `json:"last_server_event_id"`
 }
 
+type chatDispatchRequest struct {
+	ConversationID string `json:"conversation_id"`
+	SenderPlayerID string `json:"sender_player_id"`
+	MessageID      string `json:"message_id"`
+	Seq            int64  `json:"seq"`
+	Body           string `json:"body"`
+	SentAt         string `json:"sent_at"`
+}
+
 // Routes returns the gateway HTTP routes.
 func (h *HTTPHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
@@ -59,6 +71,8 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("POST /v1/realtime/sessions/{sessionID}/heartbeat", h.handleRealtimeHeartbeat)
 	mux.HandleFunc("POST /v1/realtime/sessions/{sessionID}/close", h.handleRealtimeClose)
 	mux.HandleFunc("GET /v1/realtime/sessions/{sessionID}", h.handleRealtimeGetSession)
+	mux.HandleFunc("GET /v1/realtime/sessions/{sessionID}/events", h.handleRealtimeGetSessionEvents)
+	mux.HandleFunc("POST /v1/realtime/chat/deliveries", h.handleRealtimeChatDelivery)
 	return mux
 }
 
@@ -167,6 +181,39 @@ func (h *HTTPHandler) handleRealtimeGetSession(w http.ResponseWriter, r *http.Re
 	}
 
 	transport.WriteJSON(w, http.StatusOK, session)
+}
+
+func (h *HTTPHandler) handleRealtimeGetSessionEvents(w http.ResponseWriter, r *http.Request) {
+	inbox, appErr := h.realtime.GetSessionEvents(r.PathValue("sessionID"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, inbox)
+}
+
+func (h *HTTPHandler) handleRealtimeChatDelivery(w http.ResponseWriter, r *http.Request) {
+	var request chatDispatchRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	result, appErr := h.delivery.DispatchChat(r.Context(), gatewayservice.ChatDispatchRequest{
+		ConversationID: request.ConversationID,
+		SenderPlayerID: request.SenderPlayerID,
+		MessageID:      request.MessageID,
+		Seq:            request.Seq,
+		Body:           request.Body,
+		SentAt:         request.SentAt,
+	})
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, result)
 }
 
 func (h *HTTPHandler) handlePresenceUpdate(w http.ResponseWriter, r *http.Request, action string) {

@@ -31,6 +31,13 @@ type RealtimeSession struct {
 	DisconnectedAt    string `json:"disconnected_at,omitempty"`
 }
 
+// SessionEventInbox is the gateway-owned buffered event list for a session.
+type SessionEventInbox struct {
+	SessionID string                `json:"session_id"`
+	Count     int                   `json:"count"`
+	Events    []ChatMessageEnvelope `json:"events"`
+}
+
 // HandshakeRequest is the HTTP prototype shape for realtime handshake.
 type HandshakeRequest struct {
 	AccessToken   string `json:"access_token"`
@@ -51,6 +58,7 @@ type ResumeRequest struct {
 type RealtimeService struct {
 	mu         sync.RWMutex
 	sessions   map[string]RealtimeSession
+	events     map[string][]ChatMessageEnvelope
 	introspect Introspector
 	presence   PresenceReporter
 	now        func() time.Time
@@ -60,6 +68,7 @@ type RealtimeService struct {
 func NewRealtimeService(introspect Introspector, presence PresenceReporter) *RealtimeService {
 	return &RealtimeService{
 		sessions:   make(map[string]RealtimeSession),
+		events:     make(map[string][]ChatMessageEnvelope),
 		introspect: introspect,
 		presence:   presence,
 		now:        time.Now,
@@ -109,6 +118,9 @@ func (s *RealtimeService) Handshake(ctx context.Context, request HandshakeReques
 
 	s.mu.Lock()
 	s.sessions[session.SessionID] = session
+	if s.events[session.SessionID] == nil {
+		s.events[session.SessionID] = make([]ChatMessageEnvelope, 0)
+	}
 	s.mu.Unlock()
 	return session, nil
 }
@@ -209,6 +221,35 @@ func (s *RealtimeService) Close(ctx context.Context, sessionID string) (Realtime
 // GetSession returns the current stored gateway session view.
 func (s *RealtimeService) GetSession(sessionID string) (RealtimeSession, *apperrors.Error) {
 	return s.getSession(sessionID)
+}
+
+// EnqueueChatEvent appends a chat event to an active session inbox.
+func (s *RealtimeService) EnqueueChatEvent(sessionID string, event ChatMessageEnvelope) *apperrors.Error {
+	session, appErr := s.getActiveSession(sessionID)
+	if appErr != nil {
+		return appErr
+	}
+
+	s.mu.Lock()
+	s.events[session.SessionID] = append(s.events[session.SessionID], event)
+	s.mu.Unlock()
+	return nil
+}
+
+// GetSessionEvents returns the current event inbox for a session.
+func (s *RealtimeService) GetSessionEvents(sessionID string) (SessionEventInbox, *apperrors.Error) {
+	if _, appErr := s.getSession(sessionID); appErr != nil {
+		return SessionEventInbox{}, appErr
+	}
+
+	s.mu.RLock()
+	events := append([]ChatMessageEnvelope(nil), s.events[sessionID]...)
+	s.mu.RUnlock()
+	return SessionEventInbox{
+		SessionID: sessionID,
+		Count:     len(events),
+		Events:    events,
+	}, nil
 }
 
 func (s *RealtimeService) getActiveSession(sessionID string) (RealtimeSession, *apperrors.Error) {

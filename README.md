@@ -64,6 +64,7 @@ Example environment files live under [configs/examples](configs/examples).
 
 Gateway depends on both `identity` and `presence` base URLs in local runs.
 Gateway now also includes an HTTP-form realtime session prototype for handshake, heartbeat, resume, and close flows.
+Gateway can also prototype chat direct delivery by writing planned online events into per-session inboxes.
 Shared local infrastructure defaults live in `configs/examples/local-infra.env.example`.
 Chat also depends on `presence` for delivery planning in local runs.
 Chat can optionally depend on `worker` for offline delivery job intent in local runs.

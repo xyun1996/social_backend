@@ -7,6 +7,7 @@ import (
 	"github.com/xyun1996/social_backend/pkg/app"
 	"github.com/xyun1996/social_backend/pkg/config"
 	"github.com/xyun1996/social_backend/pkg/logging"
+	chatclient "github.com/xyun1996/social_backend/services/gateway/internal/client/chat"
 	identityclient "github.com/xyun1996/social_backend/services/gateway/internal/client/identity"
 	presenceclient "github.com/xyun1996/social_backend/services/gateway/internal/client/presence"
 	"github.com/xyun1996/social_backend/services/gateway/internal/handler"
@@ -17,9 +18,11 @@ func main() {
 	logger := logging.New(cfg.Name, cfg.Env)
 	identityBaseURL := valueOrDefault(os.Getenv("IDENTITY_BASE_URL"), "http://127.0.0.1:8081")
 	presenceBaseURL := valueOrDefault(os.Getenv("PRESENCE_BASE_URL"), "http://127.0.0.1:8087")
+	chatBaseURL := valueOrDefault(os.Getenv("CHAT_BASE_URL"), "http://127.0.0.1:8084")
 	mux := handler.NewHTTPHandler(
 		identityclient.NewHTTPClient(identityBaseURL),
 		presenceclient.NewHTTPClient(presenceBaseURL),
+		chatclient.NewHTTPClient(chatBaseURL),
 	).Routes()
 
 	service := app.NewHTTPService(cfg.Name, cfg.Addr, logger, mux)
