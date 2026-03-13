@@ -1,0 +1,104 @@
+package handler
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	apperrors "github.com/xyun1996/social_backend/pkg/errors"
+	partyservice "github.com/xyun1996/social_backend/services/party/internal/service"
+)
+
+type fakeInviteClient struct {
+	lastResourceID string
+}
+
+func (f *fakeInviteClient) CreateInvite(_ context.Context, domainName string, resourceID string, fromPlayerID string, toPlayerID string) (partyservice.Invite, *apperrors.Error) {
+	f.lastResourceID = resourceID
+	return partyservice.Invite{
+		ID:           "inv-1",
+		Domain:       domainName,
+		ResourceID:   resourceID,
+		FromPlayerID: fromPlayerID,
+		ToPlayerID:   toPlayerID,
+		Status:       "pending",
+	}, nil
+}
+
+func (f *fakeInviteClient) GetInvite(_ context.Context, inviteID string) (partyservice.Invite, *apperrors.Error) {
+	return partyservice.Invite{
+		ID:           inviteID,
+		Domain:       "party",
+		ResourceID:   f.lastResourceID,
+		FromPlayerID: "p1",
+		ToPlayerID:   "p2",
+		Status:       "accepted",
+	}, nil
+}
+
+func TestPartyLifecycleEndpoints(t *testing.T) {
+	t.Parallel()
+
+	invites := &fakeInviteClient{}
+	svc := partyservice.NewPartyService(invites)
+	h := NewHTTPHandler(svc)
+
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/parties", bytes.NewBufferString(`{"leader_id":"p1"}`))
+	createRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(createRec, createReq)
+
+	if createRec.Code != http.StatusOK {
+		t.Fatalf("unexpected create status: got %d want %d", createRec.Code, http.StatusOK)
+	}
+
+	var created map[string]any
+	if err := json.Unmarshal(createRec.Body.Bytes(), &created); err != nil {
+		t.Fatalf("unmarshal create response: %v", err)
+	}
+
+	partyID, _ := created["id"].(string)
+
+	inviteReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/invites", bytes.NewBufferString(`{"actor_player_id":"p1","to_player_id":"p2"}`))
+	inviteRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(inviteRec, inviteReq)
+
+	if inviteRec.Code != http.StatusOK {
+		t.Fatalf("unexpected invite status: got %d want %d", inviteRec.Code, http.StatusOK)
+	}
+
+	joinReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/join", bytes.NewBufferString(`{"invite_id":"inv-1","actor_player_id":"p2"}`))
+	joinRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(joinRec, joinReq)
+
+	if joinRec.Code != http.StatusOK {
+		t.Fatalf("unexpected join status: got %d want %d", joinRec.Code, http.StatusOK)
+	}
+
+	readyReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/ready", bytes.NewBufferString(`{"actor_player_id":"p2","is_ready":true}`))
+	readyRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(readyRec, readyReq)
+
+	if readyRec.Code != http.StatusOK {
+		t.Fatalf("unexpected ready status: got %d want %d", readyRec.Code, http.StatusOK)
+	}
+
+	listReq := httptest.NewRequest(http.MethodGet, "/v1/parties/"+partyID+"/ready", nil)
+	listRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(listRec, listReq)
+
+	if listRec.Code != http.StatusOK {
+		t.Fatalf("unexpected list ready status: got %d want %d", listRec.Code, http.StatusOK)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(listRec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal list response: %v", err)
+	}
+
+	if payload["count"].(float64) != 2 {
+		t.Fatalf("unexpected ready count: %+v", payload)
+	}
+}

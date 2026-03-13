@@ -42,12 +42,12 @@ docs/       Plans, architecture, operations, releases, memory, templates
 
 ## Tooling Status
 
-This repository currently provides the project scaffold, governance documents, and the first reusable Go service bootstrap.
+This repository currently provides the project scaffold, governance documents, and the first reusable Go service bootstrap plus early in-memory service prototypes.
 
 - `go.mod` initializes the repository as the root Go module.
 - `go.work` is pre-created as the future monorepo entrypoint.
 - `pkg/app`, `pkg/config`, and `pkg/logging` provide a minimal shared runtime layer.
-- `services/gateway/cmd/gateway` and `services/identity/cmd/identity` are runnable starter binaries.
+- `services/gateway`, `services/identity`, `services/social`, `services/invite`, `services/chat`, `services/party`, `services/guild`, and `services/presence` now have runnable starter binaries or in-memory prototypes.
 - `Makefile` exposes placeholder targets so later automation has a stable home.
 - Most leaf directories include `.gitkeep` placeholders so the intended shape survives in version control.
 
@@ -62,12 +62,24 @@ This repository currently provides the project scaffold, governance documents, a
 
 Example environment files live under [configs/examples](configs/examples).
 
+Gateway depends on both `identity` and `presence` base URLs in local runs.
+
 - `make run-identity`
 - `make run-gateway`
 - `make run-social`
+- `make run-invite`
+- `make run-chat`
+- `make run-party`
+- `make run-guild`
+- `make run-presence`
 
 Starter service defaults:
 
 - `identity` listens on `:8081`
 - `gateway` listens on `:8080`
 - `social` listens on `:8082`
+- `invite` listens on `:8083`
+- `chat` listens on `:8084`
+- `party` listens on `:8085`
+- `guild` listens on `:8086`
+- `presence` listens on `:8087`

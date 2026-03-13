@@ -29,6 +29,15 @@ This project is a reusable social backend for medium-light multiplayer games. Th
 - `pkg/` for shared infrastructure only
 - `docs/` for plans, architecture, operations, releases, and memory
 
+## Design Entry Points
+
+- [Module Design](module-design.md)
+- [Technical Principles](technical-principles.md)
+- [Runtime Flows](runtime-flows.md)
+- [Bounded Contexts](bounded-contexts.md)
+- [Dependencies](dependencies.md)
+- [Protocols](protocols.md)
+
 ## Governance View
 
 - `docs/plans/current.md` is the active source of truth for current version scope.

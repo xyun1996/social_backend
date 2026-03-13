@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -12,11 +13,18 @@ import (
 // HTTPHandler exposes the early gateway HTTP API.
 type HTTPHandler struct {
 	introspector gatewayservice.Introspector
+	reporter     gatewayservice.PresenceReporter
 }
 
 // NewHTTPHandler constructs a gateway HTTP handler.
-func NewHTTPHandler(introspector gatewayservice.Introspector) *HTTPHandler {
-	return &HTTPHandler{introspector: introspector}
+func NewHTTPHandler(introspector gatewayservice.Introspector, reporter gatewayservice.PresenceReporter) *HTTPHandler {
+	return &HTTPHandler{introspector: introspector, reporter: reporter}
+}
+
+type presenceRequest struct {
+	SessionID string `json:"session_id"`
+	RealmID   string `json:"realm_id"`
+	Location  string `json:"location"`
 }
 
 // Routes returns the gateway HTTP routes.
@@ -24,6 +32,9 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", h.handleHealth)
 	mux.HandleFunc("GET /v1/session/me", h.handleSessionMe)
+	mux.HandleFunc("POST /v1/session/presence/connect", h.handlePresenceConnect)
+	mux.HandleFunc("POST /v1/session/presence/heartbeat", h.handlePresenceHeartbeat)
+	mux.HandleFunc("POST /v1/session/presence/disconnect", h.handlePresenceDisconnect)
 	return mux
 }
 
@@ -50,6 +61,66 @@ func (h *HTTPHandler) handleSessionMe(w http.ResponseWriter, r *http.Request) {
 	transport.WriteJSON(w, http.StatusOK, subject)
 }
 
+func (h *HTTPHandler) handlePresenceConnect(w http.ResponseWriter, r *http.Request) {
+	h.handlePresenceUpdate(w, r, "connect")
+}
+
+func (h *HTTPHandler) handlePresenceHeartbeat(w http.ResponseWriter, r *http.Request) {
+	h.handlePresenceUpdate(w, r, "heartbeat")
+}
+
+func (h *HTTPHandler) handlePresenceDisconnect(w http.ResponseWriter, r *http.Request) {
+	h.handlePresenceUpdate(w, r, "disconnect")
+}
+
+func (h *HTTPHandler) handlePresenceUpdate(w http.ResponseWriter, r *http.Request, action string) {
+	token, appErr := bearerToken(r.Header.Get("Authorization"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	subject, err := h.introspector.Introspect(r.Context(), token)
+	if err != nil {
+		transport.WriteError(w, *err)
+		return
+	}
+
+	var request presenceRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	update := gatewayservice.PresenceUpdate{
+		PlayerID:  subject.PlayerID,
+		SessionID: request.SessionID,
+		RealmID:   request.RealmID,
+		Location:  request.Location,
+	}
+
+	var snapshot gatewayservice.PresenceSnapshot
+	switch action {
+	case "connect":
+		snapshot, appErr = h.reporter.Connect(r.Context(), update)
+	case "heartbeat":
+		snapshot, appErr = h.reporter.Heartbeat(r.Context(), update)
+	case "disconnect":
+		snapshot, appErr = h.reporter.Disconnect(r.Context(), update)
+	default:
+		internal := apperrors.Internal()
+		transport.WriteError(w, internal)
+		return
+	}
+
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, snapshot)
+}
+
 func bearerToken(header string) (string, *apperrors.Error) {
 	if !strings.HasPrefix(header, "Bearer ") {
 		err := apperrors.New("unauthorized", "bearer token is required", http.StatusUnauthorized)
@@ -63,4 +134,8 @@ func bearerToken(header string) (string, *apperrors.Error) {
 	}
 
 	return token, nil
+}
+
+func invalidJSONError() apperrors.Error {
+	return apperrors.New("invalid_json", "request body must be valid json", http.StatusBadRequest)
 }
