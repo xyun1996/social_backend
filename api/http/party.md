@@ -90,6 +90,9 @@ Base purpose: party creation, shared-invite-based joins, and ready state updates
 }
 ```
 
+- Rules
+- Only online members can update ready state in the current prototype
+
 ## List Ready States
 
 - `GET /v1/parties/{partyID}/ready`
@@ -100,5 +103,28 @@ Base purpose: party creation, shared-invite-based joins, and ready state updates
   "party_id": "party-1",
   "count": 2,
   "ready_states": []
+}
+```
+
+## List Members
+
+- `GET /v1/parties/{partyID}/members`
+- Response `200`
+
+```json
+{
+  "party_id": "party-1",
+  "count": 2,
+  "members": [
+    {
+      "player_id": "p1",
+      "is_leader": true,
+      "is_ready": false,
+      "presence": "online",
+      "session_id": "sess-1",
+      "realm_id": "realm-1",
+      "location": "lobby"
+    }
+  ]
 }
 ```

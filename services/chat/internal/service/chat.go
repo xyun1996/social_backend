@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"slices"
@@ -24,7 +25,35 @@ const (
 
 	defaultReplayLimit = 50
 	maxReplayLimit     = 200
+	deliveryModePush   = "online_push"
+	deliveryModeReplay = "offline_replay"
+	presenceOnline     = "online"
+	presenceOffline    = "offline"
 )
+
+// PresenceSnapshot contains the subset of presence state chat uses for planning.
+type PresenceSnapshot struct {
+	PlayerID  string `json:"player_id"`
+	Status    string `json:"status"`
+	SessionID string `json:"session_id"`
+	RealmID   string `json:"realm_id,omitempty"`
+	Location  string `json:"location,omitempty"`
+}
+
+// PresenceReader resolves current presence state for delivery planning.
+type PresenceReader interface {
+	GetPresence(ctx context.Context, playerID string) (PresenceSnapshot, *apperrors.Error)
+}
+
+// DeliveryTarget describes how chat would route a message to a member.
+type DeliveryTarget struct {
+	PlayerID     string `json:"player_id"`
+	Presence     string `json:"presence"`
+	DeliveryMode string `json:"delivery_mode"`
+	SessionID    string `json:"session_id,omitempty"`
+	RealmID      string `json:"realm_id,omitempty"`
+	Location     string `json:"location,omitempty"`
+}
 
 // ChatService provides an in-memory prototype for conversation, seq, ack, and replay flows.
 type ChatService struct {
@@ -32,17 +61,19 @@ type ChatService struct {
 	conversations     map[string]domain.Conversation
 	messages          map[string][]domain.Message
 	readCursors       map[string]map[string]domain.ReadCursor
+	presence          PresenceReader
 	now               func() time.Time
 	newConversationID func() (string, error)
 	newMessageID      func() (string, error)
 }
 
 // NewChatService constructs an in-memory chat service.
-func NewChatService() *ChatService {
+func NewChatService(presence PresenceReader) *ChatService {
 	return &ChatService{
 		conversations: make(map[string]domain.Conversation),
 		messages:      make(map[string][]domain.Message),
 		readCursors:   make(map[string]map[string]domain.ReadCursor),
+		presence:      presence,
 		now:           time.Now,
 		newConversationID: func() (string, error) {
 			return idgen.Token(8)
@@ -274,6 +305,65 @@ func (s *ChatService) ReplayMessages(conversationID string, playerID string, aft
 	}
 
 	return replay, nil
+}
+
+// PlanDelivery resolves current routing mode for other members in the conversation.
+func (s *ChatService) PlanDelivery(ctx context.Context, conversationID string, senderPlayerID string) ([]DeliveryTarget, *apperrors.Error) {
+	if conversationID == "" || senderPlayerID == "" {
+		err := apperrors.New("invalid_request", "conversation_id and sender_player_id are required", http.StatusBadRequest)
+		return nil, &err
+	}
+
+	s.mu.RLock()
+	conversation, ok := s.conversations[conversationID]
+	s.mu.RUnlock()
+	if !ok {
+		err := apperrors.New("not_found", "conversation not found", http.StatusNotFound)
+		return nil, &err
+	}
+
+	if appErr := validateSendPermission(conversation, senderPlayerID); appErr != nil {
+		return nil, appErr
+	}
+
+	targets := make([]DeliveryTarget, 0, len(conversation.MemberPlayerIDs))
+	for _, memberID := range conversation.MemberPlayerIDs {
+		if memberID == senderPlayerID {
+			continue
+		}
+
+		target := DeliveryTarget{
+			PlayerID:     memberID,
+			Presence:     presenceOffline,
+			DeliveryMode: deliveryModeReplay,
+		}
+
+		if s.presence == nil {
+			targets = append(targets, target)
+			continue
+		}
+
+		snapshot, appErr := s.presence.GetPresence(ctx, memberID)
+		if appErr != nil {
+			if appErr.Code == "not_found" {
+				targets = append(targets, target)
+				continue
+			}
+			return nil, appErr
+		}
+
+		target.Presence = snapshot.Status
+		target.SessionID = snapshot.SessionID
+		target.RealmID = snapshot.RealmID
+		target.Location = snapshot.Location
+		if snapshot.Status == presenceOnline {
+			target.DeliveryMode = deliveryModePush
+		}
+
+		targets = append(targets, target)
+	}
+
+	return targets, nil
 }
 
 func normalizeMembers(kind string, members []string) ([]string, *apperrors.Error) {

@@ -48,6 +48,7 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("POST /v1/parties/{partyID}/join", h.handleJoinParty)
 	mux.HandleFunc("POST /v1/parties/{partyID}/ready", h.handleSetReady)
 	mux.HandleFunc("GET /v1/parties/{partyID}/ready", h.handleListReady)
+	mux.HandleFunc("GET /v1/parties/{partyID}/members", h.handleListMembers)
 	return mux
 }
 
@@ -143,6 +144,20 @@ func (h *HTTPHandler) handleListReady(w http.ResponseWriter, r *http.Request) {
 		"party_id":     r.PathValue("partyID"),
 		"count":        len(states),
 		"ready_states": states,
+	})
+}
+
+func (h *HTTPHandler) handleListMembers(w http.ResponseWriter, r *http.Request) {
+	states, appErr := h.parties.ListMemberStates(r.Context(), r.PathValue("partyID"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, map[string]any{
+		"party_id": r.PathValue("partyID"),
+		"count":    len(states),
+		"members":  states,
 	})
 }
 

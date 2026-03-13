@@ -6,21 +6,21 @@
 
 ## Current Goal
 
-Move from executable in-memory prototypes into explicit boundary decisions, prioritizing contract documentation and presence authority before deeper realtime integration.
+Extend the prototype layer with runtime-aware cross-service behavior, prioritizing presence-backed chat and party flows after contract and authority boundaries were established.
 
 ## Success Criteria
 
 - Existing prototype services remain runnable and documented.
 - Shared boundary decisions are explicit for API contracts and presence ownership.
-- `api/http/` and `api/errors/` become active homes for wire-contract documentation.
-- The next implementation slice can add presence without re-deciding gateway ownership or contract direction.
+- `chat` and `party` now consume `presence` through explicit service boundaries.
+- The next implementation slice can expand runtime-aware behavior without re-deciding gateway or presence ownership.
 
 ## In Scope
 
-- Boundary decisions for contract ownership and presence authority
+- Presence-backed runtime behavior for chat and party
 - HTTP and error contract baseline documentation
-- Presence prototype planning aligned with gateway and downstream services
 - Documentation alignment between active plan, milestones, tasks, and ADRs
+- Continued prototype hardening through explicit service clients
 
 ## Out of Scope
 
@@ -41,8 +41,8 @@ Move from executable in-memory prototypes into explicit boundary decisions, prio
 
 ## Current Risks
 
-- HTTP contracts are only baseline-level, so detailed per-service specs still need to be written.
-- Presence has no executable prototype yet, so online-state consumers still rely on future work.
+- HTTP contracts are still baseline-level, so deeper per-service specs and future proto contracts remain to be written.
+- Guild and chat push behavior still need richer runtime rules beyond current prototype reads.
 - Without disciplined updates, future plan drift could appear between `current`, milestones, tasks, and ADRs.
 
 ## Key Dependencies
@@ -54,6 +54,8 @@ Move from executable in-memory prototypes into explicit boundary decisions, prio
 - [docs/plans/v1/tasks/010-guild-http-prototype.md](v1/tasks/010-guild-http-prototype.md)
 - [docs/plans/v1/tasks/011-document-http-contract-baseline.md](v1/tasks/011-document-http-contract-baseline.md)
 - [docs/plans/v1/tasks/012-presence-http-prototype.md](v1/tasks/012-presence-http-prototype.md)
+- [docs/plans/v1/tasks/013-presence-aware-chat-delivery.md](v1/tasks/013-presence-aware-chat-delivery.md)
+- [docs/plans/v1/tasks/014-presence-aware-party-runtime.md](v1/tasks/014-presence-aware-party-runtime.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/errors/README.md](../api/errors/README.md)
 - [docs/memory/constraints.md](../memory/constraints.md)

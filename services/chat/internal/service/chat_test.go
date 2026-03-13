@@ -1,11 +1,30 @@
 package service
 
-import "testing"
+import (
+	"context"
+	"testing"
+
+	apperrors "github.com/xyun1996/social_backend/pkg/errors"
+)
+
+type fakePresenceReader struct {
+	snapshots map[string]PresenceSnapshot
+}
+
+func (f *fakePresenceReader) GetPresence(_ context.Context, playerID string) (PresenceSnapshot, *apperrors.Error) {
+	snapshot, ok := f.snapshots[playerID]
+	if !ok {
+		err := apperrors.New("not_found", "presence not found", 404)
+		return PresenceSnapshot{}, &err
+	}
+
+	return snapshot, nil
+}
 
 func TestConversationSendAckAndReplay(t *testing.T) {
 	t.Parallel()
 
-	svc := NewChatService()
+	svc := NewChatService(nil)
 	conversation, err := svc.CreateConversation(kindPrivate, "", []string{"p1", "p2"})
 	if err != nil {
 		t.Fatalf("create conversation returned error: %+v", err)
@@ -47,7 +66,7 @@ func TestConversationSendAckAndReplay(t *testing.T) {
 func TestPrivateConversationRequiresMembershipToSend(t *testing.T) {
 	t.Parallel()
 
-	svc := NewChatService()
+	svc := NewChatService(nil)
 	conversation, err := svc.CreateConversation(kindPrivate, "", []string{"p1", "p2"})
 	if err != nil {
 		t.Fatalf("create conversation returned error: %+v", err)
@@ -61,7 +80,7 @@ func TestPrivateConversationRequiresMembershipToSend(t *testing.T) {
 func TestSystemConversationOnlyAllowsSystemSender(t *testing.T) {
 	t.Parallel()
 
-	svc := NewChatService()
+	svc := NewChatService(nil)
 	conversation, err := svc.CreateConversation(kindSystem, "system-global", []string{"p1"})
 	if err != nil {
 		t.Fatalf("create conversation returned error: %+v", err)
@@ -73,5 +92,39 @@ func TestSystemConversationOnlyAllowsSystemSender(t *testing.T) {
 
 	if _, sendErr := svc.SendMessage(conversation.ID, "system", "maintenance"); sendErr != nil {
 		t.Fatalf("expected system sender to be allowed: %+v", sendErr)
+	}
+}
+
+func TestPlanDeliveryUsesPresenceForRouting(t *testing.T) {
+	t.Parallel()
+
+	svc := NewChatService(&fakePresenceReader{
+		snapshots: map[string]PresenceSnapshot{
+			"p2": {
+				PlayerID:  "p2",
+				Status:    presenceOnline,
+				SessionID: "sess-2",
+				RealmID:   "realm-1",
+				Location:  "lobby",
+			},
+		},
+	})
+
+	conversation, err := svc.CreateConversation(kindPrivate, "", []string{"p1", "p2"})
+	if err != nil {
+		t.Fatalf("create conversation returned error: %+v", err)
+	}
+
+	targets, planErr := svc.PlanDelivery(context.Background(), conversation.ID, "p1")
+	if planErr != nil {
+		t.Fatalf("plan delivery returned error: %+v", planErr)
+	}
+
+	if len(targets) != 1 {
+		t.Fatalf("unexpected delivery target count: %d", len(targets))
+	}
+
+	if targets[0].DeliveryMode != deliveryModePush {
+		t.Fatalf("unexpected delivery mode: %+v", targets[0])
 	}
 }

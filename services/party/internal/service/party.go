@@ -15,6 +15,11 @@ import (
 
 const inviteDomainParty = "party"
 
+const (
+	presenceOnline  = "online"
+	presenceOffline = "offline"
+)
+
 // Invite contains the subset of invite state party depends on.
 type Invite struct {
 	ID           string `json:"id"`
@@ -31,23 +36,50 @@ type InviteClient interface {
 	GetInvite(ctx context.Context, inviteID string) (Invite, *apperrors.Error)
 }
 
+// PresenceSnapshot contains the subset of presence state party uses.
+type PresenceSnapshot struct {
+	PlayerID  string `json:"player_id"`
+	Status    string `json:"status"`
+	SessionID string `json:"session_id"`
+	RealmID   string `json:"realm_id,omitempty"`
+	Location  string `json:"location,omitempty"`
+}
+
+// PresenceReader resolves current presence state for party members.
+type PresenceReader interface {
+	GetPresence(ctx context.Context, playerID string) (PresenceSnapshot, *apperrors.Error)
+}
+
+// MemberState combines membership, ready state, and presence state.
+type MemberState struct {
+	PlayerID  string `json:"player_id"`
+	IsLeader  bool   `json:"is_leader"`
+	IsReady   bool   `json:"is_ready"`
+	Presence  string `json:"presence"`
+	SessionID string `json:"session_id,omitempty"`
+	RealmID   string `json:"realm_id,omitempty"`
+	Location  string `json:"location,omitempty"`
+}
+
 // PartyService provides an in-memory prototype for leader, member, and ready flows.
 type PartyService struct {
 	mu         sync.RWMutex
 	parties    map[string]domain.Party
 	ready      map[string]map[string]domain.ReadyState
 	invites    InviteClient
+	presence   PresenceReader
 	now        func() time.Time
 	newPartyID func() (string, error)
 }
 
 // NewPartyService constructs an in-memory party service.
-func NewPartyService(invites InviteClient) *PartyService {
+func NewPartyService(invites InviteClient, presence PresenceReader) *PartyService {
 	return &PartyService{
-		parties: make(map[string]domain.Party),
-		ready:   make(map[string]map[string]domain.ReadyState),
-		invites: invites,
-		now:     time.Now,
+		parties:  make(map[string]domain.Party),
+		ready:    make(map[string]map[string]domain.ReadyState),
+		invites:  invites,
+		presence: presence,
+		now:      time.Now,
 		newPartyID: func() (string, error) {
 			return idgen.Token(8)
 		},
@@ -195,6 +227,17 @@ func (s *PartyService) SetReady(partyID string, actorPlayerID string, isReady bo
 		return domain.ReadyState{}, &err
 	}
 
+	if s.presence != nil {
+		snapshot, appErr := s.presence.GetPresence(context.Background(), actorPlayerID)
+		if appErr != nil && appErr.Code != "not_found" {
+			return domain.ReadyState{}, appErr
+		}
+		if appErr != nil || snapshot.Status != presenceOnline {
+			err := apperrors.New("presence_required", "player must be online to update ready state", http.StatusConflict)
+			return domain.ReadyState{}, &err
+		}
+	}
+
 	if s.ready[partyID] == nil {
 		s.ready[partyID] = make(map[string]domain.ReadyState)
 	}
@@ -240,6 +283,53 @@ func (s *PartyService) ListReadyStates(partyID string) ([]domain.ReadyState, *ap
 	}
 
 	return readyStates, nil
+}
+
+// ListMemberStates returns ready and presence state for current members.
+func (s *PartyService) ListMemberStates(ctx context.Context, partyID string) ([]MemberState, *apperrors.Error) {
+	if partyID == "" {
+		err := apperrors.New("invalid_request", "party_id is required", http.StatusBadRequest)
+		return nil, &err
+	}
+
+	s.mu.RLock()
+	party, ok := s.parties[partyID]
+	readyCopy := s.ready[partyID]
+	s.mu.RUnlock()
+	if !ok {
+		err := apperrors.New("not_found", "party not found", http.StatusNotFound)
+		return nil, &err
+	}
+
+	states := make([]MemberState, 0, len(party.MemberIDs))
+	for _, memberID := range party.MemberIDs {
+		memberState := MemberState{
+			PlayerID: memberID,
+			IsLeader: memberID == party.LeaderID,
+			Presence: presenceOffline,
+		}
+
+		if ready, ok := readyCopy[memberID]; ok {
+			memberState.IsReady = ready.IsReady
+		}
+
+		if s.presence != nil {
+			snapshot, appErr := s.presence.GetPresence(ctx, memberID)
+			if appErr != nil && appErr.Code != "not_found" {
+				return nil, appErr
+			}
+			if appErr == nil {
+				memberState.Presence = snapshot.Status
+				memberState.SessionID = snapshot.SessionID
+				memberState.RealmID = snapshot.RealmID
+				memberState.Location = snapshot.Location
+			}
+		}
+
+		states = append(states, memberState)
+	}
+
+	return states, nil
 }
 
 func (s *PartyService) String() string {

@@ -2,18 +2,34 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	apperrors "github.com/xyun1996/social_backend/pkg/errors"
 	"github.com/xyun1996/social_backend/services/chat/internal/service"
 )
+
+type fakePresenceReader struct {
+	snapshots map[string]service.PresenceSnapshot
+}
+
+func (f *fakePresenceReader) GetPresence(_ context.Context, playerID string) (service.PresenceSnapshot, *apperrors.Error) {
+	snapshot, ok := f.snapshots[playerID]
+	if !ok {
+		err := apperrors.New("not_found", "presence not found", http.StatusNotFound)
+		return service.PresenceSnapshot{}, &err
+	}
+
+	return snapshot, nil
+}
 
 func TestChatLifecycleEndpoints(t *testing.T) {
 	t.Parallel()
 
-	h := NewHTTPHandler(service.NewChatService())
+	h := NewHTTPHandler(service.NewChatService(nil))
 
 	createReq := httptest.NewRequest(http.MethodPost, "/v1/conversations", bytes.NewBufferString(`{"kind":"private","member_player_ids":["p1","p2"]}`))
 	createRec := httptest.NewRecorder()
@@ -58,12 +74,49 @@ func TestChatLifecycleEndpoints(t *testing.T) {
 func TestReplayRejectsInvalidQuery(t *testing.T) {
 	t.Parallel()
 
-	h := NewHTTPHandler(service.NewChatService())
+	h := NewHTTPHandler(service.NewChatService(nil))
 	req := httptest.NewRequest(http.MethodGet, "/v1/conversations/c1/messages?player_id=p1&after_seq=bad", nil)
 	rec := httptest.NewRecorder()
 	h.Routes().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("unexpected invalid query status: got %d want %d", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func TestDeliveryPlanEndpoint(t *testing.T) {
+	t.Parallel()
+
+	chat := service.NewChatService(&fakePresenceReader{
+		snapshots: map[string]service.PresenceSnapshot{
+			"p2": {
+				PlayerID:  "p2",
+				Status:    "online",
+				SessionID: "sess-2",
+			},
+		},
+	})
+	h := NewHTTPHandler(chat)
+
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/conversations", bytes.NewBufferString(`{"kind":"private","member_player_ids":["p1","p2"]}`))
+	createRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(createRec, createReq)
+
+	if createRec.Code != http.StatusOK {
+		t.Fatalf("unexpected create status: got %d want %d", createRec.Code, http.StatusOK)
+	}
+
+	var conversation map[string]any
+	if err := json.Unmarshal(createRec.Body.Bytes(), &conversation); err != nil {
+		t.Fatalf("unmarshal create response: %v", err)
+	}
+
+	conversationID, _ := conversation["id"].(string)
+	planReq := httptest.NewRequest(http.MethodGet, "/v1/conversations/"+conversationID+"/delivery?sender_player_id=p1", nil)
+	planRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(planRec, planReq)
+
+	if planRec.Code != http.StatusOK {
+		t.Fatalf("unexpected delivery status: got %d want %d", planRec.Code, http.StatusOK)
 	}
 }

@@ -125,3 +125,31 @@ Base purpose: conversation creation, message sequencing, read acknowledgement, a
 - Rules
 - `ack_seq` cannot exceed `last_seq`
 - Ack cursor is monotonic and never moves backward
+
+## Delivery Plan
+
+- `GET /v1/conversations/{conversationID}/delivery?sender_player_id=p1`
+- Response `200`
+
+```json
+{
+  "conversation_id": "conv-1",
+  "sender_player_id": "p1",
+  "count": 1,
+  "targets": [
+    {
+      "player_id": "p2",
+      "presence": "online",
+      "delivery_mode": "online_push",
+      "session_id": "sess-2",
+      "realm_id": "realm-1",
+      "location": "lobby"
+    }
+  ]
+}
+```
+
+- Rules
+- Only valid conversation senders can request delivery planning
+- Online members are marked `online_push`
+- Missing or offline presence falls back to `offline_replay`

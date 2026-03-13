@@ -45,6 +45,7 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("POST /v1/conversations/{conversationID}/messages", h.handleSendMessage)
 	mux.HandleFunc("GET /v1/conversations/{conversationID}/messages", h.handleReplayMessages)
 	mux.HandleFunc("POST /v1/conversations/{conversationID}/ack", h.handleAckConversation)
+	mux.HandleFunc("GET /v1/conversations/{conversationID}/delivery", h.handleDeliveryPlan)
 	return mux
 }
 
@@ -145,6 +146,22 @@ func (h *HTTPHandler) handleAckConversation(w http.ResponseWriter, r *http.Reque
 	}
 
 	transport.WriteJSON(w, http.StatusOK, cursor)
+}
+
+func (h *HTTPHandler) handleDeliveryPlan(w http.ResponseWriter, r *http.Request) {
+	senderPlayerID := r.URL.Query().Get("sender_player_id")
+	targets, appErr := h.chat.PlanDelivery(r.Context(), r.PathValue("conversationID"), senderPlayerID)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, map[string]any{
+		"conversation_id":  r.PathValue("conversationID"),
+		"sender_player_id": senderPlayerID,
+		"count":            len(targets),
+		"targets":          targets,
+	})
 }
 
 func invalidJSONError() apperrors.Error {

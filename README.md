@@ -64,6 +64,8 @@ Example environment files live under [configs/examples](configs/examples).
 
 Gateway depends on both `identity` and `presence` base URLs in local runs.
 Shared local infrastructure defaults live in `configs/examples/local-infra.env.example`.
+Chat also depends on `presence` for delivery planning in local runs.
+Party also depends on `presence` for runtime-ready checks in local runs.
 
 - `make run-identity`
 - `make run-gateway`

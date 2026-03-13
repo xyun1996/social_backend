@@ -14,7 +14,7 @@ This directory is the source of truth for the current control-plane HTTP contrac
 - [gateway](gateway.md): authenticated session query
 - [social](social.md): friend request, accept, list, block
 - [invite](invite.md): create, fetch, respond, list
-- [chat](chat.md): conversation create, list, send, ack, replay
+- [chat](chat.md): conversation create, list, send, ack, replay, delivery planning
 - [party](party.md): create, invite, join, ready
 - [guild](guild.md): create, invite, join
 - [presence](presence.md): connect, heartbeat, disconnect, lookup

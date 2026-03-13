@@ -16,6 +16,10 @@ type fakeInviteClient struct {
 	lastResourceID string
 }
 
+type fakePresenceReader struct {
+	snapshots map[string]partyservice.PresenceSnapshot
+}
+
 func (f *fakeInviteClient) CreateInvite(_ context.Context, domainName string, resourceID string, fromPlayerID string, toPlayerID string) (partyservice.Invite, *apperrors.Error) {
 	f.lastResourceID = resourceID
 	return partyservice.Invite{
@@ -39,11 +43,26 @@ func (f *fakeInviteClient) GetInvite(_ context.Context, inviteID string) (partys
 	}, nil
 }
 
+func (f *fakePresenceReader) GetPresence(_ context.Context, playerID string) (partyservice.PresenceSnapshot, *apperrors.Error) {
+	snapshot, ok := f.snapshots[playerID]
+	if !ok {
+		err := apperrors.New("not_found", "presence not found", http.StatusNotFound)
+		return partyservice.PresenceSnapshot{}, &err
+	}
+	return snapshot, nil
+}
+
 func TestPartyLifecycleEndpoints(t *testing.T) {
 	t.Parallel()
 
 	invites := &fakeInviteClient{}
-	svc := partyservice.NewPartyService(invites)
+	presence := &fakePresenceReader{
+		snapshots: map[string]partyservice.PresenceSnapshot{
+			"p1": {PlayerID: "p1", Status: "online", SessionID: "sess-1"},
+			"p2": {PlayerID: "p2", Status: "online", SessionID: "sess-2"},
+		},
+	}
+	svc := partyservice.NewPartyService(invites, presence)
 	h := NewHTTPHandler(svc)
 
 	createReq := httptest.NewRequest(http.MethodPost, "/v1/parties", bytes.NewBufferString(`{"leader_id":"p1"}`))
@@ -100,5 +119,13 @@ func TestPartyLifecycleEndpoints(t *testing.T) {
 
 	if payload["count"].(float64) != 2 {
 		t.Fatalf("unexpected ready count: %+v", payload)
+	}
+
+	memberReq := httptest.NewRequest(http.MethodGet, "/v1/parties/"+partyID+"/members", nil)
+	memberRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(memberRec, memberReq)
+
+	if memberRec.Code != http.StatusOK {
+		t.Fatalf("unexpected members status: got %d want %d", memberRec.Code, http.StatusOK)
 	}
 }
