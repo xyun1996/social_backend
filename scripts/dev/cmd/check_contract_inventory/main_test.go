@@ -13,6 +13,7 @@ func TestValidateInventory(t *testing.T) {
 		ProtoFiles: sortedCopy(controlPlaneSurfaces),
 		TCPFiles:   sortedCopy(realtimeSurfaces),
 		HTTPIndex:  "- [chat](chat.md)\n- [gateway](gateway.md)\n- [guild](guild.md)\n- [identity](identity.md)\n- [invite](invite.md)\n- [ops](ops.md)\n- [party](party.md)\n- [presence](presence.md)\n- [social](social.md)\n- [worker](worker.md)\n",
+		ProtoIndex: "- `chat`\n- `gateway`\n- `guild`\n- `identity`\n- `invite`\n- `ops`\n- `party`\n- `presence`\n- `social`\n- `worker`\n",
 		TCPIndex:   "- [chat](chat.md)\n- [gateway](gateway.md)\n",
 	}
 
@@ -30,6 +31,7 @@ func TestValidateInventoryFindsDrift(t *testing.T) {
 		ProtoFiles: sortedCopy(controlPlaneSurfaces),
 		TCPFiles:   []string{"chat"},
 		HTTPIndex:  "- [chat](chat.md)\n",
+		ProtoIndex: "- `chat`\n",
 		TCPIndex:   "- [chat](chat.md)\n",
 	})
 

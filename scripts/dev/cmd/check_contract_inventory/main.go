@@ -56,6 +56,7 @@ type inventory struct {
 	ProtoFiles []string
 	TCPFiles   []string
 	HTTPIndex  string
+	ProtoIndex string
 	TCPIndex   string
 }
 
@@ -64,7 +65,7 @@ func scanInventory(root string) (inventory, error) {
 	if err != nil {
 		return inventory{}, err
 	}
-	protoFiles, err := scanProtoDir(filepath.Join(root, "api", "proto"))
+	protoFiles, protoIndex, err := scanProtoDir(filepath.Join(root, "api", "proto"))
 	if err != nil {
 		return inventory{}, err
 	}
@@ -78,6 +79,7 @@ func scanInventory(root string) (inventory, error) {
 		ProtoFiles: protoFiles,
 		TCPFiles:   tcpFiles,
 		HTTPIndex:  httpIndex,
+		ProtoIndex: protoIndex,
 		TCPIndex:   tcpIndex,
 	}, nil
 }
@@ -103,13 +105,17 @@ func scanMarkdownDir(dir string) ([]string, string, error) {
 	return files, string(indexRaw), nil
 }
 
-func scanProtoDir(dir string) ([]string, error) {
+func scanProtoDir(dir string) ([]string, string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	files := make([]string, 0)
+	indexRaw, err := os.ReadFile(filepath.Join(dir, "README.md"))
+	if err != nil {
+		return nil, "", err
+	}
 	for _, entry := range entries {
 		if entry.IsDir() || filepath.Ext(entry.Name()) != ".proto" {
 			continue
@@ -117,7 +123,7 @@ func scanProtoDir(dir string) ([]string, error) {
 		files = append(files, strings.TrimSuffix(entry.Name(), ".proto"))
 	}
 	slices.Sort(files)
-	return files, nil
+	return files, string(indexRaw), nil
 }
 
 func validateInventory(inv inventory) []string {
@@ -136,6 +142,9 @@ func validateInventory(inv inventory) []string {
 	for _, surface := range controlPlaneSurfaces {
 		if !strings.Contains(inv.HTTPIndex, "- ["+surface+"]("+surface+".md)") {
 			problems = append(problems, "api/http/README.md is missing surface "+surface)
+		}
+		if !strings.Contains(inv.ProtoIndex, "- `"+surface+"`") {
+			problems = append(problems, "api/proto/README.md is missing service "+surface)
 		}
 	}
 	for _, surface := range realtimeSurfaces {

@@ -101,6 +101,20 @@ func TestProtoFilesDeclareRequiredHeaders(t *testing.T) {
 	}
 }
 
+func TestProtoREADMEListsRuntimeServices(t *testing.T) {
+	t.Parallel()
+
+	raw, err := os.ReadFile("README.md")
+	if err != nil {
+		t.Fatalf("ReadFile api/proto/README.md failed: %v", err)
+	}
+	content := string(raw)
+
+	for _, service := range runtimeServices {
+		requireContains(t, "README.md", content, "- `"+service+"`")
+	}
+}
+
 func requireContains(t *testing.T, path string, content string, needle string) {
 	t.Helper()
 	if !strings.Contains(content, needle) {
