@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"slices"
@@ -11,6 +12,19 @@ import (
 	"github.com/xyun1996/social_backend/pkg/idgen"
 	"github.com/xyun1996/social_backend/services/worker/internal/domain"
 )
+
+// JobHandler executes a claimed worker job.
+type JobHandler func(ctx context.Context, job domain.Job) *apperrors.Error
+
+// ExecutionResult summarizes worker execution activity.
+type ExecutionResult struct {
+	WorkerID  string      `json:"worker_id"`
+	Type      string      `json:"type,omitempty"`
+	Processed int         `json:"processed"`
+	Completed int         `json:"completed"`
+	Failed    int         `json:"failed"`
+	LastJob   *domain.Job `json:"last_job,omitempty"`
+}
 
 const (
 	jobQueued    = "queued"
@@ -24,6 +38,7 @@ type WorkerService struct {
 	mu       sync.RWMutex
 	jobs     map[string]domain.Job
 	order    []string
+	handlers map[string]JobHandler
 	now      func() time.Time
 	newJobID func() (string, error)
 }
@@ -31,13 +46,25 @@ type WorkerService struct {
 // NewWorkerService constructs an in-memory worker service.
 func NewWorkerService() *WorkerService {
 	return &WorkerService{
-		jobs:  make(map[string]domain.Job),
-		order: make([]string, 0),
-		now:   time.Now,
+		jobs:     make(map[string]domain.Job),
+		order:    make([]string, 0),
+		handlers: make(map[string]JobHandler),
+		now:      time.Now,
 		newJobID: func() (string, error) {
 			return idgen.Token(8)
 		},
 	}
+}
+
+// RegisterHandler binds a job type to a worker execution handler.
+func (s *WorkerService) RegisterHandler(jobType string, handler JobHandler) {
+	if jobType == "" || handler == nil {
+		return
+	}
+
+	s.mu.Lock()
+	s.handlers[jobType] = handler
+	s.mu.Unlock()
 }
 
 // Enqueue creates a queued async job.
@@ -154,6 +181,84 @@ func (s *WorkerService) ListJobs(status string, jobType string) ([]domain.Job, *
 	return jobs, nil
 }
 
+// ExecuteNext claims and executes the next available job for the worker.
+func (s *WorkerService) ExecuteNext(ctx context.Context, workerID string, jobType string) (ExecutionResult, *apperrors.Error) {
+	job, appErr := s.ClaimNext(workerID, jobType)
+	if appErr != nil {
+		return ExecutionResult{}, appErr
+	}
+
+	result := ExecutionResult{
+		WorkerID:  workerID,
+		Type:      jobType,
+		Processed: 1,
+		LastJob:   &job,
+	}
+
+	handler := s.lookupHandler(job.Type)
+	if handler == nil {
+		lastError := fmt.Sprintf("no handler registered for job type %s", job.Type)
+		failed, failErr := s.Fail(job.ID, workerID, lastError)
+		if failErr != nil {
+			return ExecutionResult{}, failErr
+		}
+		result.Failed = 1
+		result.LastJob = &failed
+		return result, nil
+	}
+
+	if handlerErr := handler(ctx, job); handlerErr != nil {
+		failed, failErr := s.Fail(job.ID, workerID, handlerErr.Message)
+		if failErr != nil {
+			return ExecutionResult{}, failErr
+		}
+		result.Failed = 1
+		result.LastJob = &failed
+		return result, nil
+	}
+
+	completed, completeErr := s.Complete(job.ID, workerID)
+	if completeErr != nil {
+		return ExecutionResult{}, completeErr
+	}
+	result.Completed = 1
+	result.LastJob = &completed
+	return result, nil
+}
+
+// ExecuteUntilEmpty drains claimable jobs for the optional type filter.
+func (s *WorkerService) ExecuteUntilEmpty(ctx context.Context, workerID string, jobType string, limit int) (ExecutionResult, *apperrors.Error) {
+	if workerID == "" {
+		err := apperrors.New("invalid_request", "worker_id is required", http.StatusBadRequest)
+		return ExecutionResult{}, &err
+	}
+	if limit <= 0 {
+		limit = 100
+	}
+
+	result := ExecutionResult{
+		WorkerID: workerID,
+		Type:     jobType,
+	}
+
+	for i := 0; i < limit; i++ {
+		next, appErr := s.ExecuteNext(ctx, workerID, jobType)
+		if appErr != nil {
+			if appErr.Code == "not_found" {
+				return result, nil
+			}
+			return ExecutionResult{}, appErr
+		}
+
+		result.Processed += next.Processed
+		result.Completed += next.Completed
+		result.Failed += next.Failed
+		result.LastJob = next.LastJob
+	}
+
+	return result, nil
+}
+
 func (s *WorkerService) transition(jobID string, workerID string, targetStatus string, lastError string) (domain.Job, *apperrors.Error) {
 	if jobID == "" || workerID == "" {
 		err := apperrors.New("invalid_request", "job_id and worker_id are required", http.StatusBadRequest)
@@ -187,6 +292,12 @@ func (s *WorkerService) transition(jobID string, workerID string, targetStatus s
 	}
 	s.jobs[jobID] = job
 	return job, nil
+}
+
+func (s *WorkerService) lookupHandler(jobType string) JobHandler {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.handlers[jobType]
 }
 
 func (s *WorkerService) String() string {

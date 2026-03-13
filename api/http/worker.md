@@ -74,3 +74,32 @@ Base purpose: async job queue inspection and lifecycle transitions for prototype
 ```
 
 - Response `200`: failed job object
+
+## Run One Job
+
+- `POST /v1/jobs/run-once`
+- Request
+
+```json
+{
+  "worker_id": "worker-a",
+  "type": "invite.expire"
+}
+```
+
+- Response `200`: execution summary
+
+## Run Until Empty
+
+- `POST /v1/jobs/run-until-empty`
+- Request
+
+```json
+{
+  "worker_id": "worker-a",
+  "type": "invite.expire",
+  "limit": 100
+}
+```
+
+- Response `200`: execution summary across processed jobs

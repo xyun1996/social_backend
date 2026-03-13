@@ -34,6 +34,12 @@ type transitionRequest struct {
 	LastError string `json:"last_error,omitempty"`
 }
 
+type runRequest struct {
+	WorkerID string `json:"worker_id"`
+	Type     string `json:"type,omitempty"`
+	Limit    int    `json:"limit,omitempty"`
+}
+
 // Routes returns the worker HTTP routes.
 func (h *HTTPHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
@@ -43,6 +49,8 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("POST /v1/jobs/claim", h.handleClaim)
 	mux.HandleFunc("POST /v1/jobs/{jobID}/complete", h.handleComplete)
 	mux.HandleFunc("POST /v1/jobs/{jobID}/fail", h.handleFail)
+	mux.HandleFunc("POST /v1/jobs/run-once", h.handleRunOnce)
+	mux.HandleFunc("POST /v1/jobs/run-until-empty", h.handleRunUntilEmpty)
 	return mux
 }
 
@@ -132,6 +140,38 @@ func (h *HTTPHandler) handleFail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	transport.WriteJSON(w, http.StatusOK, job)
+}
+
+func (h *HTTPHandler) handleRunOnce(w http.ResponseWriter, r *http.Request) {
+	var request runRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	result, appErr := h.worker.ExecuteNext(r.Context(), request.WorkerID, request.Type)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h *HTTPHandler) handleRunUntilEmpty(w http.ResponseWriter, r *http.Request) {
+	var request runRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	result, appErr := h.worker.ExecuteUntilEmpty(r.Context(), request.WorkerID, request.Type, request.Limit)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, result)
 }
 
 func invalidJSONError() apperrors.Error {

@@ -75,6 +75,7 @@ Extend the prototype layer with runtime-aware cross-service behavior, prioritizi
 - [docs/plans/v1/tasks/027-align-ops-proto-contract.md](v1/tasks/027-align-ops-proto-contract.md)
 - [docs/plans/v1/tasks/028-gateway-realtime-session-prototype.md](v1/tasks/028-gateway-realtime-session-prototype.md)
 - [docs/plans/v1/tasks/029-chat-realtime-delivery-prototype.md](v1/tasks/029-chat-realtime-delivery-prototype.md)
+- [docs/plans/v1/tasks/030-worker-job-executor-prototype.md](v1/tasks/030-worker-job-executor-prototype.md)
 - [api/http/README.md](../api/http/README.md)
 - [api/tcp/README.md](../api/tcp/README.md)
 - [api/errors/README.md](../api/errors/README.md)
