@@ -20,6 +20,12 @@ Define and implement guild organization, governance, growth, and the first activ
 - Guild log and progression model
 - Activity framework with initial templates
 
+## Progress Notes
+
+- Guild create, invite, join, kick, transfer-owner, and presence-aware member reads are implemented.
+- Guilds now support owner-managed announcement updates on the core guild aggregate.
+- Growth, logs, and activity templates remain the main unfinished guild areas.
+
 ## Acceptance Criteria
 
 - Role and permission boundaries are explicit.

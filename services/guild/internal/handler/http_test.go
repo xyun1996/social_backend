@@ -154,3 +154,47 @@ func TestGuildManagementEndpoints(t *testing.T) {
 		t.Fatalf("unexpected kick status: got %d want %d", kickRec.Code, http.StatusOK)
 	}
 }
+
+func TestGuildAnnouncementEndpoint(t *testing.T) {
+	t.Parallel()
+
+	invites := &fakeInviteClient{}
+	presence := &fakePresenceReader{
+		snapshots: map[string]guildservice.PresenceSnapshot{
+			"p1": {PlayerID: "p1", Status: "online", SessionID: "sess-1"},
+		},
+	}
+	h := NewHTTPHandler(guildservice.NewGuildService(invites, presence))
+
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/guilds", bytes.NewBufferString(`{"name":"Raiders","owner_id":"p1"}`))
+	createRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(createRec, createReq)
+
+	var created map[string]any
+	if err := json.Unmarshal(createRec.Body.Bytes(), &created); err != nil {
+		t.Fatalf("unmarshal create response: %v", err)
+	}
+	guildID, _ := created["id"].(string)
+
+	updateReq := httptest.NewRequest(http.MethodPost, "/v1/guilds/"+guildID+"/announcement", bytes.NewBufferString(`{"actor_player_id":"p1","announcement":"Welcome to the guild"}`))
+	updateRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(updateRec, updateReq)
+	if updateRec.Code != http.StatusOK {
+		t.Fatalf("unexpected announcement update status: got %d want %d", updateRec.Code, http.StatusOK)
+	}
+
+	getReq := httptest.NewRequest(http.MethodGet, "/v1/guilds/"+guildID, nil)
+	getRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(getRec, getReq)
+	if getRec.Code != http.StatusOK {
+		t.Fatalf("unexpected guild get status: got %d want %d", getRec.Code, http.StatusOK)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(getRec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal get response: %v", err)
+	}
+	if payload["announcement"] != "Welcome to the guild" {
+		t.Fatalf("unexpected announcement payload: %+v", payload)
+	}
+}

@@ -11,5 +11,6 @@
 - Added party social queue join, leave, and queue-state reads with ready/online validation
 - Added ops visibility for active party queue state
 - Added party queue handoff snapshots as the future matchmaker integration boundary
+- Added guild owner-managed announcement updates with durable storage support
 - Added guild kick and transfer-owner operations
 - Added invite cancellation and aligned HTTP/task docs with gateway ack compaction and resume trimming flows

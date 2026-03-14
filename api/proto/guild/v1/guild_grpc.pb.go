@@ -20,11 +20,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	GuildService_CreateGuild_FullMethodName       = "/social_backend.guild.v1.GuildService/CreateGuild"
-	GuildService_GetGuild_FullMethodName          = "/social_backend.guild.v1.GuildService/GetGuild"
-	GuildService_CreateGuildInvite_FullMethodName = "/social_backend.guild.v1.GuildService/CreateGuildInvite"
-	GuildService_JoinGuild_FullMethodName         = "/social_backend.guild.v1.GuildService/JoinGuild"
-	GuildService_ListMemberStates_FullMethodName  = "/social_backend.guild.v1.GuildService/ListMemberStates"
+	GuildService_CreateGuild_FullMethodName             = "/social_backend.guild.v1.GuildService/CreateGuild"
+	GuildService_GetGuild_FullMethodName                = "/social_backend.guild.v1.GuildService/GetGuild"
+	GuildService_CreateGuildInvite_FullMethodName       = "/social_backend.guild.v1.GuildService/CreateGuildInvite"
+	GuildService_JoinGuild_FullMethodName               = "/social_backend.guild.v1.GuildService/JoinGuild"
+	GuildService_UpdateGuildAnnouncement_FullMethodName = "/social_backend.guild.v1.GuildService/UpdateGuildAnnouncement"
+	GuildService_ListMemberStates_FullMethodName        = "/social_backend.guild.v1.GuildService/ListMemberStates"
 )
 
 // GuildServiceClient is the client API for GuildService service.
@@ -35,6 +36,7 @@ type GuildServiceClient interface {
 	GetGuild(ctx context.Context, in *GetGuildRequest, opts ...grpc.CallOption) (*Guild, error)
 	CreateGuildInvite(ctx context.Context, in *CreateGuildInviteRequest, opts ...grpc.CallOption) (*v1.Invite, error)
 	JoinGuild(ctx context.Context, in *JoinGuildRequest, opts ...grpc.CallOption) (*Guild, error)
+	UpdateGuildAnnouncement(ctx context.Context, in *UpdateGuildAnnouncementRequest, opts ...grpc.CallOption) (*Guild, error)
 	ListMemberStates(ctx context.Context, in *GetGuildRequest, opts ...grpc.CallOption) (*ListMemberStatesResponse, error)
 }
 
@@ -86,6 +88,16 @@ func (c *guildServiceClient) JoinGuild(ctx context.Context, in *JoinGuildRequest
 	return out, nil
 }
 
+func (c *guildServiceClient) UpdateGuildAnnouncement(ctx context.Context, in *UpdateGuildAnnouncementRequest, opts ...grpc.CallOption) (*Guild, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Guild)
+	err := c.cc.Invoke(ctx, GuildService_UpdateGuildAnnouncement_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *guildServiceClient) ListMemberStates(ctx context.Context, in *GetGuildRequest, opts ...grpc.CallOption) (*ListMemberStatesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListMemberStatesResponse)
@@ -104,6 +116,7 @@ type GuildServiceServer interface {
 	GetGuild(context.Context, *GetGuildRequest) (*Guild, error)
 	CreateGuildInvite(context.Context, *CreateGuildInviteRequest) (*v1.Invite, error)
 	JoinGuild(context.Context, *JoinGuildRequest) (*Guild, error)
+	UpdateGuildAnnouncement(context.Context, *UpdateGuildAnnouncementRequest) (*Guild, error)
 	ListMemberStates(context.Context, *GetGuildRequest) (*ListMemberStatesResponse, error)
 	mustEmbedUnimplementedGuildServiceServer()
 }
@@ -126,6 +139,9 @@ func (UnimplementedGuildServiceServer) CreateGuildInvite(context.Context, *Creat
 }
 func (UnimplementedGuildServiceServer) JoinGuild(context.Context, *JoinGuildRequest) (*Guild, error) {
 	return nil, status.Error(codes.Unimplemented, "method JoinGuild not implemented")
+}
+func (UnimplementedGuildServiceServer) UpdateGuildAnnouncement(context.Context, *UpdateGuildAnnouncementRequest) (*Guild, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateGuildAnnouncement not implemented")
 }
 func (UnimplementedGuildServiceServer) ListMemberStates(context.Context, *GetGuildRequest) (*ListMemberStatesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListMemberStates not implemented")
@@ -223,6 +239,24 @@ func _GuildService_JoinGuild_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GuildService_UpdateGuildAnnouncement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateGuildAnnouncementRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).UpdateGuildAnnouncement(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_UpdateGuildAnnouncement_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).UpdateGuildAnnouncement(ctx, req.(*UpdateGuildAnnouncementRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _GuildService_ListMemberStates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetGuildRequest)
 	if err := dec(in); err != nil {
@@ -263,6 +297,10 @@ var GuildService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "JoinGuild",
 			Handler:    _GuildService_JoinGuild_Handler,
+		},
+		{
+			MethodName: "UpdateGuildAnnouncement",
+			Handler:    _GuildService_UpdateGuildAnnouncement_Handler,
 		},
 		{
 			MethodName: "ListMemberStates",

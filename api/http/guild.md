@@ -40,6 +40,24 @@ Base purpose: guild creation, owner-scoped invite issuance, join via accepted in
 
 - `GET /v1/guilds/{guildID}`
 - Response `200`: guild shape from create response
+- Response also includes optional announcement fields when set
+
+## Update Announcement
+
+- `POST /v1/guilds/{guildID}/announcement`
+- Request
+
+```json
+{
+  "actor_player_id": "p1",
+  "announcement": "Welcome to the guild"
+}
+```
+
+- Response `200`: updated guild shape
+- Rules
+- Only the current `owner_id` can update the announcement
+- Announcement text is trimmed before persistence
 
 ## List Members
 

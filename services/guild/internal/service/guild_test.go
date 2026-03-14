@@ -170,3 +170,23 @@ func TestTransferOwnershipAndKickMember(t *testing.T) {
 		t.Fatalf("unexpected guild after kick: %+v", kicked)
 	}
 }
+
+func TestUpdateAnnouncement(t *testing.T) {
+	t.Parallel()
+
+	svc := NewGuildService(&fakeInviteClient{}, nil)
+	svc.newGuildID = func() (string, error) { return "guild-1", nil }
+
+	guild, err := svc.CreateGuild("Guild", "p1")
+	if err != nil {
+		t.Fatalf("create guild returned error: %+v", err)
+	}
+
+	updated, updateErr := svc.UpdateAnnouncement(guild.ID, "p1", "Welcome to the guild")
+	if updateErr != nil {
+		t.Fatalf("update announcement returned error: %+v", updateErr)
+	}
+	if updated.Announcement != "Welcome to the guild" || updated.AnnouncementUpdatedAt.IsZero() {
+		t.Fatalf("unexpected guild announcement state: %+v", updated)
+	}
+}

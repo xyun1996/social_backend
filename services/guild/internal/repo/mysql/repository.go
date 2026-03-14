@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"slices"
+	"time"
 
 	"github.com/xyun1996/social_backend/pkg/db"
 	"github.com/xyun1996/social_backend/services/guild/internal/domain"
@@ -55,6 +56,15 @@ func (r *Repository) Migrations() []db.Migration {
 				);`,
 			},
 		},
+		{
+			ID: "002_guild_announcement",
+			Statements: []string{
+				`ALTER TABLE guild_guilds
+				 ADD COLUMN announcement TEXT NOT NULL DEFAULT ''`,
+				`ALTER TABLE guild_guilds
+				 ADD COLUMN announcement_updated_at TIMESTAMP NULL DEFAULT NULL`,
+			},
+		},
 	}
 }
 
@@ -82,15 +92,19 @@ func (r *Repository) SaveGuild(guild domain.Guild) error {
 
 	if _, err := tx.ExecContext(
 		context.Background(),
-		`INSERT INTO guild_guilds (guild_id, name, owner_id, created_at)
-		 VALUES (?, ?, ?, ?)
+		`INSERT INTO guild_guilds (guild_id, name, owner_id, announcement, announcement_updated_at, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?)
 		 ON DUPLICATE KEY UPDATE
 		   name = VALUES(name),
 		   owner_id = VALUES(owner_id),
+		   announcement = VALUES(announcement),
+		   announcement_updated_at = VALUES(announcement_updated_at),
 		   created_at = VALUES(created_at)`,
 		guild.ID,
 		guild.Name,
 		guild.OwnerID,
+		guild.Announcement,
+		nullableTime(guild.AnnouncementUpdatedAt),
 		guild.CreatedAt.UTC(),
 	); err != nil {
 		return err
@@ -122,16 +136,20 @@ func (r *Repository) GetGuild(guildID string) (domain.Guild, bool, error) {
 
 	row := r.sqlDB.QueryRowContext(
 		context.Background(),
-		`SELECT guild_id, name, owner_id, created_at FROM guild_guilds WHERE guild_id = ?`,
+		`SELECT guild_id, name, owner_id, announcement, announcement_updated_at, created_at FROM guild_guilds WHERE guild_id = ?`,
 		guildID,
 	)
 
 	var guild domain.Guild
-	if err := row.Scan(&guild.ID, &guild.Name, &guild.OwnerID, &guild.CreatedAt); err != nil {
+	var announcementUpdatedAt sql.NullTime
+	if err := row.Scan(&guild.ID, &guild.Name, &guild.OwnerID, &guild.Announcement, &announcementUpdatedAt, &guild.CreatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.Guild{}, false, nil
 		}
 		return domain.Guild{}, false, err
+	}
+	if announcementUpdatedAt.Valid {
+		guild.AnnouncementUpdatedAt = announcementUpdatedAt.Time
 	}
 
 	members, err := r.listMembers(guildID)
@@ -147,7 +165,7 @@ func (r *Repository) ListGuilds() ([]domain.Guild, error) {
 		return nil, errors.New("mysql repository is not configured")
 	}
 
-	rows, err := r.sqlDB.QueryContext(context.Background(), `SELECT guild_id, name, owner_id, created_at FROM guild_guilds`)
+	rows, err := r.sqlDB.QueryContext(context.Background(), `SELECT guild_id, name, owner_id, announcement, announcement_updated_at, created_at FROM guild_guilds`)
 	if err != nil {
 		return nil, err
 	}
@@ -156,8 +174,12 @@ func (r *Repository) ListGuilds() ([]domain.Guild, error) {
 	guilds := make([]domain.Guild, 0)
 	for rows.Next() {
 		var guild domain.Guild
-		if err := rows.Scan(&guild.ID, &guild.Name, &guild.OwnerID, &guild.CreatedAt); err != nil {
+		var announcementUpdatedAt sql.NullTime
+		if err := rows.Scan(&guild.ID, &guild.Name, &guild.OwnerID, &guild.Announcement, &announcementUpdatedAt, &guild.CreatedAt); err != nil {
 			return nil, err
+		}
+		if announcementUpdatedAt.Valid {
+			guild.AnnouncementUpdatedAt = announcementUpdatedAt.Time
 		}
 		members, err := r.listMembers(guild.ID)
 		if err != nil {
@@ -187,6 +209,13 @@ func (r *Repository) ListGuilds() ([]domain.Guild, error) {
 		}
 	})
 	return guilds, nil
+}
+
+func nullableTime(value time.Time) any {
+	if value.IsZero() {
+		return nil
+	}
+	return value.UTC()
 }
 
 func (r *Repository) listMembers(guildID string) ([]domain.GuildMember, error) {

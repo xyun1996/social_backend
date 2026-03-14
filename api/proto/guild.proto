@@ -17,8 +17,10 @@ message Guild {
   string id = 1;
   string name = 2;
   string owner_id = 3;
-  repeated GuildMember members = 4;
-  google.protobuf.Timestamp created_at = 5;
+  string announcement = 4;
+  google.protobuf.Timestamp announcement_updated_at = 5;
+  repeated GuildMember members = 6;
+  google.protobuf.Timestamp created_at = 7;
 }
 
 message MemberState {
@@ -51,6 +53,12 @@ message JoinGuildRequest {
   string actor_player_id = 3;
 }
 
+message UpdateGuildAnnouncementRequest {
+  string guild_id = 1;
+  string actor_player_id = 2;
+  string announcement = 3;
+}
+
 message ListMemberStatesResponse {
   string guild_id = 1;
   repeated MemberState members = 2;
@@ -61,5 +69,6 @@ service GuildService {
   rpc GetGuild(GetGuildRequest) returns (Guild);
   rpc CreateGuildInvite(CreateGuildInviteRequest) returns (social_backend.invite.v1.Invite);
   rpc JoinGuild(JoinGuildRequest) returns (Guild);
+  rpc UpdateGuildAnnouncement(UpdateGuildAnnouncementRequest) returns (Guild);
   rpc ListMemberStates(GetGuildRequest) returns (ListMemberStatesResponse);
 }

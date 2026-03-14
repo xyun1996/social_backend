@@ -188,6 +188,36 @@ func (s *GuildService) GetGuild(guildID string) (domain.Guild, *apperrors.Error)
 	return guild, nil
 }
 
+// UpdateAnnouncement updates the guild announcement as the current guild owner.
+func (s *GuildService) UpdateAnnouncement(guildID string, actorPlayerID string, announcement string) (domain.Guild, *apperrors.Error) {
+	if guildID == "" || actorPlayerID == "" {
+		err := apperrors.New("invalid_request", "guild_id and actor_player_id are required", http.StatusBadRequest)
+		return domain.Guild{}, &err
+	}
+
+	guild, ok, err := s.guilds.GetGuild(guildID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Guild{}, &internal
+	}
+	if !ok {
+		err := apperrors.New("not_found", "guild not found", http.StatusNotFound)
+		return domain.Guild{}, &err
+	}
+	if guild.OwnerID != actorPlayerID {
+		err := apperrors.New("forbidden", "only the guild owner can update the announcement", http.StatusForbidden)
+		return domain.Guild{}, &err
+	}
+
+	guild.Announcement = strings.TrimSpace(announcement)
+	guild.AnnouncementUpdatedAt = s.now()
+	if err := s.guilds.SaveGuild(guild); err != nil {
+		internal := apperrors.Internal()
+		return domain.Guild{}, &internal
+	}
+	return guild, nil
+}
+
 // CreateInvite issues a guild invite through the shared invite boundary.
 func (s *GuildService) CreateInvite(ctx context.Context, guildID string, actorPlayerID string, toPlayerID string) (Invite, *apperrors.Error) {
 	if guildID == "" || actorPlayerID == "" || toPlayerID == "" {
