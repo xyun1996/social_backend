@@ -1,67 +1,60 @@
 # Current Plan
 
-- Version: `v1`
+- Version: `v2-planning`
 - Last updated: `2026-03-14`
 - Source of truth level: highest
 
 ## Current Goal
 
-`v1` is complete. Preserve the release line, keep the repository healthy, and route any feature-deepening work into backlog and future versions.
+Turn the shipped `v1` release into a clear `v2` execution plan by selecting the highest-value deepening work, defining milestone boundaries, and keeping `v1` stable while new scope is introduced.
 
 ## Success Criteria
 
-- Core services are locally runnable in durable mode.
-- The main social flows are present and testable:
-  - identity login/session
-  - social friend/block
-  - invite lifecycle
-  - chat conversation/send/ack/replay/summary
-  - guild create/invite/join/governance/growth baseline
-  - party create/invite/ready/queue/assignment/resolution
-  - ops player/guild/party/durable reads
-- `go test ./...`, `make check-dev`, and `make test-local-durable` remain green.
-- Scope boundaries between `v1` and `v2` are explicit.
+- `v1` remains green and releasable while planning moves forward.
+- `v2` roadmap and milestone boundaries are explicit.
+- Deferred items from `v1` are grouped into coherent, execution-ready themes.
+- Future work can start without reopening `v1` scope accidentally.
 
 ## In Scope
 
-- Final `v1` contract and implementation alignment
-- Only the missing cross-service rules that block a credible `v1` handoff
-- Local durable verification and release-oriented documentation
-- Milestone and task status cleanup so project state matches code state
+- `v2` roadmap and milestone design
+- Scope shaping for the highest-value post-`v1` capabilities
+- Backlog consolidation and reprioritization
+- Planning docs that separate `v2` from the shipped `v1`
 
 ## Out of Scope
 
-- Deeper feature expansion that is not required for `v1` acceptance
-- Production deployment automation, CI/CD, and multi-region work
-- Rich-media chat, advanced moderation, or heavy ops UI
-- Advanced worker retry orchestration and full matchmaker lifecycle modeling
+- Reinterpreting or widening the released `v1` baseline
+- Large implementation changes before `v2` milestone boundaries are clear
+- Production infra automation and multi-region rollout planning beyond high-level placeholders
 
 ## Active Milestones
 
-1. Freeze `v1` scope and handoff criteria
-2. Close the last core runtime alignment gaps
-3. Run final local durable regression
-4. Publish `v1` release notes and known gaps
+1. Social graph depth and richer relationship reads
+2. Chat governance and advanced channel control
+3. Guild progression depth and richer activity systems
+4. Queue, worker, and runtime hardening
+5. Operator tooling and release-readiness expansion
 
 ## Current Focus
 
-- Preserve the shipped `v1` release line
-- Use [docs/plans/v1/freeze.md](v1/freeze.md) as the historical acceptance line
-- Route new expansion work into backlog and `v2`
+- Use [docs/plans/v2/roadmap.md](v2/roadmap.md) as the active planning surface
+- Keep `v1` release documents intact as the completed baseline
+- Route new implementation work through `v2` milestones and tasks
 
 ## Current Risks
 
-- Future work could accidentally reopen `v1` scope instead of being scheduled as `v2`.
-- Durable local assumptions are strong, but production deployment and advanced operations remain intentionally out of scope.
+- It is easy to restart coding directly from backlog items without first tightening `v2` boundaries.
+- Several deferred themes overlap across services, so poor grouping would create plan churn later.
+- Without a clear `v2` shape, new work could accidentally erode the clean `v1` release line.
 
 ## Key Dependencies
 
-- [docs/plans/v1/freeze.md](v1/freeze.md)
-- [docs/plans/v1/roadmap.md](v1/roadmap.md)
+- [docs/plans/v2/roadmap.md](v2/roadmap.md)
 - [docs/plans/backlog.md](backlog.md)
-- [docs/releases/changelog.md](../releases/changelog.md)
-- [docs/operations/local-durable-runflow.md](../operations/local-durable-runflow.md)
-- [docs/operations/dev-checks.md](../operations/dev-checks.md)
+- [docs/plans/v1/freeze.md](v1/freeze.md)
+- [docs/releases/release-notes/v1.0.md](../releases/release-notes/v1.0.md)
+- [docs/architecture/overview.md](../architecture/overview.md)
 
 ## Active ADRs
 
@@ -74,5 +67,6 @@
 
 ## Update Rules
 
-- Do not expand `v1` scope from this file; new feature work should go through backlog and future version plans.
-- Keep release-facing documents aligned when the shipped baseline changes.
+- `v1` release docs are historical facts; do not edit them to absorb `v2` scope.
+- New implementation work should be attached to a `v2` milestone first.
+- Keep backlog, roadmap, and milestone docs aligned when priorities change.
