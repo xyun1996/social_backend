@@ -6,6 +6,8 @@ import (
 	"github.com/xyun1996/social_backend/pkg/transport"
 	"github.com/xyun1996/social_backend/services/social-core/internal/foundation/contracts"
 	"github.com/xyun1996/social_backend/services/social-core/internal/modules"
+	identitymodule "github.com/xyun1996/social_backend/services/social-core/internal/modules/identity"
+	socialmodule "github.com/xyun1996/social_backend/services/social-core/internal/modules/social"
 )
 
 // Runtime bundles the product-rebuild foundation seams for social-core.
@@ -15,6 +17,8 @@ type Runtime struct {
 	Audit      contracts.AuditSink
 	Tx         contracts.TxManager
 	Jobs       contracts.JobEnqueuer
+	Identity   *identitymodule.Service
+	Social     *socialmodule.Service
 }
 
 // NewRuntime creates the minimum runtime shape that future product-grade
@@ -22,12 +26,16 @@ type Runtime struct {
 func NewRuntime() Runtime {
 	return Runtime{
 		Registry: modules.NewRegistry(),
+		Identity: identitymodule.NewService(0, 0),
+		Social:   socialmodule.NewService(),
 	}
 }
 
 // MountRuntimeEndpoints exposes the rebuild inventory so progress stays tied
 // to the new runtime instead of the frozen prototype services.
 func (r Runtime) MountRuntimeEndpoints(mux *http.ServeMux) {
+	identitymodule.NewHTTPHandler(r.Identity).Mount(mux)
+	socialmodule.NewHTTPHandler(r.Social).Mount(mux)
 	mux.HandleFunc("GET /v1/runtime/status", func(w http.ResponseWriter, _ *http.Request) {
 		transport.WriteJSON(w, http.StatusOK, map[string]any{
 			"runtime": "social-core",

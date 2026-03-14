@@ -23,3 +23,5 @@ Deliver the first genuinely product-grade capability slice:
 - `social-core` now exposes an explicit module registry for the phase A domains:
   identity, social, invite, private chat, guild basics, and party basics.
 - This registry is now the canonical inventory for migration into the consolidated runtime.
+- `social-core` now serves product-rebuild auth and social-graph endpoints directly for
+  login/refresh/introspect and friends/blocks basics, instead of only documenting them.
