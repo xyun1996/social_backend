@@ -7,6 +7,7 @@ import (
 	"github.com/xyun1996/social_backend/services/social-core/internal/foundation/contracts"
 	"github.com/xyun1996/social_backend/services/social-core/internal/modules"
 	identitymodule "github.com/xyun1996/social_backend/services/social-core/internal/modules/identity"
+	invitemodule "github.com/xyun1996/social_backend/services/social-core/internal/modules/invite"
 	socialmodule "github.com/xyun1996/social_backend/services/social-core/internal/modules/social"
 )
 
@@ -19,6 +20,7 @@ type Runtime struct {
 	Jobs       contracts.JobEnqueuer
 	Identity   *identitymodule.Service
 	Social     *socialmodule.Service
+	Invite     *invitemodule.Service
 }
 
 // NewRuntime creates the minimum runtime shape that future product-grade
@@ -28,6 +30,7 @@ func NewRuntime() Runtime {
 		Registry: modules.NewRegistry(),
 		Identity: identitymodule.NewService(0, 0),
 		Social:   socialmodule.NewService(),
+		Invite:   invitemodule.NewService(),
 	}
 }
 
@@ -36,6 +39,7 @@ func NewRuntime() Runtime {
 func (r Runtime) MountRuntimeEndpoints(mux *http.ServeMux) {
 	identitymodule.NewHTTPHandler(r.Identity).Mount(mux)
 	socialmodule.NewHTTPHandler(r.Social).Mount(mux)
+	invitemodule.NewHTTPHandler(r.Invite).Mount(mux)
 	mux.HandleFunc("GET /v1/runtime/status", func(w http.ResponseWriter, _ *http.Request) {
 		transport.WriteJSON(w, http.StatusOK, map[string]any{
 			"runtime": "social-core",

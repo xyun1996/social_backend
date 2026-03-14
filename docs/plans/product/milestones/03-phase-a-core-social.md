@@ -25,3 +25,5 @@ Deliver the first genuinely product-grade capability slice:
 - This registry is now the canonical inventory for migration into the consolidated runtime.
 - `social-core` now serves product-rebuild auth and social-graph endpoints directly for
   login/refresh/introspect and friends/blocks basics, instead of only documenting them.
+- `social-core` also serves invite lifecycle endpoints directly for
+  create/get/respond/cancel/list, giving the rebuilt runtime its first cross-domain flow.

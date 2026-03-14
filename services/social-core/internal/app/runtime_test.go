@@ -48,4 +48,11 @@ func TestMountedCorePhaseAEndpoints(t *testing.T) {
 	if friendRec.Code != http.StatusOK {
 		t.Fatalf("expected friend request status %d, got %d", http.StatusOK, friendRec.Code)
 	}
+
+	inviteReq := httptest.NewRequest(http.MethodPost, "/v1/invites", bytes.NewReader([]byte(`{"domain":"party","resource_id":"party-1","from_player_id":"player-1","to_player_id":"player-2"}`)))
+	inviteRec := httptest.NewRecorder()
+	mux.ServeHTTP(inviteRec, inviteReq)
+	if inviteRec.Code != http.StatusOK {
+		t.Fatalf("expected invite status %d, got %d", http.StatusOK, inviteRec.Code)
+	}
 }
