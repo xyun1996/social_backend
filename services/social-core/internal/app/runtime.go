@@ -9,6 +9,7 @@ import (
 	guildmodule "github.com/xyun1996/social_backend/services/social-core/internal/modules/guild"
 	identitymodule "github.com/xyun1996/social_backend/services/social-core/internal/modules/identity"
 	invitemodule "github.com/xyun1996/social_backend/services/social-core/internal/modules/invite"
+	partymodule "github.com/xyun1996/social_backend/services/social-core/internal/modules/party"
 	privatechatmodule "github.com/xyun1996/social_backend/services/social-core/internal/modules/privatechat"
 	socialmodule "github.com/xyun1996/social_backend/services/social-core/internal/modules/social"
 )
@@ -25,6 +26,7 @@ type Runtime struct {
 	Invite      *invitemodule.Service
 	PrivateChat *privatechatmodule.Service
 	Guild       *guildmodule.Service
+	Party       *partymodule.Service
 }
 
 // NewRuntime creates the minimum runtime shape that future product-grade
@@ -38,6 +40,7 @@ func NewRuntime() Runtime {
 		PrivateChat: privatechatmodule.NewService(),
 	}
 	runtime.Guild = guildmodule.NewService(runtime.Invite)
+	runtime.Party = partymodule.NewService(runtime.Invite)
 	return runtime
 }
 
@@ -49,6 +52,7 @@ func (r Runtime) MountRuntimeEndpoints(mux *http.ServeMux) {
 	invitemodule.NewHTTPHandler(r.Invite).Mount(mux)
 	privatechatmodule.NewHTTPHandler(r.PrivateChat).Mount(mux)
 	guildmodule.NewHTTPHandler(r.Guild).Mount(mux)
+	partymodule.NewHTTPHandler(r.Party).Mount(mux)
 	mux.HandleFunc("GET /v1/runtime/status", func(w http.ResponseWriter, _ *http.Request) {
 		transport.WriteJSON(w, http.StatusOK, map[string]any{
 			"runtime": "social-core",

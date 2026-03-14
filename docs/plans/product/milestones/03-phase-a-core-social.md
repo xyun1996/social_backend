@@ -31,3 +31,5 @@ Deliver the first genuinely product-grade capability slice:
   private conversations, message send/replay, ack, and conversation summaries.
 - `social-core` now serves guild basics too:
   create guild, guild invite, join-with-accepted-invite, member reads, announcement, and logs.
+- `social-core` now serves party basics too:
+  create party, party invite, join-with-accepted-invite, ready states, and member reads.

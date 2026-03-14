@@ -69,4 +69,11 @@ func TestMountedCorePhaseAEndpoints(t *testing.T) {
 	if guildRec.Code != http.StatusOK {
 		t.Fatalf("expected guild create status %d, got %d", http.StatusOK, guildRec.Code)
 	}
+
+	partyReq := httptest.NewRequest(http.MethodPost, "/v1/parties", bytes.NewReader([]byte(`{"leader_id":"player-1"}`)))
+	partyRec := httptest.NewRecorder()
+	mux.ServeHTTP(partyRec, partyReq)
+	if partyRec.Code != http.StatusOK {
+		t.Fatalf("expected party create status %d, got %d", http.StatusOK, partyRec.Code)
+	}
 }
