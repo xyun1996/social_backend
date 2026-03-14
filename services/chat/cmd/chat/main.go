@@ -11,6 +11,8 @@ import (
 	"github.com/xyun1996/social_backend/pkg/config"
 	"github.com/xyun1996/social_backend/pkg/db"
 	"github.com/xyun1996/social_backend/pkg/logging"
+	guildclient "github.com/xyun1996/social_backend/services/chat/internal/client/guild"
+	partyclient "github.com/xyun1996/social_backend/services/chat/internal/client/party"
 	presenceclient "github.com/xyun1996/social_backend/services/chat/internal/client/presence"
 	workerclient "github.com/xyun1996/social_backend/services/chat/internal/client/worker"
 	"github.com/xyun1996/social_backend/services/chat/internal/handler"
@@ -43,6 +45,8 @@ func main() {
 
 func buildChatService() (*service.ChatService, func(), error) {
 	presenceBaseURL := valueOrDefault(os.Getenv("PRESENCE_BASE_URL"), "http://127.0.0.1:8087")
+	guildBaseURL := valueOrDefault(os.Getenv("GUILD_BASE_URL"), "http://127.0.0.1:8089")
+	partyBaseURL := valueOrDefault(os.Getenv("PARTY_BASE_URL"), "http://127.0.0.1:8090")
 	workerBaseURL := os.Getenv("WORKER_BASE_URL")
 
 	var scheduler service.JobScheduler
@@ -50,9 +54,13 @@ func buildChatService() (*service.ChatService, func(), error) {
 		scheduler = workerclient.NewHTTPClient(workerBaseURL)
 	}
 	presence := presenceclient.NewHTTPClient(presenceBaseURL)
+	guilds := guildclient.NewHTTPClient(guildBaseURL)
+	parties := partyclient.NewHTTPClient(partyBaseURL)
 
 	if !strings.EqualFold(strings.TrimSpace(os.Getenv("CHAT_STORE")), "mysql") {
-		return service.NewChatService(presence, scheduler), func() {}, nil
+		chatService := service.NewChatService(presence, scheduler)
+		chatService.SetMembershipReaders(guilds, parties)
+		return chatService, func() {}, nil
 	}
 
 	mysqlConfig := db.LoadMySQLConfig()
@@ -71,7 +79,9 @@ func buildChatService() (*service.ChatService, func(), error) {
 		}
 	}
 
-	return service.NewChatServiceWithStores(repo, repo, repo, presence, scheduler), func() {
+	chatService := service.NewChatServiceWithStores(repo, repo, repo, presence, scheduler)
+	chatService.SetMembershipReaders(guilds, parties)
+	return chatService, func() {
 		_ = sqlDB.Close()
 	}, nil
 }

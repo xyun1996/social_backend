@@ -17,6 +17,14 @@ type fakeJobScheduler struct {
 	payloads []string
 }
 
+type fakeGuildMembershipReader struct {
+	members map[string]map[string]bool
+}
+
+type fakePartyMembershipReader struct {
+	members map[string]map[string]bool
+}
+
 type recordingConversationStore struct {
 	conversations map[string]domain.Conversation
 }
@@ -98,6 +106,14 @@ func (f *fakePresenceReader) GetPresence(_ context.Context, playerID string) (Pr
 	}
 
 	return snapshot, nil
+}
+
+func (f *fakeGuildMembershipReader) IsGuildMember(_ context.Context, guildID string, playerID string) (bool, *apperrors.Error) {
+	return f.members[guildID][playerID], nil
+}
+
+func (f *fakePartyMembershipReader) IsPartyMember(_ context.Context, partyID string, playerID string) (bool, *apperrors.Error) {
+	return f.members[partyID][playerID], nil
 }
 
 func TestConversationSendAckAndReplay(t *testing.T) {
@@ -197,6 +213,66 @@ func TestResourceBackedConversationRequiresResourceAndReusesChannel(t *testing.T
 	}
 	if len(second.MemberPlayerIDs) != 3 || second.MemberPlayerIDs[2] != "p3" {
 		t.Fatalf("expected resource-backed channel members to reconcile, got %+v", second.MemberPlayerIDs)
+	}
+}
+
+func TestGuildConversationSendRequiresCurrentGuildMembership(t *testing.T) {
+	t.Parallel()
+
+	svc := NewChatService(nil, nil)
+	svc.SetMembershipReaders(&fakeGuildMembershipReader{
+		members: map[string]map[string]bool{
+			"guild-1": {
+				"p1": true,
+				"p2": false,
+			},
+		},
+	}, nil)
+
+	conversation, err := svc.CreateConversation(kindGuild, "guild-1", []string{"p1", "p2"})
+	if err != nil {
+		t.Fatalf("create guild conversation returned error: %+v", err)
+	}
+
+	if _, sendErr := svc.SendMessage(conversation.ID, "p2", "hello"); sendErr == nil {
+		t.Fatalf("expected stale guild member send to be rejected")
+	}
+	if _, sendErr := svc.SendMessage(conversation.ID, "p1", "hello"); sendErr != nil {
+		t.Fatalf("expected current guild member send to succeed: %+v", sendErr)
+	}
+}
+
+func TestPartyConversationVisibilityRequiresCurrentPartyMembership(t *testing.T) {
+	t.Parallel()
+
+	svc := NewChatService(nil, nil)
+	svc.SetMembershipReaders(nil, &fakePartyMembershipReader{
+		members: map[string]map[string]bool{
+			"party-1": {
+				"p1": true,
+				"p2": false,
+			},
+		},
+	})
+
+	conversation, err := svc.CreateConversation(kindParty, "party-1", []string{"p1", "p2"})
+	if err != nil {
+		t.Fatalf("create party conversation returned error: %+v", err)
+	}
+	if _, err := svc.SendMessage(conversation.ID, "p1", "hello"); err != nil {
+		t.Fatalf("send message returned error: %+v", err)
+	}
+
+	conversations, listErr := svc.ListConversations("p2")
+	if listErr != nil {
+		t.Fatalf("list conversations returned error: %+v", listErr)
+	}
+	if len(conversations) != 0 {
+		t.Fatalf("expected stale party member to lose visibility: %+v", conversations)
+	}
+
+	if _, replayErr := svc.ReplayMessages(conversation.ID, "p2", 0, 10); replayErr == nil {
+		t.Fatalf("expected replay to reject stale party member")
 	}
 }
 

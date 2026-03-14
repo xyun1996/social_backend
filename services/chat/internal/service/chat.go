@@ -58,6 +58,16 @@ type JobScheduler interface {
 	EnqueueJob(ctx context.Context, jobType string, payload string) *apperrors.Error
 }
 
+// GuildMembershipReader resolves whether a player currently belongs to a guild.
+type GuildMembershipReader interface {
+	IsGuildMember(ctx context.Context, guildID string, playerID string) (bool, *apperrors.Error)
+}
+
+// PartyMembershipReader resolves whether a player currently belongs to a party.
+type PartyMembershipReader interface {
+	IsPartyMember(ctx context.Context, partyID string, playerID string) (bool, *apperrors.Error)
+}
+
 // DeliveryTarget describes how chat would route a message to a member.
 type DeliveryTarget struct {
 	PlayerID     string `json:"player_id"`
@@ -86,6 +96,8 @@ type ChatService struct {
 	readCursors       ReadCursorStore
 	presence          PresenceReader
 	scheduler         JobScheduler
+	guilds            GuildMembershipReader
+	parties           PartyMembershipReader
 	now               func() time.Time
 	newConversationID func() (string, error)
 	newMessageID      func() (string, error)
@@ -123,10 +135,21 @@ func NewChatServiceWithStores(conversations ConversationStore, messages MessageS
 		offlineDeliveries: make([]OfflineDeliveryReceipt, 0),
 		presence:          presence,
 		scheduler:         scheduler,
+		guilds:            nil,
+		parties:           nil,
 		now:               time.Now,
 		newConversationID: func() (string, error) { return idgen.Token(8) },
 		newMessageID:      func() (string, error) { return idgen.Token(10) },
 	}
+}
+
+// SetMembershipReaders wires optional resource membership readers for guild and party channels.
+func (s *ChatService) SetMembershipReaders(guilds GuildMembershipReader, parties PartyMembershipReader) {
+	if s == nil {
+		return
+	}
+	s.guilds = guilds
+	s.parties = parties
 }
 
 // CreateConversation creates a conversation with explicit member scope.
@@ -227,8 +250,12 @@ func (s *ChatService) GetConversationSummary(conversationID string, playerID str
 		internal := apperrors.Internal()
 		return domain.ConversationSummary{}, &internal
 	}
-	if !hasMember(conversation.MemberPlayerIDs, playerID) && conversation.Kind != kindSystem {
-		err := apperrors.New("forbidden", "player is not a member of the conversation", http.StatusForbidden)
+	allowed, appErr := s.canAccessConversation(context.Background(), conversation, playerID)
+	if appErr != nil {
+		return domain.ConversationSummary{}, appErr
+	}
+	if !allowed {
+		err := apperrors.New("forbidden", "player is not allowed in the conversation", http.StatusForbidden)
 		return domain.ConversationSummary{}, &err
 	}
 
@@ -288,7 +315,11 @@ func (s *ChatService) ListConversations(playerID string) ([]domain.Conversation,
 	}
 	conversations := make([]domain.Conversation, 0)
 	for _, conversation := range allConversations {
-		if hasMember(conversation.MemberPlayerIDs, playerID) || conversation.Kind == kindSystem {
+		allowed, appErr := s.canAccessConversation(context.Background(), conversation, playerID)
+		if appErr != nil {
+			return nil, appErr
+		}
+		if allowed {
 			conversations = append(conversations, conversation)
 		}
 	}
@@ -337,7 +368,7 @@ func (s *ChatService) SendMessage(conversationID string, senderPlayerID string, 
 		return domain.Message{}, &internal
 	}
 
-	if appErr := validateSendPermission(conversation, senderPlayerID); appErr != nil {
+	if appErr := s.validateSendPermission(context.Background(), conversation, senderPlayerID); appErr != nil {
 		return domain.Message{}, appErr
 	}
 
@@ -399,8 +430,12 @@ func (s *ChatService) AckConversation(conversationID string, playerID string, ac
 		return domain.ReadCursor{}, &internal
 	}
 
-	if !hasMember(conversation.MemberPlayerIDs, playerID) && conversation.Kind != kindSystem {
-		err := apperrors.New("forbidden", "player is not a member of the conversation", http.StatusForbidden)
+	allowed, appErr := s.canAccessConversation(context.Background(), conversation, playerID)
+	if appErr != nil {
+		return domain.ReadCursor{}, appErr
+	}
+	if !allowed {
+		err := apperrors.New("forbidden", "player is not allowed in the conversation", http.StatusForbidden)
 		return domain.ReadCursor{}, &err
 	}
 
@@ -461,8 +496,12 @@ func (s *ChatService) ReplayMessages(conversationID string, playerID string, aft
 		return nil, &internal
 	}
 
-	if !hasMember(conversation.MemberPlayerIDs, playerID) && conversation.Kind != kindSystem {
-		err := apperrors.New("forbidden", "player is not a member of the conversation", http.StatusForbidden)
+	allowed, appErr := s.canAccessConversation(context.Background(), conversation, playerID)
+	if appErr != nil {
+		return nil, appErr
+	}
+	if !allowed {
+		err := apperrors.New("forbidden", "player is not allowed in the conversation", http.StatusForbidden)
 		return nil, &err
 	}
 
@@ -503,13 +542,20 @@ func (s *ChatService) PlanDelivery(ctx context.Context, conversationID string, s
 		return nil, &internal
 	}
 
-	if appErr := validateSendPermission(conversation, senderPlayerID); appErr != nil {
+	if appErr := s.validateSendPermission(ctx, conversation, senderPlayerID); appErr != nil {
 		return nil, appErr
 	}
 
 	targets := make([]DeliveryTarget, 0, len(conversation.MemberPlayerIDs))
 	for _, memberID := range conversation.MemberPlayerIDs {
 		if memberID == senderPlayerID {
+			continue
+		}
+		allowed, appErr := s.canAccessConversation(ctx, conversation, memberID)
+		if appErr != nil {
+			return nil, appErr
+		}
+		if !allowed {
 			continue
 		}
 
@@ -670,7 +716,7 @@ func normalizeMembers(kind string, resourceID string, members []string) ([]strin
 	return normalized, resourceID, nil
 }
 
-func validateSendPermission(conversation domain.Conversation, senderPlayerID string) *apperrors.Error {
+func (s *ChatService) validateSendPermission(ctx context.Context, conversation domain.Conversation, senderPlayerID string) *apperrors.Error {
 	switch conversation.Kind {
 	case kindSystem:
 		if senderPlayerID != "system" {
@@ -679,7 +725,11 @@ func validateSendPermission(conversation domain.Conversation, senderPlayerID str
 		}
 		return nil
 	case kindWorld, kindGuild, kindParty, kindPrivate, kindGroup, kindCustom:
-		if !hasMember(conversation.MemberPlayerIDs, senderPlayerID) {
+		allowed, appErr := s.canAccessConversation(ctx, conversation, senderPlayerID)
+		if appErr != nil {
+			return appErr
+		}
+		if !allowed {
 			err := apperrors.New("forbidden", "sender is not allowed in the conversation", http.StatusForbidden)
 			return &err
 		}
@@ -687,6 +737,38 @@ func validateSendPermission(conversation domain.Conversation, senderPlayerID str
 	default:
 		err := apperrors.New("invalid_request", "unsupported conversation kind", http.StatusBadRequest)
 		return &err
+	}
+}
+
+func (s *ChatService) canAccessConversation(ctx context.Context, conversation domain.Conversation, playerID string) (bool, *apperrors.Error) {
+	if conversation.Kind == kindSystem {
+		return true, nil
+	}
+	if !hasMember(conversation.MemberPlayerIDs, playerID) {
+		return false, nil
+	}
+
+	switch conversation.Kind {
+	case kindGuild:
+		if s.guilds == nil {
+			return true, nil
+		}
+		allowed, appErr := s.guilds.IsGuildMember(ctx, conversation.ResourceID, playerID)
+		if appErr != nil {
+			return false, appErr
+		}
+		return allowed, nil
+	case kindParty:
+		if s.parties == nil {
+			return true, nil
+		}
+		allowed, appErr := s.parties.IsPartyMember(ctx, conversation.ResourceID, playerID)
+		if appErr != nil {
+			return false, appErr
+		}
+		return allowed, nil
+	default:
+		return true, nil
 	}
 }
 

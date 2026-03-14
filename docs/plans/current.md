@@ -1,156 +1,68 @@
 # Current Plan
 
-- Version: `v1`
-- Last updated: `2026-03-13`
+- Version: `v1-freeze`
+- Last updated: `2026-03-14`
 - Source of truth level: highest
 
 ## Current Goal
 
-Advance the prototype stack into durable local runtime shape by closing MySQL and Redis startup, migration, and cross-service integration gaps.
+Finish the smallest shippable `v1` of the Social Backend by freezing scope, closing only delivery-blocking gaps, and preparing a clean release handoff.
 
 ## Success Criteria
 
-- Existing prototype services remain runnable and documented.
-- Durable-backed services can bootstrap owned state safely on local MySQL and Redis.
-- Shared migration and bootstrap behavior is explicit instead of duplicated per service.
-- Cross-service local durable flows remain executable after storage wiring changes.
+- Core services are locally runnable in durable mode.
+- The main social flows are present and testable:
+  - identity login/session
+  - social friend/block
+  - invite lifecycle
+  - chat conversation/send/ack/replay/summary
+  - guild create/invite/join/governance/growth baseline
+  - party create/invite/ready/queue/assignment/resolution
+  - ops player/guild/party/durable reads
+- `go test ./...`, `make check-dev`, and `make test-local-durable` remain green.
+- Scope boundaries between `v1` and `v2` are explicit.
 
 ## In Scope
 
-- Service-owned MySQL and Redis startup wiring
-- Shared bootstrap and migration behavior for durable-backed services
-- Local durable integration coverage for cross-service runtime flows
-- Documentation alignment between active plan, tasks, and architecture notes
+- Final `v1` contract and implementation alignment
+- Only the missing cross-service rules that block a credible `v1` handoff
+- Local durable verification and release-oriented documentation
+- Milestone and task status cleanup so project state matches code state
 
 ## Out of Scope
 
-- Production-ready migration orchestration beyond local service-owned bootstrap
-- CI/CD pipelines beyond placeholder entrypoints
-- Full deployment manifests or runtime configs
-- Non-local infrastructure automation
+- Deeper feature expansion that is not required for `v1` acceptance
+- Production deployment automation, CI/CD, and multi-region work
+- Rich-media chat, advanced moderation, or heavy ops UI
+- Advanced worker retry orchestration and full matchmaker lifecycle modeling
 
 ## Active Milestones
 
-1. Foundation scaffold
-2. Identity and session prototype
-3. Social graph prototype
-4. Invite lifecycle prototype
-5. Chat and offline messaging prototype
-6. Guild system design
-7. Party and queue design
+1. Freeze `v1` scope and handoff criteria
+2. Close the last core runtime alignment gaps
+3. Run final local durable regression
+4. Publish `v1` release notes and known gaps
+
+## Current Focus
+
+- Keep implementation changes limited to `v1`-blocking gaps
+- Treat feature-deepening work as `v2` unless it is required for acceptance
+- Use [docs/plans/v1/freeze.md](v1/freeze.md) as the detailed finish line
 
 ## Current Risks
 
-- MySQL migration handling is still service-owned and local-first; there is no external promotion or rollback workflow yet.
-- Redis-backed runtime state still depends on service-local key ownership instead of a broader operational policy.
-- HTTP and proto contracts are ahead of generated bindings, so interface drift still needs discipline.
-- Without disciplined updates, future plan drift could appear between `current`, tasks, and architecture docs.
+- The codebase is ahead of milestone bookkeeping in a few areas, so release-state drift is still possible without deliberate doc updates.
+- Some services already support deeper prototypes than `v1` needs, which makes accidental scope creep likely.
+- Local durable checks are strong, but release framing still needs a single, explicit finish line.
 
 ## Key Dependencies
 
+- [docs/plans/v1/freeze.md](v1/freeze.md)
 - [docs/plans/v1/roadmap.md](v1/roadmap.md)
-- [docs/plans/v1/tasks/007-invite-http-prototype.md](v1/tasks/007-invite-http-prototype.md)
-- [docs/plans/v1/tasks/008-chat-http-prototype.md](v1/tasks/008-chat-http-prototype.md)
-- [docs/plans/v1/tasks/009-party-http-prototype.md](v1/tasks/009-party-http-prototype.md)
-- [docs/plans/v1/tasks/010-guild-http-prototype.md](v1/tasks/010-guild-http-prototype.md)
-- [docs/plans/v1/tasks/011-document-http-contract-baseline.md](v1/tasks/011-document-http-contract-baseline.md)
-- [docs/plans/v1/tasks/012-presence-http-prototype.md](v1/tasks/012-presence-http-prototype.md)
-- [docs/plans/v1/tasks/013-presence-aware-chat-delivery.md](v1/tasks/013-presence-aware-chat-delivery.md)
-- [docs/plans/v1/tasks/014-presence-aware-party-runtime.md](v1/tasks/014-presence-aware-party-runtime.md)
-- [docs/plans/v1/tasks/015-presence-aware-guild-runtime.md](v1/tasks/015-presence-aware-guild-runtime.md)
-- [docs/plans/v1/tasks/016-proto-contract-baseline.md](v1/tasks/016-proto-contract-baseline.md)
-- [docs/plans/v1/tasks/017-ops-http-read-prototype.md](v1/tasks/017-ops-http-read-prototype.md)
-- [docs/plans/v1/tasks/018-worker-http-prototype.md](v1/tasks/018-worker-http-prototype.md)
-- [docs/plans/v1/tasks/019-expand-proto-contracts.md](v1/tasks/019-expand-proto-contracts.md)
-- [docs/plans/v1/tasks/020-ops-worker-queue-visibility.md](v1/tasks/020-ops-worker-queue-visibility.md)
-- [docs/plans/v1/tasks/021-complete-proto-contract-coverage.md](v1/tasks/021-complete-proto-contract-coverage.md)
-- [docs/plans/v1/tasks/022-document-tcp-realtime-contract-baseline.md](v1/tasks/022-document-tcp-realtime-contract-baseline.md)
-- [docs/plans/v1/tasks/023-document-persistence-boundaries.md](v1/tasks/023-document-persistence-boundaries.md)
-- [docs/plans/v1/tasks/024-enqueue-invite-expiry-jobs.md](v1/tasks/024-enqueue-invite-expiry-jobs.md)
-- [docs/plans/v1/tasks/025-enqueue-chat-offline-delivery-jobs.md](v1/tasks/025-enqueue-chat-offline-delivery-jobs.md)
-- [docs/plans/v1/tasks/026-ops-player-overview-aggregation.md](v1/tasks/026-ops-player-overview-aggregation.md)
-- [docs/plans/v1/tasks/027-align-ops-proto-contract.md](v1/tasks/027-align-ops-proto-contract.md)
-- [docs/plans/v1/tasks/028-gateway-realtime-session-prototype.md](v1/tasks/028-gateway-realtime-session-prototype.md)
-- [docs/plans/v1/tasks/029-chat-realtime-delivery-prototype.md](v1/tasks/029-chat-realtime-delivery-prototype.md)
-- [docs/plans/v1/tasks/030-worker-job-executor-prototype.md](v1/tasks/030-worker-job-executor-prototype.md)
-- [docs/plans/v1/tasks/031-invite-worker-expiry-consumer.md](v1/tasks/031-invite-worker-expiry-consumer.md)
-- [docs/plans/v1/tasks/032-chat-offline-replay-delivery-consumer.md](v1/tasks/032-chat-offline-replay-delivery-consumer.md)
-- [docs/plans/v1/tasks/033-social-request-reads-and-ops-expansion.md](v1/tasks/033-social-request-reads-and-ops-expansion.md)
-- [docs/plans/v1/tasks/034-mysql-repo-foundation.md](v1/tasks/034-mysql-repo-foundation.md)
-- [docs/plans/v1/tasks/035-redis-presence-repo-foundation.md](v1/tasks/035-redis-presence-repo-foundation.md)
-- [docs/plans/v1/tasks/036-worker-background-runner.md](v1/tasks/036-worker-background-runner.md)
-- [docs/plans/v1/tasks/037-gateway-chat-ack-prototype.md](v1/tasks/037-gateway-chat-ack-prototype.md)
-- [docs/plans/v1/tasks/038-chat-replay-resume-alignment.md](v1/tasks/038-chat-replay-resume-alignment.md)
-- [docs/plans/v1/tasks/039-identity-mysql-repo-integration.md](v1/tasks/039-identity-mysql-repo-integration.md)
-- [docs/plans/v1/tasks/040-presence-redis-repo-integration.md](v1/tasks/040-presence-redis-repo-integration.md)
-- [docs/plans/v1/tasks/041-worker-proto-alignment.md](v1/tasks/041-worker-proto-alignment.md)
-- [docs/plans/v1/tasks/042-gateway-proto-alignment.md](v1/tasks/042-gateway-proto-alignment.md)
-- [docs/plans/v1/tasks/043-integration-local-flow-tests.md](v1/tasks/043-integration-local-flow-tests.md)
-- [docs/plans/v1/tasks/044-gateway-ack-inbox-compaction.md](v1/tasks/044-gateway-ack-inbox-compaction.md)
-- [docs/plans/v1/tasks/045-gateway-resume-buffer-trimming.md](v1/tasks/045-gateway-resume-buffer-trimming.md)
-- [docs/plans/v1/tasks/046-integration-gateway-ack-compaction-flow.md](v1/tasks/046-integration-gateway-ack-compaction-flow.md)
-- [docs/plans/v1/tasks/047-integration-gateway-resume-trim-flow.md](v1/tasks/047-integration-gateway-resume-trim-flow.md)
-- [docs/plans/v1/tasks/048-identity-mysql-startup-bootstrap.md](v1/tasks/048-identity-mysql-startup-bootstrap.md)
-- [docs/plans/v1/tasks/049-presence-redis-startup-validation.md](v1/tasks/049-presence-redis-startup-validation.md)
-- [docs/plans/v1/tasks/050-invite-mysql-repo-foundation.md](v1/tasks/050-invite-mysql-repo-foundation.md)
-- [docs/plans/v1/tasks/051-chat-mysql-repo-foundation.md](v1/tasks/051-chat-mysql-repo-foundation.md)
-- [docs/plans/v1/tasks/052-social-mysql-repo-foundation.md](v1/tasks/052-social-mysql-repo-foundation.md)
-- [docs/plans/v1/tasks/053-worker-redis-repo-foundation.md](v1/tasks/053-worker-redis-repo-foundation.md)
-- [docs/plans/v1/tasks/054-chat-store-boundary-refactor.md](v1/tasks/054-chat-store-boundary-refactor.md)
-- [docs/plans/v1/tasks/055-invite-store-boundary-refactor.md](v1/tasks/055-invite-store-boundary-refactor.md)
-- [docs/plans/v1/tasks/056-chat-mysql-store-implementation.md](v1/tasks/056-chat-mysql-store-implementation.md)
-- [docs/plans/v1/tasks/057-invite-mysql-store-implementation.md](v1/tasks/057-invite-mysql-store-implementation.md)
-- [docs/plans/v1/tasks/058-chat-mysql-startup-bootstrap.md](v1/tasks/058-chat-mysql-startup-bootstrap.md)
-- [docs/plans/v1/tasks/059-invite-mysql-startup-bootstrap.md](v1/tasks/059-invite-mysql-startup-bootstrap.md)
-- [docs/plans/v1/tasks/060-social-store-boundary-refactor.md](v1/tasks/060-social-store-boundary-refactor.md)
-- [docs/plans/v1/tasks/061-social-mysql-store-implementation.md](v1/tasks/061-social-mysql-store-implementation.md)
-- [docs/plans/v1/tasks/062-social-mysql-startup-bootstrap.md](v1/tasks/062-social-mysql-startup-bootstrap.md)
-- [docs/plans/v1/tasks/063-worker-store-boundary-refactor.md](v1/tasks/063-worker-store-boundary-refactor.md)
-- [docs/plans/v1/tasks/064-worker-redis-store-implementation.md](v1/tasks/064-worker-redis-store-implementation.md)
-- [docs/plans/v1/tasks/065-worker-redis-startup-integration.md](v1/tasks/065-worker-redis-startup-integration.md)
-- [docs/plans/v1/tasks/066-idempotent-mysql-bootstrap.md](v1/tasks/066-idempotent-mysql-bootstrap.md)
-- [docs/plans/v1/tasks/067-local-durable-run-targets.md](v1/tasks/067-local-durable-run-targets.md)
-- [docs/plans/v1/tasks/068-local-durable-integration-tests.md](v1/tasks/068-local-durable-integration-tests.md)
-- [docs/plans/v1/tasks/069-local-durable-gateway-auth-flow.md](v1/tasks/069-local-durable-gateway-auth-flow.md)
-- [docs/plans/v1/tasks/070-local-durable-worker-runtime-flows.md](v1/tasks/070-local-durable-worker-runtime-flows.md)
-- [docs/plans/v1/tasks/071-party-store-boundary-refactor.md](v1/tasks/071-party-store-boundary-refactor.md)
-- [docs/plans/v1/tasks/072-party-mysql-store-and-startup.md](v1/tasks/072-party-mysql-store-and-startup.md)
-- [docs/plans/v1/tasks/073-guild-store-and-mysql-startup.md](v1/tasks/073-guild-store-and-mysql-startup.md)
-- [docs/plans/v1/tasks/074-gateway-redis-session-store.md](v1/tasks/074-gateway-redis-session-store.md)
-- [docs/plans/v1/tasks/075-bootstrap-policy-and-tooling.md](v1/tasks/075-bootstrap-policy-and-tooling.md)
-- [docs/plans/v1/tasks/076-expand-durable-runtime-coverage.md](v1/tasks/076-expand-durable-runtime-coverage.md)
-- [docs/plans/v1/tasks/077-shared-mysql-migration-runner.md](v1/tasks/077-shared-mysql-migration-runner.md)
-- [docs/plans/v1/tasks/078-normalize-service-owned-mysql-migrations.md](v1/tasks/078-normalize-service-owned-mysql-migrations.md)
-- [docs/plans/v1/tasks/079-verify-local-mysql-migration-state.md](v1/tasks/079-verify-local-mysql-migration-state.md)
-- [docs/plans/v1/tasks/080-verify-local-redis-runtime-state.md](v1/tasks/080-verify-local-redis-runtime-state.md)
-- [docs/plans/v1/tasks/081-ops-mysql-bootstrap-visibility.md](v1/tasks/081-ops-mysql-bootstrap-visibility.md)
-- [docs/plans/v1/tasks/082-ops-redis-runtime-visibility.md](v1/tasks/082-ops-redis-runtime-visibility.md)
-- [docs/plans/v1/tasks/083-shared-durable-connection-helpers.md](v1/tasks/083-shared-durable-connection-helpers.md)
-- [docs/plans/v1/tasks/084-ops-repo-reader-tests.md](v1/tasks/084-ops-repo-reader-tests.md)
-- [docs/plans/v1/tasks/085-complete-local-durable-run-targets.md](v1/tasks/085-complete-local-durable-run-targets.md)
-- [docs/plans/v1/tasks/086-align-config-docs-with-durable-status-flags.md](v1/tasks/086-align-config-docs-with-durable-status-flags.md)
-- [docs/plans/v1/tasks/087-add-local-durable-status-check-script.md](v1/tasks/087-add-local-durable-status-check-script.md)
-- [docs/plans/v1/tasks/088-add-db-helper-tests.md](v1/tasks/088-add-db-helper-tests.md)
-- [docs/plans/v1/tasks/089-ops-durable-summary-endpoint.md](v1/tasks/089-ops-durable-summary-endpoint.md)
-- [docs/plans/v1/tasks/090-local-durable-status-gating.md](v1/tasks/090-local-durable-status-gating.md)
-- [docs/plans/v1/tasks/091-align-ops-proto-with-durable-summary.md](v1/tasks/091-align-ops-proto-with-durable-summary.md)
-- [docs/plans/v1/tasks/092-local-durable-troubleshooting-runbook.md](v1/tasks/092-local-durable-troubleshooting-runbook.md)
-- [docs/plans/v1/tasks/093-proto-generation-baseline.md](v1/tasks/093-proto-generation-baseline.md)
-- [docs/plans/v1/tasks/094-proto-contract-smoke-tests.md](v1/tasks/094-proto-contract-smoke-tests.md)
-- [docs/plans/v1/tasks/095-proto-check-entrypoint.md](v1/tasks/095-proto-check-entrypoint.md)
-- [docs/plans/v1/tasks/096-tcp-contract-smoke-tests.md](v1/tasks/096-tcp-contract-smoke-tests.md)
-- [docs/plans/v1/tasks/097-http-contract-readme-smoke-tests.md](v1/tasks/097-http-contract-readme-smoke-tests.md)
-- [docs/plans/v1/tasks/098-contract-inventory-checker.md](v1/tasks/098-contract-inventory-checker.md)
-- [docs/plans/v1/tasks/099-proto-readme-contract-index-check.md](v1/tasks/099-proto-readme-contract-index-check.md)
-- [docs/plans/v1/tasks/100-unified-dev-check-flow.md](v1/tasks/100-unified-dev-check-flow.md)
-- [docs/plans/v1/tasks/101-consume-generated-proto-bindings.md](v1/tasks/101-consume-generated-proto-bindings.md)
-- [api/http/README.md](../api/http/README.md)
-- [api/tcp/README.md](../api/tcp/README.md)
-- [api/errors/README.md](../api/errors/README.md)
-- [docs/memory/constraints.md](../memory/constraints.md)
-- [docs/memory/glossary.md](../memory/glossary.md)
-- [docs/architecture/overview.md](../architecture/overview.md)
-- [docs/operations/environments.md](../operations/environments.md)
+- [docs/plans/backlog.md](backlog.md)
+- [docs/releases/changelog.md](../releases/changelog.md)
+- [docs/operations/local-durable-runflow.md](../operations/local-durable-runflow.md)
+- [docs/operations/dev-checks.md](../operations/dev-checks.md)
 
 ## Active ADRs
 
@@ -163,5 +75,6 @@ Advance the prototype stack into durable local runtime shape by closing MySQL an
 
 ## Update Rules
 
-- Update this file first when scope, version direction, or milestone priority changes.
-- Reflect downstream changes in roadmap, tasks, ADRs, and architecture docs after this file is updated.
+- Update this file first when the `v1` finish line changes.
+- Move anything non-blocking for `v1` into [docs/plans/backlog.md](backlog.md) instead of expanding active scope.
+- Reflect release-facing changes in freeze notes, milestones, tasks, and changelog together.

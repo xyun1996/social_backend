@@ -66,6 +66,9 @@ Base purpose: conversation creation, message sequencing, read acknowledgement, a
 }
 ```
 
+- Rules
+- `guild` and `party` summaries are only visible to current members of the backing resource when runtime membership readers are configured
+
 ## Send Message
 
 - `POST /v1/conversations/{conversationID}/messages`
@@ -95,6 +98,7 @@ Base purpose: conversation creation, message sequencing, read acknowledgement, a
 - `seq` is monotonic within a conversation
 - `system` conversations only allow sender `system`
 - Other kinds require sender membership
+- `guild` and `party` kinds also require current membership in the backing guild or party when that runtime reader is configured
 - When the worker boundary is configured, offline recipients also enqueue `chat.offline_delivery` job intent
 
 ## Replay Messages
@@ -115,6 +119,7 @@ Base purpose: conversation creation, message sequencing, read acknowledgement, a
 - Rules
 - Returns messages with `seq > after_seq`
 - `limit` defaults to service default and is capped by service max
+- `guild` and `party` replays require current membership in the backing resource when that runtime reader is configured
 
 ## Ack Conversation
 

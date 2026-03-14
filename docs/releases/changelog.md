@@ -23,3 +23,4 @@
 - Added guild progression and durable activity templates for sign-in, donation, and guild tasks
 - Added chat conversation summaries with unread counts and last-message snapshots
 - Expanded ops player overview with current party, guild, role, and queue status reads
+- Aligned guild and party chat channel permissions to current resource membership
