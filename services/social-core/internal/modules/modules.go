@@ -1,12 +1,12 @@
 package modules
 
-// Module names track the bounded contexts that move into the consolidated
-// social-core runtime during the product rebuild.
-var ModuleNames = []string{
-	"identity",
-	"social",
-	"invite",
-	"private-chat",
-	"guild-basics",
-	"party-basics",
+func ModuleNames() []string {
+	registry := NewRegistry()
+	descriptors := registry.Descriptors()
+	names := make([]string, 0, len(descriptors))
+	for _, descriptor := range descriptors {
+		names = append(names, descriptor.Name)
+	}
+
+	return names
 }
