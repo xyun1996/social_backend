@@ -555,9 +555,9 @@ func TestLocalDurableMySQLBootstrapRegistersMigrations(t *testing.T) {
 
 	expected := map[string][]string{
 		"identity": {"001_identity_core"},
-		"social":   {"001_social_core"},
+		"social":   {"001_social_core", "002_social_relationship_metadata"},
 		"invite":   {"001_invite_core"},
-		"chat":     {"001_chat_core"},
+		"chat":     {"001_chat_core", "002_chat_governance"},
 		"party":    {"001_party_core", "002_party_queue", "003_party_assignment"},
 		"guild":    {"001_guild_core", "002_guild_announcement", "003_guild_logs", "004_guild_progression", "005_guild_progression_v2"},
 	}
@@ -976,3 +976,4 @@ func TestLocalDurableGuildProgressionChatFlow(t *testing.T) {
 		t.Fatalf("unexpected ops guild payload: %+v", opsGuild)
 	}
 }
+

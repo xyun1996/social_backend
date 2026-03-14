@@ -64,7 +64,7 @@ func buildSocialService() (*service.SocialService, func(), error) {
 		}
 	}
 
-	return service.NewSocialServiceWithStores(repo, repo, repo), func() {
+	return service.NewSocialServiceWithStores(repo, repo, repo, repo), func() {
 		_ = sqlDB.Close()
 	}, nil
 }

@@ -33,6 +33,12 @@ type blockRequest struct {
 	BlockedPlayerID string `json:"blocked_player_id"`
 }
 
+type remarkRequest struct {
+	PlayerID string `json:"player_id"`
+	FriendID string `json:"friend_id"`
+	Remark   string `json:"remark"`
+}
+
 // Routes returns the social HTTP routes.
 func (h *HTTPHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
@@ -41,6 +47,11 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("GET /v1/friends/requests", h.handleListFriendRequests)
 	mux.HandleFunc("POST /v1/friends/requests/{requestID}/accept", h.handleAcceptFriendRequest)
 	mux.HandleFunc("GET /v1/friends", h.handleListFriends)
+	mux.HandleFunc("POST /v1/friends/remarks", h.handleSetFriendRemark)
+	mux.HandleFunc("GET /v1/friends/remarks", h.handleListFriendRemarks)
+	mux.HandleFunc("GET /v1/relationships", h.handleListRelationships)
+	mux.HandleFunc("GET /v1/relationships/{targetID}", h.handleGetRelationship)
+	mux.HandleFunc("GET /v1/pending-social", h.handlePendingSummary)
 	mux.HandleFunc("POST /v1/blocks", h.handleBlockPlayer)
 	mux.HandleFunc("GET /v1/blocks", h.handleListBlocks)
 	return mux
@@ -67,10 +78,7 @@ func (h *HTTPHandler) handleListFriendRequests(w http.ResponseWriter, r *http.Re
 }
 
 func (h *HTTPHandler) handleHealth(w http.ResponseWriter, _ *http.Request) {
-	transport.WriteJSON(w, http.StatusOK, transport.StatusPayload{
-		Service: "social",
-		Status:  "ok",
-	})
+	transport.WriteJSON(w, http.StatusOK, transport.StatusPayload{Service: "social", Status: "ok"})
 }
 
 func (h *HTTPHandler) handleSendFriendRequest(w http.ResponseWriter, r *http.Request) {
@@ -113,10 +121,63 @@ func (h *HTTPHandler) handleListFriends(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	transport.WriteJSON(w, http.StatusOK, map[string]any{
-		"player_id": playerID,
-		"friends":   friends,
-	})
+	transport.WriteJSON(w, http.StatusOK, map[string]any{"player_id": playerID, "friends": friends})
+}
+
+func (h *HTTPHandler) handleSetFriendRemark(w http.ResponseWriter, r *http.Request) {
+	var request remarkRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	record, appErr := h.social.SetFriendRemark(request.PlayerID, request.FriendID, request.Remark)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+	transport.WriteJSON(w, http.StatusOK, record)
+}
+
+func (h *HTTPHandler) handleListFriendRemarks(w http.ResponseWriter, r *http.Request) {
+	playerID := r.URL.Query().Get("player_id")
+	records, appErr := h.social.ListFriendRemarks(playerID)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+	transport.WriteJSON(w, http.StatusOK, map[string]any{"player_id": playerID, "count": len(records), "remarks": records})
+}
+
+func (h *HTTPHandler) handleGetRelationship(w http.ResponseWriter, r *http.Request) {
+	playerID := r.URL.Query().Get("player_id")
+	record, appErr := h.social.GetRelationship(playerID, r.PathValue("targetID"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+	transport.WriteJSON(w, http.StatusOK, record)
+}
+
+func (h *HTTPHandler) handleListRelationships(w http.ResponseWriter, r *http.Request) {
+	playerID := r.URL.Query().Get("player_id")
+	state := r.URL.Query().Get("state")
+	records, appErr := h.social.ListRelationships(playerID, state)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+	transport.WriteJSON(w, http.StatusOK, map[string]any{"player_id": playerID, "state": state, "count": len(records), "relationships": records})
+}
+
+func (h *HTTPHandler) handlePendingSummary(w http.ResponseWriter, r *http.Request) {
+	playerID := r.URL.Query().Get("player_id")
+	record, appErr := h.social.GetPendingSummary(playerID)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+	transport.WriteJSON(w, http.StatusOK, record)
 }
 
 func (h *HTTPHandler) handleBlockPlayer(w http.ResponseWriter, r *http.Request) {
@@ -143,10 +204,7 @@ func (h *HTTPHandler) handleListBlocks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	transport.WriteJSON(w, http.StatusOK, map[string]any{
-		"player_id": playerID,
-		"blocks":    blocks,
-	})
+	transport.WriteJSON(w, http.StatusOK, map[string]any{"player_id": playerID, "blocks": blocks})
 }
 
 func invalidJSONError() apperrors.Error {

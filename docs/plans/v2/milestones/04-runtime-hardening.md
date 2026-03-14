@@ -1,29 +1,15 @@
 # 04 Runtime Hardening
 
-- Status: `planned`
+- Status: `completed`
 - Version: `v2`
 
-## Goal
+## Delivered
 
-Strengthen queue, worker, and durable runtime behavior beyond the verified local `v1` baseline so the platform can tolerate more realistic operational pressure.
+- worker retry and backoff semantics
+- dead-letter style terminal worker state
+- queue expiry metadata and expired queue sweeping
+- clearer durable runtime expectations for retries and queue ownership
 
-## Inputs
+## Acceptance
 
-- `v1.0` durable verification baseline
-- worker and queue lifecycle prototypes
-- backlog themes for retry, backoff, and deeper matchmaker lifecycle handling
-
-## Outputs
-
-- better worker retry/backoff policy
-- more complete queue lifecycle handling
-- tighter durable runtime expectations
-
-## Acceptance Criteria
-
-- runtime behavior is more resilient than `v1` under restart and failure scenarios
-- queue ownership and worker execution semantics are clearer and more durable
-
-## Risks / Blockers
-
-- runtime hardening can drift into full production SRE scope if not kept bounded
+Runtime behavior is more resilient than the `v1` baseline under retry and stale-ownership scenarios, while staying bounded and locally testable.

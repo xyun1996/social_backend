@@ -32,7 +32,7 @@ func NewDurableServer(mysqlConfig db.MySQLConfig, sqlDB *sql.DB) *Server {
 	if err := repo.BootstrapSchema(ctx); err != nil {
 		panic(err)
 	}
-	social := socialservice.NewSocialServiceWithStores(repo, repo, repo)
+	social := socialservice.NewSocialServiceWithStores(repo, repo, repo, repo)
 	server := httptest.NewServer(socialhandler.NewHTTPHandler(social).Routes())
 	return &Server{server: server}
 }
@@ -46,3 +46,4 @@ func (s *Server) URL() string {
 func (s *Server) Close() {
 	s.server.Close()
 }
+

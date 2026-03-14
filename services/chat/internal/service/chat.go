@@ -36,7 +36,12 @@ const (
 	membershipExplicit   = "explicit"
 	membershipBound      = "resource_bound"
 	sendPolicyMembers    = "members"
+	sendPolicyModerated  = "moderated"
 	sendPolicySystemOnly = "system_only"
+	visibilityMembers   = "members"
+	visibilityPublicRead = "public_read"
+	moderationOpen      = "open"
+	moderationManaged   = "managed"
 )
 
 // PresenceSnapshot contains the subset of presence state chat uses for planning.
@@ -198,14 +203,14 @@ func (s *ChatService) CreateConversation(kind string, resourceID string, memberP
 		return domain.Conversation{}, &internal
 	}
 
-	conversation := domain.Conversation{
+	conversation := defaultConversationGovernance(domain.Conversation{
 		ID:              conversationID,
 		Kind:            kind,
 		ResourceID:      normalizedResourceID,
 		MemberPlayerIDs: normalizedMembers,
 		LastSeq:         0,
 		CreatedAt:       s.now(),
-	}
+	})
 
 	if err := s.conversations.SaveConversation(conversation); err != nil {
 		internal := apperrors.Internal()
@@ -717,6 +722,27 @@ func normalizeMembers(kind string, resourceID string, members []string) ([]strin
 }
 
 func (s *ChatService) validateSendPermission(ctx context.Context, conversation domain.Conversation, senderPlayerID string) *apperrors.Error {
+	conversation = defaultConversationGovernance(conversation)
+	if senderPlayerID != "system" && isMuted(conversation, senderPlayerID) {
+		err := apperrors.New("muted", "sender is muted in the conversation", http.StatusForbidden)
+		return &err
+	}
+
+	switch conversation.SendPolicy {
+	case sendPolicySystemOnly:
+		if senderPlayerID != "system" {
+			err := apperrors.New("forbidden", "system-only conversations only accept system sender", http.StatusForbidden)
+			return &err
+		}
+		return nil
+	case sendPolicyModerated:
+		if senderPlayerID == "system" || isModerator(conversation, senderPlayerID) {
+			return nil
+		}
+		err := apperrors.New("moderated", "sender must be a moderator in this conversation", http.StatusForbidden)
+		return &err
+	}
+
 	switch conversation.Kind {
 	case kindSystem:
 		if senderPlayerID != "system" {
@@ -728,33 +754,25 @@ func (s *ChatService) validateSendPermission(ctx context.Context, conversation d
 		if senderPlayerID == "system" {
 			return nil
 		}
-		allowed, appErr := s.canAccessConversation(ctx, conversation, senderPlayerID)
-		if appErr != nil {
-			return appErr
-		}
-		if !allowed {
-			err := apperrors.New("forbidden", "sender is not allowed in the conversation", http.StatusForbidden)
-			return &err
-		}
-		return nil
-	case kindWorld, kindPrivate, kindGroup, kindCustom:
-		allowed, appErr := s.canAccessConversation(ctx, conversation, senderPlayerID)
-		if appErr != nil {
-			return appErr
-		}
-		if !allowed {
-			err := apperrors.New("forbidden", "sender is not allowed in the conversation", http.StatusForbidden)
-			return &err
-		}
-		return nil
-	default:
-		err := apperrors.New("invalid_request", "unsupported conversation kind", http.StatusBadRequest)
+	}
+
+	allowed, appErr := s.canAccessConversation(ctx, conversation, senderPlayerID)
+	if appErr != nil {
+		return appErr
+	}
+	if !allowed {
+		err := apperrors.New("forbidden", "sender is not allowed in the conversation", http.StatusForbidden)
 		return &err
 	}
+	return nil
 }
 
 func (s *ChatService) canAccessConversation(ctx context.Context, conversation domain.Conversation, playerID string) (bool, *apperrors.Error) {
+	conversation = defaultConversationGovernance(conversation)
 	if conversation.Kind == kindSystem {
+		return true, nil
+	}
+	if conversation.VisibilityPolicy == visibilityPublicRead && (conversation.Kind == kindWorld || conversation.Kind == kindCustom) {
 		return true, nil
 	}
 	if !hasMember(conversation.MemberPlayerIDs, playerID) {
@@ -829,15 +847,20 @@ func mergeMembers(existing []string, incoming []string) []string {
 }
 
 func buildChannelDescriptor(conversation domain.Conversation) domain.ChannelDescriptor {
+	conversation = defaultConversationGovernance(conversation)
 	descriptor := domain.ChannelDescriptor{
 		ConversationID:   conversation.ID,
 		Kind:             conversation.Kind,
 		ResourceID:       conversation.ResourceID,
 		Scope:            channelScopeDirect,
 		MembershipMode:   membershipExplicit,
-		SendPolicy:       sendPolicyMembers,
+		SendPolicy:       conversation.SendPolicy,
+		VisibilityPolicy: conversation.VisibilityPolicy,
+		ModerationMode:   conversation.ModerationMode,
 		ResourceRequired: false,
 		MemberCount:      len(conversation.MemberPlayerIDs),
+		ModeratorIDs:     append([]string(nil), conversation.ModeratorIDs...),
+		MutedPlayerIDs:   append([]string(nil), conversation.MutedPlayerIDs...),
 	}
 
 	if isResourceBoundKind(conversation.Kind) {
@@ -845,10 +868,6 @@ func buildChannelDescriptor(conversation domain.Conversation) domain.ChannelDesc
 		descriptor.MembershipMode = membershipBound
 		descriptor.ResourceRequired = true
 	}
-	if conversation.Kind == kindSystem {
-		descriptor.SendPolicy = sendPolicySystemOnly
-	}
-
 	return descriptor
 }
 
@@ -920,3 +939,8 @@ func (s *ChatService) enqueueOfflineDeliveries(ctx context.Context, conversation
 		_ = s.scheduler.EnqueueJob(ctx, offlineJobType, string(payload))
 	}
 }
+
+
+
+
+

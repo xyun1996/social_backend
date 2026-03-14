@@ -26,6 +26,13 @@ type BlockStore interface {
 	SaveBlock(block domain.BlockRelationship) error
 }
 
+// FriendRemarkStore persists optional friend metadata.
+type FriendRemarkStore interface {
+	ListRemarks(playerID string) ([]domain.FriendRemark, error)
+	SaveRemark(remark domain.FriendRemark) error
+	GetRemark(playerID string, friendID string) (domain.FriendRemark, bool, error)
+}
+
 type memoryFriendRequestStore struct {
 	mu       sync.RWMutex
 	requests map[string]domain.FriendRequest
@@ -128,4 +135,51 @@ func (s *memoryBlockStore) SaveBlock(block domain.BlockRelationship) error {
 	}
 	s.blocks[block.PlayerID][block.BlockedID] = block
 	return nil
+}
+
+type memoryFriendRemarkStore struct {
+	mu      sync.RWMutex
+	remarks map[string]map[string]domain.FriendRemark
+}
+
+func newMemoryFriendRemarkStore() *memoryFriendRemarkStore {
+	return &memoryFriendRemarkStore{remarks: make(map[string]map[string]domain.FriendRemark)}
+}
+
+func (s *memoryFriendRemarkStore) ListRemarks(playerID string) ([]domain.FriendRemark, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	remarks := make([]domain.FriendRemark, 0, len(s.remarks[playerID]))
+	for _, remark := range s.remarks[playerID] {
+		remarks = append(remarks, remark)
+	}
+	slices.SortFunc(remarks, func(a domain.FriendRemark, b domain.FriendRemark) int {
+		switch {
+		case a.FriendID < b.FriendID:
+			return -1
+		case a.FriendID > b.FriendID:
+			return 1
+		default:
+			return 0
+		}
+	})
+	return remarks, nil
+}
+
+func (s *memoryFriendRemarkStore) SaveRemark(remark domain.FriendRemark) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.remarks[remark.PlayerID] == nil {
+		s.remarks[remark.PlayerID] = make(map[string]domain.FriendRemark)
+	}
+	s.remarks[remark.PlayerID][remark.FriendID] = remark
+	return nil
+}
+
+func (s *memoryFriendRemarkStore) GetRemark(playerID string, friendID string) (domain.FriendRemark, bool, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	remarks := s.remarks[playerID]
+	remark, ok := remarks[friendID]
+	return remark, ok, nil
 }

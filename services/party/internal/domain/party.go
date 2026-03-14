@@ -10,7 +10,6 @@ type Party struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// ReadyState tracks a member's readiness inside a party.
 type ReadyState struct {
 	PartyID   string    `json:"party_id"`
 	PlayerID  string    `json:"player_id"`
@@ -18,16 +17,15 @@ type ReadyState struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// QueueState tracks the current social queue enrollment for a party.
 type QueueState struct {
-	PartyID   string    `json:"party_id"`
-	QueueName string    `json:"queue_name"`
-	Status    string    `json:"status"`
-	JoinedBy  string    `json:"joined_by"`
-	JoinedAt  time.Time `json:"joined_at"`
+	PartyID   string     `json:"party_id"`
+	QueueName string     `json:"queue_name"`
+	Status    string     `json:"status"`
+	JoinedBy  string     `json:"joined_by"`
+	JoinedAt  time.Time  `json:"joined_at"`
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 }
 
-// QueueAssignment captures the callback payload after an external matchmaker consumes a handoff.
 type QueueAssignment struct {
 	TicketID       string    `json:"ticket_id"`
 	PartyID        string    `json:"party_id"`
@@ -39,7 +37,6 @@ type QueueAssignment struct {
 	AssignedAt     time.Time `json:"assigned_at"`
 }
 
-// QueueResolution records the terminal cleanup event after an assigned match is consumed or cancelled.
 type QueueResolution struct {
 	TicketID   string    `json:"ticket_id"`
 	PartyID    string    `json:"party_id"`
@@ -49,7 +46,6 @@ type QueueResolution struct {
 	ResolvedAt time.Time `json:"resolved_at"`
 }
 
-// QueueLeaveResult describes a successful queue exit.
 type QueueLeaveResult struct {
 	PartyID   string    `json:"party_id"`
 	QueueName string    `json:"queue_name"`
@@ -57,7 +53,6 @@ type QueueLeaveResult struct {
 	LeftAt    time.Time `json:"left_at"`
 }
 
-// QueueHandoff is the stable queue payload exposed to an external matchmaker boundary.
 type QueueHandoff struct {
 	TicketID  string    `json:"ticket_id"`
 	PartyID   string    `json:"party_id"`

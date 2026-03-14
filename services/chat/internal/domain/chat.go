@@ -4,24 +4,33 @@ import "time"
 
 // Conversation represents a chat container with explicit member scope.
 type Conversation struct {
-	ID              string    `json:"id"`
-	Kind            string    `json:"kind"`
-	ResourceID      string    `json:"resource_id,omitempty"`
-	MemberPlayerIDs []string  `json:"member_player_ids"`
-	LastSeq         int64     `json:"last_seq"`
-	CreatedAt       time.Time `json:"created_at"`
+	ID               string    `json:"id"`
+	Kind             string    `json:"kind"`
+	ResourceID       string    `json:"resource_id,omitempty"`
+	MemberPlayerIDs  []string  `json:"member_player_ids"`
+	SendPolicy       string    `json:"send_policy"`
+	VisibilityPolicy string    `json:"visibility_policy"`
+	ModerationMode   string    `json:"moderation_mode"`
+	ModeratorIDs     []string  `json:"moderator_ids,omitempty"`
+	MutedPlayerIDs   []string  `json:"muted_player_ids,omitempty"`
+	LastSeq          int64     `json:"last_seq"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 // ChannelDescriptor explains the policy surface implied by a conversation kind.
 type ChannelDescriptor struct {
-	ConversationID   string `json:"conversation_id"`
-	Kind             string `json:"kind"`
-	ResourceID       string `json:"resource_id,omitempty"`
-	Scope            string `json:"scope"`
-	MembershipMode   string `json:"membership_mode"`
-	SendPolicy       string `json:"send_policy"`
-	ResourceRequired bool   `json:"resource_required"`
-	MemberCount      int    `json:"member_count"`
+	ConversationID   string   `json:"conversation_id"`
+	Kind             string   `json:"kind"`
+	ResourceID       string   `json:"resource_id,omitempty"`
+	Scope            string   `json:"scope"`
+	MembershipMode   string   `json:"membership_mode"`
+	SendPolicy       string   `json:"send_policy"`
+	VisibilityPolicy string   `json:"visibility_policy"`
+	ModerationMode   string   `json:"moderation_mode"`
+	ResourceRequired bool     `json:"resource_required"`
+	MemberCount      int      `json:"member_count"`
+	ModeratorIDs     []string `json:"moderator_ids,omitempty"`
+	MutedPlayerIDs   []string `json:"muted_player_ids,omitempty"`
 }
 
 // ConversationSummary is the player-facing rollup for unread and latest-message reads.

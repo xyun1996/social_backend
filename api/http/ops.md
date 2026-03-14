@@ -4,26 +4,35 @@
 
 - `GET /healthz`
 
-## Player Overview
+## Player Reads
 
-- `GET /v1/ops/players/{playerID}`
+- `GET /v1/ops/players/{playerID}/overview`
+- `GET /v1/ops/players/{playerID}/presence`
+- `GET /v1/ops/players/{playerID}/social`
 
-## Presence / Party / Guild / Worker Reads
+Player overview now includes:
+- `relationship_count`
+- `relationship_details`
+- `current_queue_expires_at`
 
-- `GET /v1/ops/presence/{playerID}`
+Social snapshot now includes:
+- `pending_total`
+- `relationship_details`
+
+## Runtime / Domain Reads
+
 - `GET /v1/ops/parties/{partyID}`
 - `GET /v1/ops/guilds/{guildID}`
-- `GET /v1/ops/workers`
+- `GET /v1/ops/jobs?status=&type=`
 
-## Durable Reads
+Worker job reads now include:
+- `max_attempts`
+- `next_attempt_at`
 
-- `GET /v1/ops/bootstrap/mysql`
-- `GET /v1/ops/runtime/redis`
-- `GET /v1/ops/durable/summary`
+Party queue reads now include:
+- `expires_at`
 
-## Guild Snapshot Additions In V2.0
-
-`GET /v1/ops/guilds/{guildID}` now also includes:
+Guild snapshot already includes the `v2.0` progression fields:
 - `level`
 - `experience`
 - `next_level_xp`
@@ -31,41 +40,8 @@
 - `activity_instances`
 - `reward_records`
 
-Example additions:
+## Durable Reads
 
-```json
-{
-  "guild_id": "guild-1",
-  "level": 2,
-  "experience": 125,
-  "next_level_xp": 200,
-  "contributions": [
-    {
-      "player_id": "p1",
-      "total_xp": 125,
-      "last_source_type": "donate",
-      "updated_at": "2026-03-14T10:10:00Z"
-    }
-  ],
-  "activity_instances": [
-    {
-      "id": "inst-1",
-      "template_key": "sign_in",
-      "period_key": "2026-03-14",
-      "status": "active",
-      "starts_at": "2026-03-14T00:00:00Z",
-      "ends_at": "2026-03-15T00:00:00Z"
-    }
-  ],
-  "reward_records": [
-    {
-      "id": "reward-1",
-      "player_id": "p1",
-      "activity_id": "act-1",
-      "template_key": "sign_in",
-      "reward_type": "badge",
-      "reward_ref": "guild_sign_in"
-    }
-  ]
-}
-```
+- `GET /v1/ops/bootstrap/mysql`
+- `GET /v1/ops/runtime/redis`
+- `GET /v1/ops/durable/summary`

@@ -73,6 +73,7 @@ type PartyService struct {
 	presence   PresenceReader
 	now        func() time.Time
 	newPartyID func() (string, error)
+	queueTTL   time.Duration
 }
 
 // NewPartyService constructs an in-memory party service.
@@ -92,6 +93,7 @@ func NewPartyServiceWithStores(parties PartyStore, ready ReadyStateStore, queues
 		newPartyID: func() (string, error) {
 			return idgen.Token(8)
 		},
+		queueTTL: 10 * time.Minute,
 	}
 }
 
@@ -299,7 +301,7 @@ func (s *PartyService) JoinQueue(ctx context.Context, partyID string, actorPlaye
 		return domain.QueueState{}, &err
 	}
 
-	current, exists, err := s.queues.GetQueueState(partyID)
+	current, exists, err := s.getActiveQueueState(partyID)
 	if err != nil {
 		internal := apperrors.Internal()
 		return domain.QueueState{}, &internal
@@ -320,12 +322,15 @@ func (s *PartyService) JoinQueue(ctx context.Context, partyID string, actorPlaye
 		return domain.QueueState{}, appErr
 	}
 
+	joinedAt := s.now()
+	expiresAt := joinedAt.Add(s.queueTTL)
 	state := domain.QueueState{
-		PartyID:   partyID,
+		PartyID: partyID,
 		QueueName: queueName,
-		Status:    queueStatusOpen,
-		JoinedBy:  actorPlayerID,
-		JoinedAt:  s.now(),
+		Status: queueStatusOpen,
+		JoinedBy: actorPlayerID,
+		JoinedAt: joinedAt,
+		ExpiresAt: &expiresAt,
 	}
 	if err := s.queues.SaveQueueState(state); err != nil {
 		internal := apperrors.Internal()
@@ -352,7 +357,7 @@ func (s *PartyService) GetQueueState(partyID string) (domain.QueueState, *apperr
 		return domain.QueueState{}, &err
 	}
 
-	state, ok, err := s.queues.GetQueueState(partyID)
+	state, ok, err := s.getActiveQueueState(partyID)
 	if err != nil {
 		internal := apperrors.Internal()
 		return domain.QueueState{}, &internal
@@ -380,7 +385,7 @@ func (s *PartyService) GetQueueHandoff(ctx context.Context, partyID string) (dom
 		return domain.QueueHandoff{}, nil, &err
 	}
 
-	state, ok, err := s.queues.GetQueueState(partyID)
+	state, ok, err := s.getActiveQueueState(partyID)
 	if err != nil {
 		internal := apperrors.Internal()
 		return domain.QueueHandoff{}, nil, &internal
@@ -426,7 +431,7 @@ func (s *PartyService) AssignMatch(ctx context.Context, partyID string, ticketID
 		return domain.QueueAssignment{}, &err
 	}
 
-	state, ok, err := s.queues.GetQueueState(partyID)
+	state, ok, err := s.getActiveQueueState(partyID)
 	if err != nil {
 		internal := apperrors.Internal()
 		return domain.QueueAssignment{}, &internal
@@ -603,7 +608,7 @@ func (s *PartyService) LeaveQueue(partyID string, actorPlayerID string) (domain.
 		return domain.QueueLeaveResult{}, &err
 	}
 
-	state, ok, err := s.queues.GetQueueState(partyID)
+	state, ok, err := s.getActiveQueueState(partyID)
 	if err != nil {
 		internal := apperrors.Internal()
 		return domain.QueueLeaveResult{}, &internal
@@ -882,19 +887,7 @@ func (s *PartyService) getParty(partyID string) (domain.Party, bool, *apperrors.
 	return party, ok, nil
 }
 
-func (s *PartyService) ensureQueueUnlocked(partyID string) *apperrors.Error {
-	state, ok, err := s.queues.GetQueueState(partyID)
-	if err != nil {
-		internal := apperrors.Internal()
-		return &internal
-	}
-	if ok {
-		msg := fmt.Sprintf("party queue is locked in %s (%s)", state.QueueName, state.Status)
-		err := apperrors.New("party_queued", msg, http.StatusConflict)
-		return &err
-	}
-	return nil
-}
+
 
 func queueTicketID(partyID string, queueName string, joinedAt time.Time) string {
 	return fmt.Sprintf("ticket:%s:%s:%d", partyID, queueName, joinedAt.UTC().Unix())
@@ -929,3 +922,8 @@ func (s *PartyService) requireQueueReady(ctx context.Context, party domain.Party
 
 	return nil
 }
+
+
+
+
+

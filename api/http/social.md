@@ -1,112 +1,68 @@
 # Social HTTP Contract
 
-Base purpose: friend request, acceptance, friend listing, block creation, and block listing.
+Base purpose: friend requests, accepted friendships, blocks, richer relationship reads, and lightweight friend metadata.
 
 ## Health
 
 - `GET /healthz`
 
-## Send Friend Request
+## Core V1 Flows
 
 - `POST /v1/friends/requests`
-- Request
-
-```json
-{
-  "from_player_id": "p1",
-  "to_player_id": "p2"
-}
-```
-
-- Response `200`
-
-```json
-{
-  "id": "req-1",
-  "from_player_id": "p1",
-  "to_player_id": "p2",
-  "status": "pending",
-  "created_at": "2026-03-13T10:00:00Z"
-}
-```
-
-- Rules
-- Self-friend is rejected
-- Existing pending request for the same pair is returned
-- Blocked relationships reject the request
-
-## Accept Friend Request
-
-- `POST /v1/friends/requests/{requestID}/accept`
-- Request
-
-```json
-{
-  "actor_player_id": "p2"
-}
-```
-
-- Response `200`: same object as request, with `status = accepted`
-- Rules
-- Only `to_player_id` can accept
-
-## List Friend Requests
-
 - `GET /v1/friends/requests?player_id=p2&role=inbox&status=pending`
-- Response `200`
-
-```json
-{
-  "player_id": "p2",
-  "role": "inbox",
-  "status": "pending",
-  "count": 1,
-  "requests": []
-}
-```
-
-## List Friends
-
+- `POST /v1/friends/requests/{requestID}/accept`
 - `GET /v1/friends?player_id=p1`
-- Response `200`
+- `POST /v1/blocks`
+- `GET /v1/blocks?player_id=p2`
+
+## V2 Social Depth Additions
+
+### Set Friend Remark
+
+- `POST /v1/friends/remarks`
 
 ```json
 {
   "player_id": "p1",
-  "friends": ["p2"]
+  "friend_id": "p2",
+  "remark": "raid lead"
 }
 ```
 
-## Block Player
+### List Friend Remarks
 
-- `POST /v1/blocks`
-- Request
+- `GET /v1/friends/remarks?player_id=p1`
+
+### Get Relationship Snapshot
+
+- `GET /v1/relationships/{targetID}?player_id=p1`
+
+Response fields include:
+- `state`
+- `is_friend`
+- `has_pending_inbox`
+- `has_pending_outbox`
+- `is_blocked`
+- `is_blocked_by`
+- `remark`
+- `reverse_remark`
+
+### List Relationship Snapshots
+
+- `GET /v1/relationships?player_id=p1`
+- Optional filter: `state=friend|pending_inbox|pending_outbox|blocked|blocked_by`
+
+### Pending Social Summary
+
+- `GET /v1/pending-social?player_id=p1`
 
 ```json
 {
-  "player_id": "p2",
-  "blocked_player_id": "p1"
-}
-```
-
-- Response `200`
-
-```json
-{
-  "player_id": "p2",
-  "blocked_id": "p1",
-  "created_at": "2026-03-13T10:00:00Z"
-}
-```
-
-## List Blocks
-
-- `GET /v1/blocks?player_id=p2`
-- Response `200`
-
-```json
-{
-  "player_id": "p2",
-  "blocks": ["p1"]
+  "player_id": "p1",
+  "inbox": ["p2"],
+  "outbox": ["p3"],
+  "inbox_count": 1,
+  "outbox_count": 1,
+  "total_pending": 2
 }
 ```

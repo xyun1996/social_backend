@@ -2,7 +2,9 @@ package service
 
 import (
 	"fmt"
+	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	apperrors "github.com/xyun1996/social_backend/pkg/errors"
@@ -13,6 +15,13 @@ import (
 const (
 	friendRequestPending  = "pending"
 	friendRequestAccepted = "accepted"
+
+	relationshipNone          = "none"
+	relationshipFriend        = "friend"
+	relationshipPendingInbox  = "pending_inbox"
+	relationshipPendingOutbox = "pending_outbox"
+	relationshipBlocked       = "blocked"
+	relationshipBlockedBy     = "blocked_by"
 )
 
 // SocialService provides an in-memory prototype of friendship and blocklist flows.
@@ -20,6 +29,7 @@ type SocialService struct {
 	requests     FriendRequestStore
 	friendships  FriendshipStore
 	blocks       BlockStore
+	remarks      FriendRemarkStore
 	now          func() time.Time
 	newRequestID func() (string, error)
 }
@@ -30,15 +40,29 @@ func NewSocialService() *SocialService {
 		newMemoryFriendRequestStore(),
 		newMemoryFriendshipStore(),
 		newMemoryBlockStore(),
+		newMemoryFriendRemarkStore(),
 	)
 }
 
 // NewSocialServiceWithStores constructs the service with injected persistence boundaries.
-func NewSocialServiceWithStores(requests FriendRequestStore, friendships FriendshipStore, blocks BlockStore) *SocialService {
+func NewSocialServiceWithStores(requests FriendRequestStore, friendships FriendshipStore, blocks BlockStore, remarks FriendRemarkStore) *SocialService {
+	if requests == nil {
+		requests = newMemoryFriendRequestStore()
+	}
+	if friendships == nil {
+		friendships = newMemoryFriendshipStore()
+	}
+	if blocks == nil {
+		blocks = newMemoryBlockStore()
+	}
+	if remarks == nil {
+		remarks = newMemoryFriendRemarkStore()
+	}
 	return &SocialService{
 		requests:    requests,
 		friendships: friendships,
 		blocks:      blocks,
+		remarks:     remarks,
 		now:         time.Now,
 		newRequestID: func() (string, error) {
 			return idgen.Token(8)
@@ -131,17 +155,11 @@ func (s *SocialService) AcceptFriendRequest(requestID string, actorPlayerID stri
 		internal := apperrors.Internal()
 		return domain.FriendRequest{}, &internal
 	}
-	if err := s.friendships.SaveFriendship(domain.FriendRelationship{
-		PlayerID: request.FromPlayerID,
-		FriendID: request.ToPlayerID,
-	}); err != nil {
+	if err := s.friendships.SaveFriendship(domain.FriendRelationship{PlayerID: request.FromPlayerID, FriendID: request.ToPlayerID}); err != nil {
 		internal := apperrors.Internal()
 		return domain.FriendRequest{}, &internal
 	}
-	if err := s.friendships.SaveFriendship(domain.FriendRelationship{
-		PlayerID: request.ToPlayerID,
-		FriendID: request.FromPlayerID,
-	}); err != nil {
+	if err := s.friendships.SaveFriendship(domain.FriendRelationship{PlayerID: request.ToPlayerID, FriendID: request.FromPlayerID}); err != nil {
 		internal := apperrors.Internal()
 		return domain.FriendRequest{}, &internal
 	}
@@ -214,6 +232,162 @@ func (s *SocialService) ListFriends(playerID string) ([]string, *apperrors.Error
 	return friends, nil
 }
 
+// SetFriendRemark stores or replaces an optional remark for a confirmed friend.
+func (s *SocialService) SetFriendRemark(playerID string, friendID string, remark string) (domain.FriendRemark, *apperrors.Error) {
+	if playerID == "" || friendID == "" {
+		err := apperrors.New("invalid_request", "player_id and friend_id are required", http.StatusBadRequest)
+		return domain.FriendRemark{}, &err
+	}
+	if !s.isFriend(playerID, friendID) {
+		err := apperrors.New("not_friend", "remarks require an accepted friendship", http.StatusConflict)
+		return domain.FriendRemark{}, &err
+	}
+
+	record := domain.FriendRemark{
+		PlayerID:  playerID,
+		FriendID:  friendID,
+		Remark:    strings.TrimSpace(remark),
+		UpdatedAt: s.now(),
+	}
+	if err := s.remarks.SaveRemark(record); err != nil {
+		internal := apperrors.Internal()
+		return domain.FriendRemark{}, &internal
+	}
+	return record, nil
+}
+
+// ListFriendRemarks returns all stored friend remarks for a player.
+func (s *SocialService) ListFriendRemarks(playerID string) ([]domain.FriendRemark, *apperrors.Error) {
+	if playerID == "" {
+		err := apperrors.New("invalid_request", "player_id is required", http.StatusBadRequest)
+		return nil, &err
+	}
+	remarks, err := s.remarks.ListRemarks(playerID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
+	}
+	return remarks, nil
+}
+
+// GetRelationship returns a richer point-to-point relationship view.
+func (s *SocialService) GetRelationship(playerID string, targetPlayerID string) (domain.RelationshipSnapshot, *apperrors.Error) {
+	if playerID == "" || targetPlayerID == "" {
+		err := apperrors.New("invalid_request", "player_id and target_player_id are required", http.StatusBadRequest)
+		return domain.RelationshipSnapshot{}, &err
+	}
+	return s.buildRelationshipSnapshot(playerID, targetPlayerID)
+}
+
+// ListRelationships returns the richer relationship view for every visible relationship edge.
+func (s *SocialService) ListRelationships(playerID string, state string) ([]domain.RelationshipSnapshot, *apperrors.Error) {
+	if playerID == "" {
+		err := apperrors.New("invalid_request", "player_id is required", http.StatusBadRequest)
+		return nil, &err
+	}
+
+	friends, appErr := s.ListFriends(playerID)
+	if appErr != nil {
+		return nil, appErr
+	}
+	blocks, appErr := s.ListBlocks(playerID)
+	if appErr != nil {
+		return nil, appErr
+	}
+	requests, appErr := s.ListFriendRequests(playerID, "all", friendRequestPending)
+	if appErr != nil {
+		return nil, appErr
+	}
+
+	targets := make(map[string]struct{})
+	for _, friendID := range friends {
+		targets[friendID] = struct{}{}
+	}
+	for _, blockedID := range blocks {
+		targets[blockedID] = struct{}{}
+	}
+	for _, request := range requests {
+		if request.FromPlayerID == playerID {
+			targets[request.ToPlayerID] = struct{}{}
+		} else {
+			targets[request.FromPlayerID] = struct{}{}
+		}
+	}
+
+	remarks, appErr := s.ListFriendRemarks(playerID)
+	if appErr != nil {
+		return nil, appErr
+	}
+	for _, remark := range remarks {
+		targets[remark.FriendID] = struct{}{}
+	}
+
+	list := make([]domain.RelationshipSnapshot, 0, len(targets))
+	for targetID := range targets {
+		relationship, appErr := s.buildRelationshipSnapshot(playerID, targetID)
+		if appErr != nil {
+			return nil, appErr
+		}
+		if state != "" && relationship.State != state {
+			continue
+		}
+		list = append(list, relationship)
+	}
+
+	slices.SortFunc(list, func(a domain.RelationshipSnapshot, b domain.RelationshipSnapshot) int {
+		if !a.UpdatedAt.Equal(b.UpdatedAt) {
+			if a.UpdatedAt.After(b.UpdatedAt) {
+				return -1
+			}
+			return 1
+		}
+		switch {
+		case a.TargetPlayerID < b.TargetPlayerID:
+			return -1
+		case a.TargetPlayerID > b.TargetPlayerID:
+			return 1
+		default:
+			return 0
+		}
+	})
+	return list, nil
+}
+
+// GetPendingSummary returns inbox/outbox pending request aggregation for a player.
+func (s *SocialService) GetPendingSummary(playerID string) (domain.PendingSummary, *apperrors.Error) {
+	if playerID == "" {
+		err := apperrors.New("invalid_request", "player_id is required", http.StatusBadRequest)
+		return domain.PendingSummary{}, &err
+	}
+
+	inboxRequests, appErr := s.ListFriendRequests(playerID, "inbox", friendRequestPending)
+	if appErr != nil {
+		return domain.PendingSummary{}, appErr
+	}
+	outboxRequests, appErr := s.ListFriendRequests(playerID, "outbox", friendRequestPending)
+	if appErr != nil {
+		return domain.PendingSummary{}, appErr
+	}
+
+	inbox := make([]string, 0, len(inboxRequests))
+	for _, request := range inboxRequests {
+		inbox = append(inbox, request.FromPlayerID)
+	}
+	outbox := make([]string, 0, len(outboxRequests))
+	for _, request := range outboxRequests {
+		outbox = append(outbox, request.ToPlayerID)
+	}
+
+	return domain.PendingSummary{
+		PlayerID:     playerID,
+		Inbox:        inbox,
+		Outbox:       outbox,
+		InboxCount:   len(inbox),
+		OutboxCount:  len(outbox),
+		TotalPending: len(inbox) + len(outbox),
+	}, nil
+}
+
 // BlockPlayer records a point-to-point block relationship.
 func (s *SocialService) BlockPlayer(playerID string, blockedID string) (domain.BlockRelationship, *apperrors.Error) {
 	if playerID == "" || blockedID == "" {
@@ -226,12 +400,7 @@ func (s *SocialService) BlockPlayer(playerID string, blockedID string) (domain.B
 		return domain.BlockRelationship{}, &err
 	}
 
-	block := domain.BlockRelationship{
-		PlayerID:  playerID,
-		BlockedID: blockedID,
-		CreatedAt: s.now(),
-	}
-
+	block := domain.BlockRelationship{PlayerID: playerID, BlockedID: blockedID, CreatedAt: s.now()}
 	if err := s.blocks.SaveBlock(block); err != nil {
 		internal := apperrors.Internal()
 		return domain.BlockRelationship{}, &internal
@@ -279,6 +448,84 @@ func matchesRequestRole(request domain.FriendRequest, playerID string, role stri
 	default:
 		return request.FromPlayerID == playerID || request.ToPlayerID == playerID
 	}
+}
+
+func (s *SocialService) buildRelationshipSnapshot(playerID string, targetPlayerID string) (domain.RelationshipSnapshot, *apperrors.Error) {
+	requests, err := s.requests.ListFriendRequests()
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.RelationshipSnapshot{}, &internal
+	}
+	friend := s.isFriend(playerID, targetPlayerID)
+	blocked := s.isBlocked(playerID, targetPlayerID)
+	blockedBy := s.isBlocked(targetPlayerID, playerID)
+	pendingInbox := false
+	pendingOutbox := false
+	updatedAt := time.Time{}
+
+	for _, request := range requests {
+		if request.Status != friendRequestPending {
+			continue
+		}
+		switch {
+		case request.FromPlayerID == targetPlayerID && request.ToPlayerID == playerID:
+			pendingInbox = true
+			if request.CreatedAt.After(updatedAt) {
+				updatedAt = request.CreatedAt
+			}
+		case request.FromPlayerID == playerID && request.ToPlayerID == targetPlayerID:
+			pendingOutbox = true
+			if request.CreatedAt.After(updatedAt) {
+				updatedAt = request.CreatedAt
+			}
+		}
+	}
+
+	remark := ""
+	if record, ok, err := s.remarks.GetRemark(playerID, targetPlayerID); err == nil && ok {
+		remark = record.Remark
+		if record.UpdatedAt.After(updatedAt) {
+			updatedAt = record.UpdatedAt
+		}
+	}
+	reverseRemark := ""
+	if record, ok, err := s.remarks.GetRemark(targetPlayerID, playerID); err == nil && ok {
+		reverseRemark = record.Remark
+		if record.UpdatedAt.After(updatedAt) {
+			updatedAt = record.UpdatedAt
+		}
+	}
+	if updatedAt.IsZero() {
+		updatedAt = s.now()
+	}
+
+	state := relationshipNone
+	switch {
+	case blocked:
+		state = relationshipBlocked
+	case blockedBy:
+		state = relationshipBlockedBy
+	case friend:
+		state = relationshipFriend
+	case pendingInbox:
+		state = relationshipPendingInbox
+	case pendingOutbox:
+		state = relationshipPendingOutbox
+	}
+
+	return domain.RelationshipSnapshot{
+		PlayerID:         playerID,
+		TargetPlayerID:   targetPlayerID,
+		State:            state,
+		IsFriend:         friend,
+		HasPendingInbox:  pendingInbox,
+		HasPendingOutbox: pendingOutbox,
+		IsBlocked:        blocked,
+		IsBlockedBy:      blockedBy,
+		Remark:           remark,
+		ReverseRemark:    reverseRemark,
+		UpdatedAt:        updatedAt,
+	}, nil
 }
 
 func (s *SocialService) String() string {

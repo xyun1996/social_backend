@@ -1,241 +1,85 @@
 # Chat HTTP Contract
 
-Base purpose: conversation creation, message sequencing, read acknowledgement, and replay.
+Base purpose: conversation creation, sequencing, replay, read acknowledgements, and governance-aware policy reads.
 
 ## Health
 
 - `GET /healthz`
 
-## Create Conversation
+## Core Conversation Flows
 
 - `POST /v1/conversations`
-- Request
-
-```json
-{
-  "kind": "private",
-  "resource_id": "",
-  "member_player_ids": ["p1", "p2"]
-}
-```
-
-- Response `200`
-
-```json
-{
-  "id": "conv-1",
-  "kind": "private",
-  "resource_id": "",
-  "member_player_ids": ["p1", "p2"],
-  "last_seq": 0,
-  "created_at": "2026-03-13T10:00:00Z"
-}
-```
-
-- Rules
-- Supported `kind`: `private`, `group`, `guild`, `party`, `world`, `system`, `custom`
-- `private` requires exactly 2 distinct members
-- `group` requires at least 2 distinct members
-- `guild`, `party`, `world`, `system`, and `custom` require `resource_id`
-- `private` and `group` cannot set `resource_id`
-- Resource-backed kinds reuse the same conversation for the same `kind + resource_id` and reconcile member scope on repeated create calls
-
-## List Conversations
-
 - `GET /v1/conversations?player_id=p1`
-- Response `200`
-
-```json
-{
-  "player_id": "p1",
-  "count": 1,
-  "conversations": []
-}
-```
-
-## List Conversation Summaries
-
 - `GET /v1/conversation-summaries?player_id=p1`
-- Response `200`
-
-```json
-{
-  "player_id": "p1",
-  "count": 1,
-  "summaries": []
-}
-```
-
-- Rules
-- `guild` and `party` summaries are only visible to current members of the backing resource when runtime membership readers are configured
-
-## Send Message
-
 - `POST /v1/conversations/{conversationID}/messages`
-- Request
-
-```json
-{
-  "sender_player_id": "p1",
-  "body": "hello"
-}
-```
-
-- Response `200`
-
-```json
-{
-  "id": "msg-1",
-  "conversation_id": "conv-1",
-  "seq": 1,
-  "sender_player_id": "p1",
-  "body": "hello",
-  "created_at": "2026-03-13T10:00:00Z"
-}
-```
-
-- Rules
-- `seq` is monotonic within a conversation
-- `system` conversations only allow sender `system`
-- Other kinds require sender membership
-- `guild` and `party` kinds also require current membership in the backing guild or party when that runtime reader is configured
-- When the worker boundary is configured, offline recipients also enqueue `chat.offline_delivery` job intent
-
-## Replay Messages
-
-- `GET /v1/conversations/{conversationID}/messages?player_id=p2&after_seq=1&limit=50`
-- Response `200`
-
-```json
-{
-  "conversation_id": "conv-1",
-  "player_id": "p2",
-  "after_seq": 1,
-  "count": 1,
-  "messages": []
-}
-```
-
-- Rules
-- Returns messages with `seq > after_seq`
-- `limit` defaults to service default and is capped by service max
-- `guild` and `party` replays require current membership in the backing resource when that runtime reader is configured
-
-## Ack Conversation
-
+- `GET /v1/conversations/{conversationID}/messages?player_id=p1&after_seq=0&limit=50`
 - `POST /v1/conversations/{conversationID}/ack`
-- Request
+- `GET /v1/conversations/{conversationID}/summary?player_id=p1`
+- `GET /v1/conversations/{conversationID}/delivery?sender_player_id=p1`
 
-```json
-{
-  "player_id": "p2",
-  "ack_seq": 2
-}
-```
-
-- Response `200`
-
-```json
-{
-  "conversation_id": "conv-1",
-  "player_id": "p2",
-  "ack_seq": 2,
-  "updated_at": "2026-03-13T10:00:00Z"
-}
-```
-
-- Rules
-- `ack_seq` cannot exceed `last_seq`
-- Ack cursor is monotonic and never moves backward
-
-## Get Conversation Summary
-
-- `GET /v1/conversations/{conversationID}/summary?player_id=p2`
-- Response `200`
-
-```json
-{
-  "conversation_id": "conv-1",
-  "kind": "private",
-  "player_id": "p2",
-  "last_seq": 2,
-  "ack_seq": 1,
-  "unread_count": 1,
-  "last_message": {
-    "id": "msg-2",
-    "conversation_id": "conv-1",
-    "seq": 2,
-    "sender_player_id": "p2",
-    "body": "hi",
-    "created_at": "2026-03-13T10:00:01Z"
-  },
-  "updated_at": "2026-03-13T10:00:01Z"
-}
-```
-
-## Get Channel Descriptor
+## Policy Surface
 
 - `GET /v1/conversations/{conversationID}/channel`
-- Response `200`
+- `GET /v1/conversations/{conversationID}/governance`
+
+Governance/channel responses now include:
+- `send_policy`
+- `visibility_policy`
+- `moderation_mode`
+- `moderator_ids`
+- `muted_player_ids`
+
+## V2 Chat Governance Additions
+
+### Update Governance
+
+- `POST /v1/conversations/{conversationID}/governance`
 
 ```json
 {
-  "conversation_id": "conv-1",
-  "kind": "guild",
-  "resource_id": "guild-1",
-  "scope": "resource",
-  "membership_mode": "resource_bound",
-  "send_policy": "members",
-  "resource_required": true,
-  "member_count": 3
+  "actor_player_id": "system",
+  "send_policy": "moderated",
+  "visibility_policy": "public_read"
 }
 ```
 
-- Rules
-- Resource-backed kinds (`guild`, `party`, `world`, `system`, `custom`) report `scope = resource`
-- Direct conversations (`private`, `group`) report `scope = direct`
-- `system` channels report `send_policy = system_only`
+Supported policies:
+- `send_policy`: `members`, `moderated`, `system_only`
+- `visibility_policy`: `members`, `public_read`
 
-## Delivery Plan
+### Set Moderator
 
-- `GET /v1/conversations/{conversationID}/delivery?sender_player_id=p1`
-- Response `200`
+- `POST /v1/conversations/{conversationID}/moderators`
 
 ```json
 {
-  "conversation_id": "conv-1",
-  "sender_player_id": "p1",
-  "count": 1,
-  "targets": [
-    {
-      "player_id": "p2",
-      "presence": "online",
-      "delivery_mode": "online_push",
-      "session_id": "sess-2",
-      "realm_id": "realm-1",
-      "location": "lobby"
-    }
-  ]
+  "actor_player_id": "system",
+  "target_player_id": "p1",
+  "enabled": true
 }
 ```
 
-- Rules
-- Only valid conversation senders can request delivery planning
-- Online members are marked `online_push`
-- Missing or offline presence falls back to `offline_replay`
+### Set Mute
+
+- `POST /v1/conversations/{conversationID}/mutes`
+
+```json
+{
+  "actor_player_id": "system",
+  "target_player_id": "p2",
+  "enabled": true
+}
+```
+
+## Governance Rules
+
+- `system` channels remain `system_only`
+- `world` defaults to `moderated`
+- `world` and `custom` may use `public_read`
+- muted senders cannot publish messages
+- moderated channels only allow `system` or listed moderators to send
+- `guild` and `party` channels still enforce backing resource membership for current members
 
 ## Internal Offline Delivery Processing
 
 - `POST /v1/internal/offline-deliveries`
-- Request
-
-```json
-{
-  "conversation_id": "conv-1",
-  "message_id": "msg-1",
-  "recipient_player": "p2",
-  "delivery_mode": "offline_replay"
-}
-```
-
-- Response `200`: offline delivery receipt
