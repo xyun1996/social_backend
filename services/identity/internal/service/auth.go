@@ -10,38 +10,60 @@ import (
 )
 
 const (
-	accessTokenBytes  = 16
-	refreshTokenBytes = 24
-	accessTokenTTL    = time.Hour
+	accessTokenBytes       = 16
+	refreshTokenBytes      = 24
+	defaultAccessTokenTTL  = time.Hour
+	defaultRefreshTokenTTL = 7 * 24 * time.Hour
 )
+
+// Options configures token lifecycle defaults for the identity service.
+type Options struct {
+	AccessTokenTTL  time.Duration
+	RefreshTokenTTL time.Duration
+}
 
 // AuthService provides a local in-memory auth flow for early development.
 type AuthService struct {
-	accounts AccountStore
-	sessions SessionStore
-	now      func() time.Time
+	accounts   AccountStore
+	sessions   SessionStore
+	now        func() time.Time
+	accessTTL  time.Duration
+	refreshTTL time.Duration
 }
 
 // NewAuthService constructs an in-memory auth service.
 func NewAuthService() *AuthService {
 	stores := newMemoryStores()
-	return &AuthService{
-		accounts: accountStoreWithLock(stores),
-		sessions: sessionStoreWithLock(stores),
-		now:      time.Now,
-	}
+	return NewAuthServiceWithOptions(accountStoreWithLock(stores), sessionStoreWithLock(stores), Options{})
 }
 
 // NewAuthServiceWithStores constructs an auth service with custom persistence stores.
 func NewAuthServiceWithStores(accounts AccountStore, sessions SessionStore) *AuthService {
+	return NewAuthServiceWithOptions(accounts, sessions, Options{})
+}
+
+// NewAuthServiceWithOptions constructs an auth service with configurable stores and token TTLs.
+func NewAuthServiceWithOptions(accounts AccountStore, sessions SessionStore, options Options) *AuthService {
 	if accounts == nil || sessions == nil {
 		return NewAuthService()
 	}
 
+	accessTTL := options.AccessTokenTTL
+	if accessTTL <= 0 {
+		accessTTL = defaultAccessTokenTTL
+	}
+
+	refreshTTL := options.RefreshTokenTTL
+	if refreshTTL <= 0 {
+		refreshTTL = defaultRefreshTokenTTL
+	}
+
 	return &AuthService{
-		accounts: accounts,
-		sessions: sessions,
-		now:      time.Now,
+		accounts:   accounts,
+		sessions:   sessions,
+		now:        time.Now,
+		accessTTL:  accessTTL,
+		refreshTTL: refreshTTL,
 	}
 }
 
@@ -86,6 +108,11 @@ func (s *AuthService) Refresh(refreshToken string) (domain.TokenPair, *apperrors
 		err := apperrors.New("unauthorized", "refresh token is invalid", 401)
 		return domain.TokenPair{}, &err
 	}
+	if !session.RefreshExpiresAt.IsZero() && session.RefreshExpiresAt.Before(s.now()) {
+		_ = s.sessions.DeleteSessionByRefreshToken(refreshToken)
+		err := apperrors.New("unauthorized", "refresh token has expired", 401)
+		return domain.TokenPair{}, &err
+	}
 
 	if err := s.sessions.DeleteSessionByRefreshToken(refreshToken); err != nil {
 		internal := apperrors.Internal()
@@ -123,6 +150,10 @@ func (s *AuthService) Introspect(accessToken string) (domain.Subject, *apperrors
 	}
 	if !ok {
 		err := apperrors.New("unauthorized", "access token is invalid", 401)
+		return domain.Subject{}, &err
+	}
+	if !session.ExpiresAt.IsZero() && session.ExpiresAt.Before(s.now()) {
+		err := apperrors.New("unauthorized", "access token has expired", 401)
 		return domain.Subject{}, &err
 	}
 
@@ -190,18 +221,19 @@ func (s *AuthService) issueTokens(accountID string, playerID string) (domain.Tok
 	}
 
 	session := domain.Session{
-		AccessToken:  accessToken,
-		AccountID:    accountID,
-		PlayerID:     playerID,
-		RefreshToken: refreshToken,
-		ExpiresAt:    s.now().Add(accessTokenTTL),
+		AccessToken:      accessToken,
+		AccountID:        accountID,
+		PlayerID:         playerID,
+		RefreshToken:     refreshToken,
+		ExpiresAt:        s.now().Add(s.accessTTL),
+		RefreshExpiresAt: s.now().Add(s.refreshTTL),
 	}
 
 	return domain.TokenPair{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		TokenType:    "Bearer",
-		ExpiresIn:    time.Duration(accessTokenTTL.Seconds()),
+		ExpiresIn:    time.Duration(s.accessTTL.Seconds()),
 		AccountID:    accountID,
 		PlayerID:     playerID,
 	}, session, nil

@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
+	gomysql "github.com/go-sql-driver/mysql"
 )
 
 const schemaMigrationsTable = "schema_migrations"
@@ -54,6 +56,9 @@ func ApplyMySQLMigrations(ctx context.Context, sqlDB *sql.DB, service string, mi
 
 		for _, statement := range migration.Statements {
 			if _, err := sqlDB.ExecContext(ctx, statement); err != nil {
+				if isIgnoredMigrationError(err) {
+					continue
+				}
 				return err
 			}
 		}
@@ -69,6 +74,15 @@ func ApplyMySQLMigrations(ctx context.Context, sqlDB *sql.DB, service string, mi
 	}
 
 	return nil
+}
+
+func isIgnoredMigrationError(err error) bool {
+	var mysqlErr *gomysql.MySQLError
+	if errors.As(err, &mysqlErr) && mysqlErr.Number == 1060 {
+		return true
+	}
+
+	return false
 }
 
 func migrationApplied(ctx context.Context, sqlDB *sql.DB, service string, migrationID string) (bool, error) {

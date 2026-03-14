@@ -1,15 +1,14 @@
 # Runbooks
 
-Use one file per meaningful operator or incident workflow once implementation begins.
+This directory now carries the minimum on-call baseline for the single-region production target.
 
-## Expected Topics
+## Active Runbooks
 
-- Gateway disconnect storm triage
-- Redis degradation handling
-- MySQL write backlog triage
-- Message replay lag investigation
-- Worker retry backlog recovery
-- Operator mute or system broadcast procedure
+- [Gateway disconnect storm triage](gateway-disconnect-storm.md)
+- [Redis degradation handling](redis-degradation.md)
+- [MySQL write backlog triage](mysql-write-backlog.md)
+- [Chat delivery failure triage](chat-delivery-failure.md)
+- [Worker retry backlog recovery](worker-retry-backlog.md)
 - [Local durable bootstrap and status triage](local-durable-troubleshooting.md)
 - [Proto generation workflow](proto-generation.md)
 - [Contract inventory workflow](contract-inventory.md)

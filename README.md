@@ -116,7 +116,18 @@ Worker also supports an optional background drain loop via `WORKER_AUTO_RUN=true
 - `make proto`
 - `make check-contracts`
 - `make check-dev`
+- `make release-dry-run`
+- `make load-hot-paths`
+- `make fault-drill`
 - `make proto`
+
+Production hardening defaults:
+
+- `APP_INTERNAL_TOKEN` protects `/v1/internal/*` endpoints when set.
+- `OPS_API_TOKEN` protects `/v1/ops/*` endpoints when set.
+- `APP_HTTP_RATE_LIMIT_RPS` and `APP_HTTP_RATE_LIMIT_BURST` enable shared mutating-request throttling.
+- Service-specific overrides are supported through `<SERVICE>_HTTP_RATE_LIMIT_RPS` and `<SERVICE>_HTTP_RATE_LIMIT_BURST`.
+- Every service now exposes `/readyz` and `/metrics` in addition to its domain routes.
 
 Starter service defaults:
 

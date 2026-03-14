@@ -2,6 +2,12 @@
 
 ## 2026-03-14
 
+- Added production hardening baseline:
+  - shared HTTP request IDs, recovery, metrics, access logs, audit logs, and rate limiting
+  - internal and ops token enforcement hooks
+  - identity token lifecycle configuration and refresh expiry handling
+  - production runbooks, release dry-run, and CI workflow
+
 - Published `v2.0` as the active implementation line under `guild progression + guild chat integration`.
 - Extended guild durable storage with contributions, activity instances, idempotent activity records, and reward bookkeeping.
 - Added guild progression, contribution, reward, and instance HTTP reads.

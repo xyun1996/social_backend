@@ -2,6 +2,7 @@ package service
 
 import (
 	"testing"
+	"time"
 
 	"github.com/xyun1996/social_backend/services/identity/internal/domain"
 )
@@ -23,10 +24,12 @@ type recordingSessionStore struct {
 }
 
 type sessionRecord struct {
-	accountID    string
-	playerID     string
-	accessToken  string
-	refreshToken string
+	accountID        string
+	playerID         string
+	accessToken      string
+	refreshToken     string
+	expiresAt        time.Time
+	refreshExpiresAt time.Time
 }
 
 func newRecordingSessionStore() *recordingSessionStore {
@@ -38,10 +41,12 @@ func newRecordingSessionStore() *recordingSessionStore {
 
 func (s *recordingSessionStore) SaveSession(session domain.Session) error {
 	record := sessionRecord{
-		accountID:    session.AccountID,
-		playerID:     session.PlayerID,
-		accessToken:  session.AccessToken,
-		refreshToken: session.RefreshToken,
+		accountID:        session.AccountID,
+		playerID:         session.PlayerID,
+		accessToken:      session.AccessToken,
+		refreshToken:     session.RefreshToken,
+		expiresAt:        session.ExpiresAt,
+		refreshExpiresAt: session.RefreshExpiresAt,
 	}
 	s.sessionsByRefresh[session.RefreshToken] = record
 	s.sessionsByAccess[session.AccessToken] = record
@@ -54,10 +59,12 @@ func (s *recordingSessionStore) GetSessionByRefreshToken(refreshToken string) (d
 		return domain.Session{}, false, nil
 	}
 	return domain.Session{
-		AccountID:    record.accountID,
-		PlayerID:     record.playerID,
-		AccessToken:  record.accessToken,
-		RefreshToken: record.refreshToken,
+		AccountID:        record.accountID,
+		PlayerID:         record.playerID,
+		AccessToken:      record.accessToken,
+		RefreshToken:     record.refreshToken,
+		ExpiresAt:        record.expiresAt,
+		RefreshExpiresAt: record.refreshExpiresAt,
 	}, true, nil
 }
 
@@ -67,10 +74,12 @@ func (s *recordingSessionStore) GetSessionByAccessToken(accessToken string) (dom
 		return domain.Session{}, false, nil
 	}
 	return domain.Session{
-		AccountID:    record.accountID,
-		PlayerID:     record.playerID,
-		AccessToken:  record.accessToken,
-		RefreshToken: record.refreshToken,
+		AccountID:        record.accountID,
+		PlayerID:         record.playerID,
+		AccessToken:      record.accessToken,
+		RefreshToken:     record.refreshToken,
+		ExpiresAt:        record.expiresAt,
+		RefreshExpiresAt: record.refreshExpiresAt,
 	}, true, nil
 }
 
@@ -164,5 +173,49 @@ func TestLoginUsesInjectedStores(t *testing.T) {
 	}
 	if _, ok := sessions.sessionsByRefresh[pair.RefreshToken]; !ok {
 		t.Fatalf("expected refresh token to be stored")
+	}
+}
+
+func TestRefreshRejectsExpiredRefreshToken(t *testing.T) {
+	t.Parallel()
+
+	accounts := &recordingAccountStore{}
+	sessions := newRecordingSessionStore()
+	svc := NewAuthServiceWithOptions(accounts, sessions, Options{
+		AccessTokenTTL:  time.Hour,
+		RefreshTokenTTL: time.Minute,
+	})
+	svc.now = func() time.Time { return time.Unix(1000, 0).UTC() }
+
+	pair, err := svc.Login("account-1", "player-1")
+	if err != nil {
+		t.Fatalf("login returned error: %+v", err)
+	}
+
+	svc.now = func() time.Time { return time.Unix(1000, 0).Add(2 * time.Minute).UTC() }
+	if _, refreshErr := svc.Refresh(pair.RefreshToken); refreshErr == nil {
+		t.Fatalf("expected expired refresh token to fail")
+	}
+}
+
+func TestIntrospectRejectsExpiredAccessToken(t *testing.T) {
+	t.Parallel()
+
+	accounts := &recordingAccountStore{}
+	sessions := newRecordingSessionStore()
+	svc := NewAuthServiceWithOptions(accounts, sessions, Options{
+		AccessTokenTTL:  time.Minute,
+		RefreshTokenTTL: time.Hour,
+	})
+	svc.now = func() time.Time { return time.Unix(2000, 0).UTC() }
+
+	pair, err := svc.Login("account-1", "player-1")
+	if err != nil {
+		t.Fatalf("login returned error: %+v", err)
+	}
+
+	svc.now = func() time.Time { return time.Unix(2000, 0).Add(2 * time.Minute).UTC() }
+	if _, introspectErr := svc.Introspect(pair.AccessToken); introspectErr == nil {
+		t.Fatalf("expected expired access token to fail")
 	}
 }

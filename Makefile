@@ -1,4 +1,4 @@
-.PHONY: help bootstrap test proto proto-check proto-lint check-contracts check-dev lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker run-identity-mysql run-social-mysql run-invite-mysql run-chat-mysql run-party-mysql run-guild-mysql run-presence-redis run-worker-redis run-gateway-redis run-ops-durable test-local-durable bootstrap-local-mysql verify-local-mysql-migrations check-local-durable-status
+.PHONY: help bootstrap test proto proto-check proto-lint check-contracts check-dev lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker run-identity-mysql run-social-mysql run-invite-mysql run-chat-mysql run-party-mysql run-guild-mysql run-presence-redis run-worker-redis run-gateway-redis run-ops-durable test-local-durable bootstrap-local-mysql verify-local-mysql-migrations check-local-durable-status release-dry-run load-hot-paths fault-drill
 
 help:
 	@echo "Available targets:"
@@ -36,6 +36,9 @@ help:
 	@echo "  bootstrap-local-mysql - bootstrap owned MySQL schemas without serving traffic"
 	@echo "  verify-local-mysql-migrations - inspect required schema_migrations rows on local MySQL"
 	@echo "  check-local-durable-status - query ops for local MySQL and Redis durable status"
+	@echo "  release-dry-run - run the single-region release checklist without deploying"
+	@echo "  load-hot-paths - execute benchmark-style hot path smoke load tests"
+	@echo "  fault-drill - run local dependency fault drill helper"
 
 bootstrap:
 	@echo "Repository scaffold is in place."
@@ -142,3 +145,12 @@ verify-local-mysql-migrations:
 
 check-local-durable-status:
 	powershell -ExecutionPolicy Bypass -File ./scripts/dev/check-local-durable-status.ps1
+
+release-dry-run:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release/release-dry-run.ps1
+
+load-hot-paths:
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/load-hot-paths.ps1
+
+fault-drill:
+	powershell -ExecutionPolicy Bypass -File ./scripts/dev/fault-drill.ps1

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
+	gomysql "github.com/go-sql-driver/mysql"
 )
 
 func TestFlattenMigrationsPreservesOrder(t *testing.T) {
@@ -76,6 +77,36 @@ func TestApplyMySQLMigrationsStopsOnStatementError(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatalf("expected migration application to fail")
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("expectations: %v", err)
+	}
+}
+
+func TestApplyMySQLMigrationsIgnoresDuplicateColumnError(t *testing.T) {
+	t.Parallel()
+
+	sqlDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock new: %v", err)
+	}
+	defer sqlDB.Close()
+
+	mock.ExpectExec(regexp.QuoteMeta("CREATE TABLE IF NOT EXISTS schema_migrations")).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT 1 FROM schema_migrations WHERE service_name = ? AND migration_id = ? LIMIT 1")).
+		WithArgs("identity", "002_add_column").
+		WillReturnRows(sqlmock.NewRows([]string{"1"}))
+	mock.ExpectExec(regexp.QuoteMeta("ALTER TABLE identity_refresh_tokens ADD COLUMN refresh_expires_at TIMESTAMP NULL")).
+		WillReturnError(&gomysql.MySQLError{Number: 1060, Message: "Duplicate column name 'refresh_expires_at'"})
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO schema_migrations (service_name, migration_id) VALUES (?, ?)")).
+		WithArgs("identity", "002_add_column").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = ApplyMySQLMigrations(context.Background(), sqlDB, "identity", []Migration{
+		{ID: "002_add_column", Statements: []string{"ALTER TABLE identity_refresh_tokens ADD COLUMN refresh_expires_at TIMESTAMP NULL"}},
+	})
+	if err != nil {
+		t.Fatalf("apply migrations: %v", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("expectations: %v", err)

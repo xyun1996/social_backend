@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/xyun1996/social_backend/pkg/auth"
 	apperrors "github.com/xyun1996/social_backend/pkg/errors"
 )
 
@@ -39,6 +40,7 @@ func (c *HTTPClient) RecordOfflineDelivery(ctx context.Context, payload map[stri
 		return &internal
 	}
 	req.Header.Set("Content-Type", "application/json")
+	auth.ApplyInternalToken(req)
 
 	resp, err := c.client.Do(req)
 	if err != nil {

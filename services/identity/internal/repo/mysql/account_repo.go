@@ -54,10 +54,18 @@ func (r *Repository) Migrations() []db.Migration {
 					access_token VARCHAR(255) NOT NULL UNIQUE,
 					refresh_token VARCHAR(255) NOT NULL,
 					access_expires_at TIMESTAMP NOT NULL,
+					refresh_expires_at TIMESTAMP NULL,
 					created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 					expires_at TIMESTAMP NULL,
 					INDEX idx_identity_refresh_tokens_account (account_id)
 				);`,
+			},
+		},
+		{
+			ID: "002_identity_refresh_expiry",
+			Statements: []string{
+				`ALTER TABLE identity_refresh_tokens
+					ADD COLUMN refresh_expires_at TIMESTAMP NULL AFTER access_expires_at;`,
 			},
 		},
 	}
@@ -108,19 +116,22 @@ func (r *Repository) SaveSession(session domain.Session) error {
 			player_id,
 			access_token,
 			refresh_token,
-			access_expires_at
-		) VALUES (?, ?, ?, ?, ?, ?)
+			access_expires_at,
+			refresh_expires_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?)
 		ON DUPLICATE KEY UPDATE
 			account_id = VALUES(account_id),
 			player_id = VALUES(player_id),
 			access_token = VALUES(access_token),
-			access_expires_at = VALUES(access_expires_at)`,
+			access_expires_at = VALUES(access_expires_at),
+			refresh_expires_at = VALUES(refresh_expires_at)`,
 		session.RefreshToken,
 		session.AccountID,
 		session.PlayerID,
 		session.AccessToken,
 		session.RefreshToken,
 		session.ExpiresAt.UTC(),
+		session.RefreshExpiresAt.UTC(),
 	)
 	return err
 }
@@ -133,14 +144,14 @@ func (r *Repository) GetSessionByRefreshToken(refreshToken string) (domain.Sessi
 
 	row := r.sqlDB.QueryRowContext(
 		context.Background(),
-		`SELECT account_id, player_id, access_token, refresh_token, access_expires_at
+		`SELECT account_id, player_id, access_token, refresh_token, access_expires_at, refresh_expires_at
 		 FROM identity_refresh_tokens
 		 WHERE refresh_token = ?`,
 		refreshToken,
 	)
 
 	var session domain.Session
-	if err := row.Scan(&session.AccountID, &session.PlayerID, &session.AccessToken, &session.RefreshToken, &session.ExpiresAt); err != nil {
+	if err := row.Scan(&session.AccountID, &session.PlayerID, &session.AccessToken, &session.RefreshToken, &session.ExpiresAt, &session.RefreshExpiresAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.Session{}, false, nil
 		}
@@ -158,14 +169,14 @@ func (r *Repository) GetSessionByAccessToken(accessToken string) (domain.Session
 
 	row := r.sqlDB.QueryRowContext(
 		context.Background(),
-		`SELECT account_id, player_id, access_token, refresh_token, access_expires_at
+		`SELECT account_id, player_id, access_token, refresh_token, access_expires_at, refresh_expires_at
 		 FROM identity_refresh_tokens
 		 WHERE access_token = ?`,
 		accessToken,
 	)
 
 	var session domain.Session
-	if err := row.Scan(&session.AccountID, &session.PlayerID, &session.AccessToken, &session.RefreshToken, &session.ExpiresAt); err != nil {
+	if err := row.Scan(&session.AccountID, &session.PlayerID, &session.AccessToken, &session.RefreshToken, &session.ExpiresAt, &session.RefreshExpiresAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.Session{}, false, nil
 		}

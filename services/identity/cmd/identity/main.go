@@ -44,8 +44,12 @@ func bootstrapOnlyEnabled() bool {
 }
 
 func buildAuthService() (*service.AuthService, func(), error) {
+	options := service.Options{
+		AccessTokenTTL:  durationFromEnv("IDENTITY_ACCESS_TOKEN_TTL", time.Hour),
+		RefreshTokenTTL: durationFromEnv("IDENTITY_REFRESH_TOKEN_TTL", 7*24*time.Hour),
+	}
 	if !strings.EqualFold(strings.TrimSpace(os.Getenv("IDENTITY_STORE")), "mysql") {
-		return service.NewAuthService(), func() {}, nil
+		return service.NewAuthServiceWithOptions(nil, nil, options), func() {}, nil
 	}
 
 	mysqlConfig := db.LoadMySQLConfig()
@@ -62,7 +66,21 @@ func buildAuthService() (*service.AuthService, func(), error) {
 			return nil, func() {}, err
 		}
 	}
-	return service.NewAuthServiceWithStores(repo, repo), func() {
+	return service.NewAuthServiceWithOptions(repo, repo, options), func() {
 		_ = sqlDB.Close()
 	}, nil
+}
+
+func durationFromEnv(key string, fallback time.Duration) time.Duration {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+
+	value, err := time.ParseDuration(raw)
+	if err != nil || value <= 0 {
+		return fallback
+	}
+
+	return value
 }

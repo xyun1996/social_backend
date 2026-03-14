@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/xyun1996/social_backend/pkg/auth"
 	apperrors "github.com/xyun1996/social_backend/pkg/errors"
 )
 
@@ -30,6 +31,7 @@ func (c *HTTPClient) ExpireInvite(ctx context.Context, inviteID string) *apperro
 		internal := apperrors.Internal()
 		return &internal
 	}
+	auth.ApplyInternalToken(req)
 
 	resp, err := c.client.Do(req)
 	if err != nil {

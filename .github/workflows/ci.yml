@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+      - "codex/**"
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run Go tests
+        shell: pwsh
+        run: go test ./...
+
+      - name: Proto check
+        shell: pwsh
+        run: ./scripts/dev/proto-check.ps1
+
+      - name: Contract inventory
+        shell: pwsh
+        run: go run ./scripts/dev/cmd/check_contract_inventory
+
+      - name: Release dry run
+        shell: pwsh
+        run: ./scripts/release/release-dry-run.ps1

@@ -1,51 +1,48 @@
 # Current Plan
 
-- Version: `v2`
+- Version: `production`
 - Last updated: `2026-03-14`
 - Source of truth level: highest
 
 ## Current Goal
 
-Record `v2` as delivered. The active implementation line is complete across:
-- `guild` progression and guild-chat integration (`v2.0`)
-- `social` depth
-- `chat` governance
-- `runtime` hardening
-- `ops` expansion
+Turn the completed `v1 + v2` feature line into a single-region production baseline with explicit security, observability, deployment, and operator recovery rules.
 
 ## Success Criteria
 
-- Richer social relationship reads and friend remarks are available.
-- World/custom/system chat governance is policy-aware and moderation-ready.
-- Worker retry/backoff and party queue expiry behavior are visible and testable.
-- Ops surfaces expose deeper social, queue, worker, and guild state than `v1`.
+- Internal endpoints require service tokens when configured.
+- Ops endpoints require bearer auth when configured.
+- Shared request logging, request IDs, recovery, audit events, metrics, and mutating-request rate limiting are enabled by default.
+- CI validates tests, proto checks, contract inventory, and release dry-run entrypoints.
+- Production runbooks exist for Redis, MySQL, worker backlog, gateway disconnect storms, and chat delivery failures.
 - `go test ./...`, `make check-dev`, and `make test-local-durable` stay green.
 
 ## Status
 
-`v2` is complete.
+`production` hardening is active.
 
-## Delivered Milestones
+## Active Milestones
 
-1. [01 Social Depth](v2/milestones/01-social-depth.md)
-2. [02 Chat Governance](v2/milestones/02-chat-governance.md)
-3. [03 Guild Progression](v2/milestones/03-guild-progression.md)
-4. [04 Runtime Hardening](v2/milestones/04-runtime-hardening.md)
-5. [05 Ops Expansion](v2/milestones/05-ops-expansion.md)
+1. Security and trust boundaries
+2. Observability and alerting baseline
+3. Release and rollback baseline
+4. Incident runbooks and drills
+5. Load and failure validation
 
 ## Remaining Follow-ups
 
 - Proto contracts still trail some HTTP/runtime surfaces.
-- Rich chat cards and deeper moderation workflows remain backlog items.
-- Production-grade scheduling and rollout automation remain beyond `v2`.
+- Deep moderation products, advanced worker scheduling, and multi-region rollout remain backlog items.
+- Production dashboards and external alert routing still need infrastructure-side hookup.
 
 ## Key Dependencies
 
 - [docs/plans/v2/roadmap.md](v2/roadmap.md)
+- [docs/plans/production/roadmap.md](production/roadmap.md)
 - [docs/plans/backlog.md](backlog.md)
 - [docs/releases/project-archive-v1.md](../releases/project-archive-v1.md)
 
 ## Update Rules
 
 - `v1` and `v2` release docs remain historical facts.
-- New work should start a fresh post-`v2` plan instead of widening the closed `v2` scope.
+- Production hardening is a separate line and should not reopen closed feature scopes without an explicit plan update.
