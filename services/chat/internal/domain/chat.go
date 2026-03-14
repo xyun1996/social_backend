@@ -24,6 +24,19 @@ type ChannelDescriptor struct {
 	MemberCount      int    `json:"member_count"`
 }
 
+// ConversationSummary is the player-facing rollup for unread and latest-message reads.
+type ConversationSummary struct {
+	ConversationID string    `json:"conversation_id"`
+	Kind           string    `json:"kind"`
+	ResourceID     string    `json:"resource_id,omitempty"`
+	PlayerID       string    `json:"player_id"`
+	LastSeq        int64     `json:"last_seq"`
+	AckSeq         int64     `json:"ack_seq"`
+	UnreadCount    int64     `json:"unread_count"`
+	LastMessage    *Message  `json:"last_message,omitempty"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
 // Message is an immutable conversation entry ordered by seq.
 type Message struct {
 	ID             string    `json:"id"`

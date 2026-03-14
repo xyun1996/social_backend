@@ -58,6 +58,15 @@ message QueueAssignment {
   google.protobuf.Timestamp assigned_at = 8;
 }
 
+message QueueResolution {
+  string ticket_id = 1;
+  string party_id = 2;
+  string queue_name = 3;
+  string match_id = 4;
+  string status = 5;
+  google.protobuf.Timestamp resolved_at = 6;
+}
+
 message MemberState {
   string player_id = 1;
   bool is_leader = 2;
@@ -113,6 +122,13 @@ message AssignMatchRequest {
   string connection_hint = 5;
 }
 
+message ResolveMatchRequest {
+  string party_id = 1;
+  string ticket_id = 2;
+  string match_id = 3;
+  string status = 4;
+}
+
 message ListReadyStatesResponse {
   string party_id = 1;
   repeated ReadyState ready_states = 2;
@@ -135,6 +151,7 @@ service PartyService {
   rpc GetQueueHandoff(GetPartyRequest) returns (QueueHandoff);
   rpc AssignMatch(AssignMatchRequest) returns (QueueAssignment);
   rpc GetQueueAssignment(GetPartyRequest) returns (QueueAssignment);
+  rpc ResolveMatch(ResolveMatchRequest) returns (QueueResolution);
   rpc ListReadyStates(GetPartyRequest) returns (ListReadyStatesResponse);
   rpc ListMemberStates(GetPartyRequest) returns (ListMemberStatesResponse);
 }

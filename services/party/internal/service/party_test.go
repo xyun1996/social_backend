@@ -452,6 +452,47 @@ func TestAssignMatchRequiresMatchingTicket(t *testing.T) {
 	}
 }
 
+func TestResolveMatchClearsQueueOwnership(t *testing.T) {
+	t.Parallel()
+
+	presence := &fakePresenceReader{
+		snapshots: map[string]PresenceSnapshot{
+			"p1": {PlayerID: "p1", Status: presenceOnline},
+		},
+	}
+	svc := NewPartyService(&fakeInviteClient{}, presence)
+	svc.newPartyID = func() (string, error) { return "party-1", nil }
+	party, err := svc.CreateParty("p1")
+	if err != nil {
+		t.Fatalf("create party returned error: %+v", err)
+	}
+	if _, readyErr := svc.SetReady(party.ID, "p1", true); readyErr != nil {
+		t.Fatalf("set ready returned error: %+v", readyErr)
+	}
+	state, queueErr := svc.JoinQueue(context.Background(), party.ID, "p1", "casual-2v2")
+	if queueErr != nil {
+		t.Fatalf("join queue returned error: %+v", queueErr)
+	}
+	ticketID := queueTicketID(party.ID, state.QueueName, state.JoinedAt)
+	if _, assignErr := svc.AssignMatch(context.Background(), party.ID, ticketID, "match-1", "", ""); assignErr != nil {
+		t.Fatalf("assign match returned error: %+v", assignErr)
+	}
+
+	resolution, resolveErr := svc.ResolveMatch(party.ID, ticketID, "match-1", "completed")
+	if resolveErr != nil {
+		t.Fatalf("resolve match returned error: %+v", resolveErr)
+	}
+	if resolution.Status != "completed" {
+		t.Fatalf("unexpected resolution: %+v", resolution)
+	}
+	if _, queueErr := svc.GetQueueState(party.ID); queueErr == nil {
+		t.Fatalf("expected queue state to be cleared after resolution")
+	}
+	if _, assignmentErr := svc.GetQueueAssignment(party.ID); assignmentErr == nil {
+		t.Fatalf("expected queue assignment to be cleared after resolution")
+	}
+}
+
 func TestTransferLeaderAndLeaveParty(t *testing.T) {
 	t.Parallel()
 

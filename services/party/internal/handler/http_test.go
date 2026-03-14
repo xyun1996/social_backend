@@ -273,17 +273,17 @@ func TestPartyQueueEndpoints(t *testing.T) {
 		t.Fatalf("unexpected queue assignment get status: got %d want %d", getAssignmentRec.Code, http.StatusOK)
 	}
 
+	resolveReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/queue/assignment/resolve", bytes.NewBufferString(`{"ticket_id":"`+ticketID+`","match_id":"match-1","status":"completed"}`))
+	resolveRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(resolveRec, resolveReq)
+	if resolveRec.Code != http.StatusOK {
+		t.Fatalf("unexpected queue resolution status: got %d want %d", resolveRec.Code, http.StatusOK)
+	}
+
 	queuedLeaveReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/leave", bytes.NewBufferString(`{"actor_player_id":"p2"}`))
 	queuedLeaveRec := httptest.NewRecorder()
 	h.Routes().ServeHTTP(queuedLeaveRec, queuedLeaveReq)
-	if queuedLeaveRec.Code != http.StatusConflict {
-		t.Fatalf("expected queued party leave conflict, got %d", queuedLeaveRec.Code)
-	}
-
-	queueLeaveReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/queue/leave", bytes.NewBufferString(`{"actor_player_id":"p1"}`))
-	queueLeaveRec := httptest.NewRecorder()
-	h.Routes().ServeHTTP(queueLeaveRec, queueLeaveReq)
-	if queueLeaveRec.Code != http.StatusConflict {
-		t.Fatalf("expected assigned queue leave conflict, got %d", queueLeaveRec.Code)
+	if queuedLeaveRec.Code != http.StatusOK {
+		t.Fatalf("expected party leave to be unlocked after resolution, got %d", queuedLeaveRec.Code)
 	}
 }

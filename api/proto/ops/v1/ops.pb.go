@@ -217,6 +217,10 @@ type PlayerOverview struct {
 	BlockCount         int32                  `protobuf:"varint,8,opt,name=block_count,json=blockCount,proto3" json:"block_count,omitempty"`
 	PendingInboxCount  int32                  `protobuf:"varint,9,opt,name=pending_inbox_count,json=pendingInboxCount,proto3" json:"pending_inbox_count,omitempty"`
 	PendingOutboxCount int32                  `protobuf:"varint,10,opt,name=pending_outbox_count,json=pendingOutboxCount,proto3" json:"pending_outbox_count,omitempty"`
+	CurrentPartyId     string                 `protobuf:"bytes,11,opt,name=current_party_id,json=currentPartyId,proto3" json:"current_party_id,omitempty"`
+	CurrentGuildId     string                 `protobuf:"bytes,12,opt,name=current_guild_id,json=currentGuildId,proto3" json:"current_guild_id,omitempty"`
+	CurrentGuildRole   string                 `protobuf:"bytes,13,opt,name=current_guild_role,json=currentGuildRole,proto3" json:"current_guild_role,omitempty"`
+	CurrentQueueStatus string                 `protobuf:"bytes,14,opt,name=current_queue_status,json=currentQueueStatus,proto3" json:"current_queue_status,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -319,6 +323,34 @@ func (x *PlayerOverview) GetPendingOutboxCount() int32 {
 		return x.PendingOutboxCount
 	}
 	return 0
+}
+
+func (x *PlayerOverview) GetCurrentPartyId() string {
+	if x != nil {
+		return x.CurrentPartyId
+	}
+	return ""
+}
+
+func (x *PlayerOverview) GetCurrentGuildId() string {
+	if x != nil {
+		return x.CurrentGuildId
+	}
+	return ""
+}
+
+func (x *PlayerOverview) GetCurrentGuildRole() string {
+	if x != nil {
+		return x.CurrentGuildRole
+	}
+	return ""
+}
+
+func (x *PlayerOverview) GetCurrentQueueStatus() string {
+	if x != nil {
+		return x.CurrentQueueStatus
+	}
+	return ""
 }
 
 type PartyMemberState struct {
@@ -1667,7 +1699,7 @@ const file_ops_v1_ops_proto_rawDesc = "" +
 	"\afriends\x18\x02 \x03(\tR\afriends\x12\x16\n" +
 	"\x06blocks\x18\x03 \x03(\tR\x06blocks\x12#\n" +
 	"\rpending_inbox\x18\x04 \x03(\tR\fpendingInbox\x12%\n" +
-	"\x0epending_outbox\x18\x05 \x03(\tR\rpendingOutbox\"\x94\x03\n" +
+	"\x0epending_outbox\x18\x05 \x03(\tR\rpendingOutbox\"\xc8\x04\n" +
 	"\x0ePlayerOverview\x12\x1b\n" +
 	"\tplayer_id\x18\x01 \x01(\tR\bplayerId\x12A\n" +
 	"\bpresence\x18\x02 \x01(\v2%.social_backend.ops.v1.PresenceRecordR\bpresence\x12\x18\n" +
@@ -1680,7 +1712,11 @@ const file_ops_v1_ops_proto_rawDesc = "" +
 	"blockCount\x12.\n" +
 	"\x13pending_inbox_count\x18\t \x01(\x05R\x11pendingInboxCount\x120\n" +
 	"\x14pending_outbox_count\x18\n" +
-	" \x01(\x05R\x12pendingOutboxCount\"\xd9\x01\n" +
+	" \x01(\x05R\x12pendingOutboxCount\x12(\n" +
+	"\x10current_party_id\x18\v \x01(\tR\x0ecurrentPartyId\x12(\n" +
+	"\x10current_guild_id\x18\f \x01(\tR\x0ecurrentGuildId\x12,\n" +
+	"\x12current_guild_role\x18\r \x01(\tR\x10currentGuildRole\x120\n" +
+	"\x14current_queue_status\x18\x0e \x01(\tR\x12currentQueueStatus\"\xd9\x01\n" +
 	"\x10PartyMemberState\x12\x1b\n" +
 	"\tplayer_id\x18\x01 \x01(\tR\bplayerId\x12\x1b\n" +
 	"\tis_leader\x18\x02 \x01(\bR\bisLeader\x12\x19\n" +

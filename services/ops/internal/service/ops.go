@@ -41,6 +41,10 @@ type PlayerOverview struct {
 	BlockCnt           int            `json:"block_count"`
 	PendingInboxCount  int            `json:"pending_inbox_count"`
 	PendingOutboxCount int            `json:"pending_outbox_count"`
+	CurrentPartyID     string         `json:"current_party_id,omitempty"`
+	CurrentGuildID     string         `json:"current_guild_id,omitempty"`
+	CurrentGuildRole   string         `json:"current_guild_role,omitempty"`
+	CurrentQueueStatus string         `json:"current_queue_status,omitempty"`
 }
 
 // PartyMemberState is the operator-facing party member runtime shape.
@@ -168,11 +172,13 @@ type PresenceReader interface {
 // PartyReader exposes the party read boundary for ops.
 type PartyReader interface {
 	GetPartySnapshot(ctx context.Context, partyID string) (PartySnapshot, *apperrors.Error)
+	GetPartyByPlayer(ctx context.Context, playerID string) (PartySnapshot, *apperrors.Error)
 }
 
 // GuildReader exposes the guild read boundary for ops.
 type GuildReader interface {
 	GetGuildSnapshot(ctx context.Context, guildID string) (GuildSnapshot, *apperrors.Error)
+	GetGuildByPlayer(ctx context.Context, playerID string) (GuildSnapshot, *apperrors.Error)
 }
 
 // WorkerReader exposes the worker read boundary for ops.
@@ -322,7 +328,7 @@ func (s *OpsService) GetPlayerOverview(ctx context.Context, playerID string) (Pl
 		return PlayerOverview{}, appErr
 	}
 
-	return PlayerOverview{
+	overview := PlayerOverview{
 		PlayerID:           playerID,
 		Presence:           presence,
 		Friends:            social.Friends,
@@ -333,7 +339,38 @@ func (s *OpsService) GetPlayerOverview(ctx context.Context, playerID string) (Pl
 		BlockCnt:           len(social.Blocks),
 		PendingInboxCount:  len(social.PendingInbox),
 		PendingOutboxCount: len(social.PendingOutbox),
-	}, nil
+	}
+
+	if s.parties != nil {
+		party, appErr := s.parties.GetPartyByPlayer(ctx, playerID)
+		if appErr != nil && appErr.Code != "not_found" {
+			return PlayerOverview{}, appErr
+		}
+		if appErr == nil {
+			overview.CurrentPartyID = party.PartyID
+			if party.Queue != nil {
+				overview.CurrentQueueStatus = party.Queue.Status
+			}
+		}
+	}
+
+	if s.guilds != nil {
+		guild, appErr := s.guilds.GetGuildByPlayer(ctx, playerID)
+		if appErr != nil && appErr.Code != "not_found" {
+			return PlayerOverview{}, appErr
+		}
+		if appErr == nil {
+			overview.CurrentGuildID = guild.GuildID
+			for _, member := range guild.Members {
+				if member.PlayerID == playerID {
+					overview.CurrentGuildRole = member.Role
+					break
+				}
+			}
+		}
+	}
+
+	return overview, nil
 }
 
 func (s *OpsService) String() string {

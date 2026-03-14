@@ -25,12 +25,20 @@ func (f *fakePartyReader) GetPartySnapshot(context.Context, string) (PartySnapsh
 	return f.record, f.err
 }
 
+func (f *fakePartyReader) GetPartyByPlayer(context.Context, string) (PartySnapshot, *apperrors.Error) {
+	return f.record, f.err
+}
+
 type fakeGuildReader struct {
 	record GuildSnapshot
 	err    *apperrors.Error
 }
 
 func (f *fakeGuildReader) GetGuildSnapshot(context.Context, string) (GuildSnapshot, *apperrors.Error) {
+	return f.record, f.err
+}
+
+func (f *fakeGuildReader) GetGuildByPlayer(context.Context, string) (GuildSnapshot, *apperrors.Error) {
 	return f.record, f.err
 }
 
@@ -157,8 +165,8 @@ func TestGetPlayerOverview(t *testing.T) {
 
 	svc := NewOpsService(
 		&fakePresenceReader{record: PresenceRecord{PlayerID: "p1", Status: "online"}},
-		nil,
-		nil,
+		&fakePartyReader{record: PartySnapshot{PartyID: "party-1", Queue: &PartyQueueState{Status: "queued"}}},
+		&fakeGuildReader{record: GuildSnapshot{GuildID: "guild-1", Members: []GuildMemberState{{PlayerID: "p1", Role: "owner"}}}},
 		nil,
 		&fakeSocialReader{record: SocialSnapshot{PlayerID: "p1", Friends: []string{"p2"}, Blocks: []string{"p3"}, PendingInbox: []string{"p4"}, PendingOutbox: []string{"p5"}}},
 		nil,
@@ -171,6 +179,9 @@ func TestGetPlayerOverview(t *testing.T) {
 	}
 	if record.PlayerID != "p1" || record.FriendCnt != 1 || record.BlockCnt != 1 || record.PendingInboxCount != 1 || record.PendingOutboxCount != 1 {
 		t.Fatalf("unexpected player overview: %+v", record)
+	}
+	if record.CurrentPartyID != "party-1" || record.CurrentGuildID != "guild-1" || record.CurrentGuildRole != "owner" || record.CurrentQueueStatus != "queued" {
+		t.Fatalf("unexpected overview membership fields: %+v", record)
 	}
 }
 

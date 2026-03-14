@@ -31,6 +31,7 @@ const (
 	PartyService_GetQueueHandoff_FullMethodName    = "/social_backend.party.v1.PartyService/GetQueueHandoff"
 	PartyService_AssignMatch_FullMethodName        = "/social_backend.party.v1.PartyService/AssignMatch"
 	PartyService_GetQueueAssignment_FullMethodName = "/social_backend.party.v1.PartyService/GetQueueAssignment"
+	PartyService_ResolveMatch_FullMethodName       = "/social_backend.party.v1.PartyService/ResolveMatch"
 	PartyService_ListReadyStates_FullMethodName    = "/social_backend.party.v1.PartyService/ListReadyStates"
 	PartyService_ListMemberStates_FullMethodName   = "/social_backend.party.v1.PartyService/ListMemberStates"
 )
@@ -50,6 +51,7 @@ type PartyServiceClient interface {
 	GetQueueHandoff(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*QueueHandoff, error)
 	AssignMatch(ctx context.Context, in *AssignMatchRequest, opts ...grpc.CallOption) (*QueueAssignment, error)
 	GetQueueAssignment(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*QueueAssignment, error)
+	ResolveMatch(ctx context.Context, in *ResolveMatchRequest, opts ...grpc.CallOption) (*QueueResolution, error)
 	ListReadyStates(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*ListReadyStatesResponse, error)
 	ListMemberStates(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*ListMemberStatesResponse, error)
 }
@@ -172,6 +174,16 @@ func (c *partyServiceClient) GetQueueAssignment(ctx context.Context, in *GetPart
 	return out, nil
 }
 
+func (c *partyServiceClient) ResolveMatch(ctx context.Context, in *ResolveMatchRequest, opts ...grpc.CallOption) (*QueueResolution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(QueueResolution)
+	err := c.cc.Invoke(ctx, PartyService_ResolveMatch_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *partyServiceClient) ListReadyStates(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*ListReadyStatesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListReadyStatesResponse)
@@ -207,6 +219,7 @@ type PartyServiceServer interface {
 	GetQueueHandoff(context.Context, *GetPartyRequest) (*QueueHandoff, error)
 	AssignMatch(context.Context, *AssignMatchRequest) (*QueueAssignment, error)
 	GetQueueAssignment(context.Context, *GetPartyRequest) (*QueueAssignment, error)
+	ResolveMatch(context.Context, *ResolveMatchRequest) (*QueueResolution, error)
 	ListReadyStates(context.Context, *GetPartyRequest) (*ListReadyStatesResponse, error)
 	ListMemberStates(context.Context, *GetPartyRequest) (*ListMemberStatesResponse, error)
 	mustEmbedUnimplementedPartyServiceServer()
@@ -251,6 +264,9 @@ func (UnimplementedPartyServiceServer) AssignMatch(context.Context, *AssignMatch
 }
 func (UnimplementedPartyServiceServer) GetQueueAssignment(context.Context, *GetPartyRequest) (*QueueAssignment, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetQueueAssignment not implemented")
+}
+func (UnimplementedPartyServiceServer) ResolveMatch(context.Context, *ResolveMatchRequest) (*QueueResolution, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveMatch not implemented")
 }
 func (UnimplementedPartyServiceServer) ListReadyStates(context.Context, *GetPartyRequest) (*ListReadyStatesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListReadyStates not implemented")
@@ -477,6 +493,24 @@ func _PartyService_GetQueueAssignment_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PartyService_ResolveMatch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveMatchRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PartyServiceServer).ResolveMatch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PartyService_ResolveMatch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PartyServiceServer).ResolveMatch(ctx, req.(*ResolveMatchRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PartyService_ListReadyStates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetPartyRequest)
 	if err := dec(in); err != nil {
@@ -563,6 +597,10 @@ var PartyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetQueueAssignment",
 			Handler:    _PartyService_GetQueueAssignment_Handler,
+		},
+		{
+			MethodName: "ResolveMatch",
+			Handler:    _PartyService_ResolveMatch_Handler,
 		},
 		{
 			MethodName: "ListReadyStates",

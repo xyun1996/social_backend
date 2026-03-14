@@ -20,6 +20,7 @@ const (
 	queueStatusOpen     = "queued"
 	queueStatusAssigned = "assigned"
 	queueStatusLeft     = "left"
+	queueStatusResolved = "resolved"
 )
 
 // Invite contains the subset of invite state party depends on.
@@ -506,6 +507,80 @@ func (s *PartyService) GetQueueAssignment(partyID string) (domain.QueueAssignmen
 		return domain.QueueAssignment{}, &err
 	}
 	return assignment, nil
+}
+
+// ResolveMatch clears the assigned queue ownership after a match is consumed or cancelled.
+func (s *PartyService) ResolveMatch(partyID string, ticketID string, matchID string, status string) (domain.QueueResolution, *apperrors.Error) {
+	if partyID == "" || ticketID == "" || matchID == "" || status == "" {
+		err := apperrors.New("invalid_request", "party_id, ticket_id, match_id, and status are required", http.StatusBadRequest)
+		return domain.QueueResolution{}, &err
+	}
+
+	if _, ok, appErr := s.getParty(partyID); appErr != nil {
+		return domain.QueueResolution{}, appErr
+	} else if !ok {
+		err := apperrors.New("not_found", "party not found", http.StatusNotFound)
+		return domain.QueueResolution{}, &err
+	}
+
+	assignment, ok, err := s.queues.GetQueueAssignment(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.QueueResolution{}, &internal
+	}
+	if !ok {
+		err := apperrors.New("not_found", "party queue assignment not found", http.StatusNotFound)
+		return domain.QueueResolution{}, &err
+	}
+	if assignment.TicketID != ticketID || assignment.MatchID != matchID {
+		err := apperrors.New("assignment_mismatch", "match resolution does not match the active queue assignment", http.StatusConflict)
+		return domain.QueueResolution{}, &err
+	}
+
+	if err := s.queues.DeleteQueueAssignment(partyID); err != nil {
+		internal := apperrors.Internal()
+		return domain.QueueResolution{}, &internal
+	}
+	if err := s.queues.DeleteQueueState(partyID); err != nil {
+		internal := apperrors.Internal()
+		return domain.QueueResolution{}, &internal
+	}
+
+	return domain.QueueResolution{
+		TicketID:   ticketID,
+		PartyID:    partyID,
+		QueueName:  assignment.QueueName,
+		MatchID:    matchID,
+		Status:     status,
+		ResolvedAt: s.now(),
+	}, nil
+}
+
+// FindPartyByPlayer returns the current party membership snapshot for a player.
+func (s *PartyService) FindPartyByPlayer(ctx context.Context, playerID string) (domain.Party, []MemberState, *apperrors.Error) {
+	if playerID == "" {
+		err := apperrors.New("invalid_request", "player_id is required", http.StatusBadRequest)
+		return domain.Party{}, nil, &err
+	}
+
+	parties, err := s.parties.ListParties()
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Party{}, nil, &internal
+	}
+	for _, party := range parties {
+		if !slices.Contains(party.MemberIDs, playerID) {
+			continue
+		}
+		members, appErr := s.ListMemberStates(ctx, party.ID)
+		if appErr != nil {
+			return domain.Party{}, nil, appErr
+		}
+		return party, members, nil
+	}
+
+	notFound := apperrors.New("not_found", "party not found for player", http.StatusNotFound)
+	return domain.Party{}, nil, &notFound
 }
 
 // LeaveQueue removes the active queue enrollment for a party.

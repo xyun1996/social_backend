@@ -63,6 +63,44 @@ func (c *HTTPClient) GetPartySnapshot(ctx context.Context, partyID string) (opss
 	return record, nil
 }
 
+// GetPartyByPlayer fetches the current party membership for a player.
+func (c *HTTPClient) GetPartyByPlayer(ctx context.Context, playerID string) (opsservice.PartySnapshot, *apperrors.Error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/v1/party-memberships/"+playerID, nil)
+	if err != nil {
+		internal := apperrors.Internal()
+		return opsservice.PartySnapshot{}, &internal
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		badGateway := apperrors.New("party_unavailable", "party service is unavailable", http.StatusBadGateway)
+		return opsservice.PartySnapshot{}, &badGateway
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var appErr apperrors.Error
+		if decodeErr := json.NewDecoder(resp.Body).Decode(&appErr); decodeErr != nil {
+			badGateway := apperrors.New("party_invalid_response", "party service returned an invalid response", http.StatusBadGateway)
+			return opsservice.PartySnapshot{}, &badGateway
+		}
+		appErr.Status = resp.StatusCode
+		return opsservice.PartySnapshot{}, &appErr
+	}
+
+	var record opsservice.PartySnapshot
+	if err := json.NewDecoder(resp.Body).Decode(&record); err != nil {
+		badGateway := apperrors.New("party_invalid_response", "party service returned an invalid response", http.StatusBadGateway)
+		return opsservice.PartySnapshot{}, &badGateway
+	}
+	queue, appErr := c.getQueueState(ctx, record.PartyID)
+	if appErr != nil {
+		return opsservice.PartySnapshot{}, appErr
+	}
+	record.Queue = queue
+	return record, nil
+}
+
 func (c *HTTPClient) String() string {
 	return fmt.Sprintf("party-http-client(%s)", c.baseURL)
 }

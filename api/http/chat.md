@@ -53,6 +53,19 @@ Base purpose: conversation creation, message sequencing, read acknowledgement, a
 }
 ```
 
+## List Conversation Summaries
+
+- `GET /v1/conversation-summaries?player_id=p1`
+- Response `200`
+
+```json
+{
+  "player_id": "p1",
+  "count": 1,
+  "summaries": []
+}
+```
+
 ## Send Message
 
 - `POST /v1/conversations/{conversationID}/messages`
@@ -129,6 +142,31 @@ Base purpose: conversation creation, message sequencing, read acknowledgement, a
 - Rules
 - `ack_seq` cannot exceed `last_seq`
 - Ack cursor is monotonic and never moves backward
+
+## Get Conversation Summary
+
+- `GET /v1/conversations/{conversationID}/summary?player_id=p2`
+- Response `200`
+
+```json
+{
+  "conversation_id": "conv-1",
+  "kind": "private",
+  "player_id": "p2",
+  "last_seq": 2,
+  "ack_seq": 1,
+  "unread_count": 1,
+  "last_message": {
+    "id": "msg-2",
+    "conversation_id": "conv-1",
+    "seq": 2,
+    "sender_player_id": "p2",
+    "body": "hi",
+    "created_at": "2026-03-13T10:00:01Z"
+  },
+  "updated_at": "2026-03-13T10:00:01Z"
+}
+```
 
 ## Get Channel Descriptor
 

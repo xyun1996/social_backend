@@ -53,6 +53,30 @@ func (c *HTTPClient) GetGuildSnapshot(ctx context.Context, guildID string) (opss
 	}, nil
 }
 
+// GetGuildByPlayer fetches the current guild membership for a player.
+func (c *HTTPClient) GetGuildByPlayer(ctx context.Context, playerID string) (opsservice.GuildSnapshot, *apperrors.Error) {
+	record, appErr := c.getGuildByPlayer(ctx, playerID)
+	if appErr != nil {
+		return opsservice.GuildSnapshot{}, appErr
+	}
+	logRecord, appErr := c.getLogs(ctx, record.ID)
+	if appErr != nil {
+		return opsservice.GuildSnapshot{}, appErr
+	}
+
+	return opsservice.GuildSnapshot{
+		GuildID:               record.ID,
+		Name:                  record.Name,
+		OwnerID:               record.OwnerID,
+		Announcement:          record.Announcement,
+		AnnouncementUpdatedAt: record.AnnouncementUpdatedAt,
+		Count:                 record.Count,
+		Members:               record.Members,
+		LogCount:              logRecord.Count,
+		Logs:                  logRecord.Logs,
+	}, nil
+}
+
 type guildAggregate struct {
 	ID                    string `json:"id"`
 	Name                  string `json:"name"`
@@ -95,6 +119,42 @@ func (c *HTTPClient) getGuild(ctx context.Context, guildID string) (guildAggrega
 	if err := json.NewDecoder(resp.Body).Decode(&record); err != nil {
 		badGateway := apperrors.New("guild_invalid_response", "guild service returned an invalid response", http.StatusBadGateway)
 		return guildAggregate{}, &badGateway
+	}
+	return record, nil
+}
+
+type guildByPlayerSnapshot struct {
+	ID                    string                        `json:"id"`
+	Name                  string                        `json:"name"`
+	OwnerID               string                        `json:"owner_id"`
+	Announcement          string                        `json:"announcement"`
+	AnnouncementUpdatedAt string                        `json:"announcement_updated_at"`
+	Count                 int                           `json:"count"`
+	Members               []opsservice.GuildMemberState `json:"members"`
+}
+
+func (c *HTTPClient) getGuildByPlayer(ctx context.Context, playerID string) (guildByPlayerSnapshot, *apperrors.Error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/v1/guild-memberships/"+playerID, nil)
+	if err != nil {
+		internal := apperrors.Internal()
+		return guildByPlayerSnapshot{}, &internal
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		badGateway := apperrors.New("guild_unavailable", "guild service is unavailable", http.StatusBadGateway)
+		return guildByPlayerSnapshot{}, &badGateway
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return guildByPlayerSnapshot{}, decodeGuildError(resp)
+	}
+
+	var record guildByPlayerSnapshot
+	if err := json.NewDecoder(resp.Body).Decode(&record); err != nil {
+		badGateway := apperrors.New("guild_invalid_response", "guild service returned an invalid response", http.StatusBadGateway)
+		return guildByPlayerSnapshot{}, &badGateway
 	}
 	return record, nil
 }

@@ -59,6 +59,12 @@ type queueAssignmentRequest struct {
 	ConnectionHint string `json:"connection_hint"`
 }
 
+type queueResolutionRequest struct {
+	TicketID string `json:"ticket_id"`
+	MatchID  string `json:"match_id"`
+	Status   string `json:"status"`
+}
+
 // Routes returns the party HTTP routes.
 func (h *HTTPHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
@@ -77,6 +83,8 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("GET /v1/parties/{partyID}/queue/handoff", h.handleGetQueueHandoff)
 	mux.HandleFunc("POST /v1/parties/{partyID}/queue/assignment", h.handleAssignMatch)
 	mux.HandleFunc("GET /v1/parties/{partyID}/queue/assignment", h.handleGetQueueAssignment)
+	mux.HandleFunc("POST /v1/parties/{partyID}/queue/assignment/resolve", h.handleResolveMatch)
+	mux.HandleFunc("GET /v1/party-memberships/{playerID}", h.handleFindPartyByPlayer)
 	mux.HandleFunc("GET /v1/parties/{partyID}/ready", h.handleListReady)
 	mux.HandleFunc("GET /v1/parties/{partyID}/members", h.handleListMembers)
 	return mux
@@ -303,6 +311,38 @@ func (h *HTTPHandler) handleGetQueueAssignment(w http.ResponseWriter, r *http.Re
 	}
 
 	transport.WriteJSON(w, http.StatusOK, assignment)
+}
+
+func (h *HTTPHandler) handleResolveMatch(w http.ResponseWriter, r *http.Request) {
+	var request queueResolutionRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	resolution, appErr := h.parties.ResolveMatch(r.PathValue("partyID"), request.TicketID, request.MatchID, request.Status)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, resolution)
+}
+
+func (h *HTTPHandler) handleFindPartyByPlayer(w http.ResponseWriter, r *http.Request) {
+	party, members, appErr := h.parties.FindPartyByPlayer(r.Context(), r.PathValue("playerID"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, map[string]any{
+		"party_id":   party.ID,
+		"leader_id":  party.LeaderID,
+		"member_ids": party.MemberIDs,
+		"count":      len(members),
+		"members":    members,
+	})
 }
 
 func (h *HTTPHandler) handleListReady(w http.ResponseWriter, r *http.Request) {

@@ -51,6 +51,18 @@ message ChannelDescriptor {
   int32 member_count = 8;
 }
 
+message ConversationSummary {
+  string conversation_id = 1;
+  string kind = 2;
+  string resource_id = 3;
+  string player_id = 4;
+  int64 last_seq = 5;
+  int64 ack_seq = 6;
+  int64 unread_count = 7;
+  Message last_message = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
 message CreateConversationRequest {
   string kind = 1;
   string resource_id = 2;
@@ -64,6 +76,15 @@ message ListConversationsRequest {
 message ListConversationsResponse {
   string player_id = 1;
   repeated Conversation conversations = 2;
+}
+
+message ListConversationSummariesRequest {
+  string player_id = 1;
+}
+
+message ListConversationSummariesResponse {
+  string player_id = 1;
+  repeated ConversationSummary summaries = 2;
 }
 
 message SendMessageRequest {
@@ -101,6 +122,11 @@ message GetChannelDescriptorRequest {
   string conversation_id = 1;
 }
 
+message GetConversationSummaryRequest {
+  string conversation_id = 1;
+  string player_id = 2;
+}
+
 message PlanDeliveryResponse {
   string conversation_id = 1;
   string sender_player_id = 2;
@@ -110,9 +136,11 @@ message PlanDeliveryResponse {
 service ChatService {
   rpc CreateConversation(CreateConversationRequest) returns (Conversation);
   rpc ListConversations(ListConversationsRequest) returns (ListConversationsResponse);
+  rpc ListConversationSummaries(ListConversationSummariesRequest) returns (ListConversationSummariesResponse);
   rpc SendMessage(SendMessageRequest) returns (Message);
   rpc ReplayMessages(ReplayMessagesRequest) returns (ReplayMessagesResponse);
   rpc AckConversation(AckConversationRequest) returns (ReadCursor);
+  rpc GetConversationSummary(GetConversationSummaryRequest) returns (ConversationSummary);
   rpc GetChannelDescriptor(GetChannelDescriptorRequest) returns (ChannelDescriptor);
   rpc PlanDelivery(PlanDeliveryRequest) returns (PlanDeliveryResponse);
 }

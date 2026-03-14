@@ -49,9 +49,11 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("/healthz", h.handleHealth)
 	mux.HandleFunc("POST /v1/conversations", h.handleCreateConversation)
 	mux.HandleFunc("GET /v1/conversations", h.handleListConversations)
+	mux.HandleFunc("GET /v1/conversation-summaries", h.handleListConversationSummaries)
 	mux.HandleFunc("POST /v1/conversations/{conversationID}/messages", h.handleSendMessage)
 	mux.HandleFunc("GET /v1/conversations/{conversationID}/messages", h.handleReplayMessages)
 	mux.HandleFunc("POST /v1/conversations/{conversationID}/ack", h.handleAckConversation)
+	mux.HandleFunc("GET /v1/conversations/{conversationID}/summary", h.handleGetConversationSummary)
 	mux.HandleFunc("GET /v1/conversations/{conversationID}/channel", h.handleGetChannelDescriptor)
 	mux.HandleFunc("GET /v1/conversations/{conversationID}/delivery", h.handleDeliveryPlan)
 	mux.HandleFunc("POST /v1/internal/offline-deliveries", h.handleRecordOfflineDelivery)
@@ -93,6 +95,21 @@ func (h *HTTPHandler) handleListConversations(w http.ResponseWriter, r *http.Req
 		"player_id":     playerID,
 		"count":         len(conversations),
 		"conversations": conversations,
+	})
+}
+
+func (h *HTTPHandler) handleListConversationSummaries(w http.ResponseWriter, r *http.Request) {
+	playerID := r.URL.Query().Get("player_id")
+	summaries, appErr := h.chat.ListConversationSummaries(playerID)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, map[string]any{
+		"player_id": playerID,
+		"count":     len(summaries),
+		"summaries": summaries,
 	})
 }
 
@@ -155,6 +172,17 @@ func (h *HTTPHandler) handleAckConversation(w http.ResponseWriter, r *http.Reque
 	}
 
 	transport.WriteJSON(w, http.StatusOK, cursor)
+}
+
+func (h *HTTPHandler) handleGetConversationSummary(w http.ResponseWriter, r *http.Request) {
+	playerID := r.URL.Query().Get("player_id")
+	summary, appErr := h.chat.GetConversationSummary(r.PathValue("conversationID"), playerID)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, summary)
 }
 
 func (h *HTTPHandler) handleGetChannelDescriptor(w http.ResponseWriter, r *http.Request) {

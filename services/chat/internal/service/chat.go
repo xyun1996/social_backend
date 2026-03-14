@@ -211,6 +211,69 @@ func (s *ChatService) GetChannelDescriptor(conversationID string) (domain.Channe
 	return buildChannelDescriptor(conversation), nil
 }
 
+// GetConversationSummary returns unread and last-message state for one player-conversation pair.
+func (s *ChatService) GetConversationSummary(conversationID string, playerID string) (domain.ConversationSummary, *apperrors.Error) {
+	if conversationID == "" || playerID == "" {
+		err := apperrors.New("invalid_request", "conversation_id and player_id are required", http.StatusBadRequest)
+		return domain.ConversationSummary{}, &err
+	}
+
+	conversation, ok, err := s.conversations.GetConversation(conversationID)
+	if !ok {
+		err := apperrors.New("not_found", "conversation not found", http.StatusNotFound)
+		return domain.ConversationSummary{}, &err
+	}
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.ConversationSummary{}, &internal
+	}
+	if !hasMember(conversation.MemberPlayerIDs, playerID) && conversation.Kind != kindSystem {
+		err := apperrors.New("forbidden", "player is not a member of the conversation", http.StatusForbidden)
+		return domain.ConversationSummary{}, &err
+	}
+
+	return s.buildConversationSummary(conversation, playerID)
+}
+
+// ListConversationSummaries returns all visible conversation summaries for a player.
+func (s *ChatService) ListConversationSummaries(playerID string) ([]domain.ConversationSummary, *apperrors.Error) {
+	if playerID == "" {
+		err := apperrors.New("invalid_request", "player_id is required", http.StatusBadRequest)
+		return nil, &err
+	}
+
+	conversations, appErr := s.ListConversations(playerID)
+	if appErr != nil {
+		return nil, appErr
+	}
+
+	summaries := make([]domain.ConversationSummary, 0, len(conversations))
+	for _, conversation := range conversations {
+		summary, appErr := s.buildConversationSummary(conversation, playerID)
+		if appErr != nil {
+			return nil, appErr
+		}
+		summaries = append(summaries, summary)
+	}
+	slices.SortFunc(summaries, func(a domain.ConversationSummary, b domain.ConversationSummary) int {
+		if !a.UpdatedAt.Equal(b.UpdatedAt) {
+			if a.UpdatedAt.After(b.UpdatedAt) {
+				return -1
+			}
+			return 1
+		}
+		switch {
+		case a.ConversationID < b.ConversationID:
+			return -1
+		case a.ConversationID > b.ConversationID:
+			return 1
+		default:
+			return 0
+		}
+	})
+	return summaries, nil
+}
+
 // ListConversations returns conversations visible to the given player.
 func (s *ChatService) ListConversations(playerID string) ([]domain.Conversation, *apperrors.Error) {
 	if playerID == "" {
@@ -692,6 +755,43 @@ func buildChannelDescriptor(conversation domain.Conversation) domain.ChannelDesc
 	}
 
 	return descriptor
+}
+
+func (s *ChatService) buildConversationSummary(conversation domain.Conversation, playerID string) (domain.ConversationSummary, *apperrors.Error) {
+	cursor, _, err := s.readCursors.GetCursor(conversation.ID, playerID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.ConversationSummary{}, &internal
+	}
+	messages, err := s.messages.ListMessages(conversation.ID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.ConversationSummary{}, &internal
+	}
+
+	var lastMessage *domain.Message
+	updatedAt := conversation.CreatedAt
+	if len(messages) > 0 {
+		msg := messages[len(messages)-1]
+		lastMessage = &msg
+		updatedAt = msg.CreatedAt
+	}
+	unread := conversation.LastSeq - cursor.AckSeq
+	if unread < 0 {
+		unread = 0
+	}
+
+	return domain.ConversationSummary{
+		ConversationID: conversation.ID,
+		Kind:           conversation.Kind,
+		ResourceID:     conversation.ResourceID,
+		PlayerID:       playerID,
+		LastSeq:        conversation.LastSeq,
+		AckSeq:         cursor.AckSeq,
+		UnreadCount:    unread,
+		LastMessage:    lastMessage,
+		UpdatedAt:      updatedAt,
+	}, nil
 }
 
 func (s *ChatService) String() string {

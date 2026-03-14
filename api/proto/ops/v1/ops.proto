@@ -35,6 +35,10 @@ message PlayerOverview {
   int32 block_count = 8;
   int32 pending_inbox_count = 9;
   int32 pending_outbox_count = 10;
+  string current_party_id = 11;
+  string current_guild_id = 12;
+  string current_guild_role = 13;
+  string current_queue_status = 14;
 }
 
 message PartyMemberState {

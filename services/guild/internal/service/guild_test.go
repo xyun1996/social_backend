@@ -240,3 +240,37 @@ func TestListLogsIncludesGovernanceEvents(t *testing.T) {
 		t.Fatalf("unexpected guild log actions: %+v", logs)
 	}
 }
+
+func TestSubmitActivityIncreasesGuildProgression(t *testing.T) {
+	t.Parallel()
+
+	svc := NewGuildService(&fakeInviteClient{}, nil)
+	svc.newGuildID = func() (string, error) { return "guild-1", nil }
+	id := 0
+	svc.newLogID = func() (string, error) {
+		id++
+		return fmt.Sprintf("log-%d", id), nil
+	}
+	svc.newActivityID = func() (string, error) { return "activity-1", nil }
+
+	guild, err := svc.CreateGuild("Guild", "p1")
+	if err != nil {
+		t.Fatalf("create guild returned error: %+v", err)
+	}
+
+	record, updated, appErr := svc.SubmitActivity(guild.ID, "p1", "donate")
+	if appErr != nil {
+		t.Fatalf("submit activity returned error: %+v", appErr)
+	}
+	if record.TemplateKey != "donate" || updated.Experience != 25 || updated.Level != 1 {
+		t.Fatalf("unexpected activity progression result: record=%+v guild=%+v", record, updated)
+	}
+
+	records, listErr := svc.ListActivities(guild.ID)
+	if listErr != nil {
+		t.Fatalf("list activities returned error: %+v", listErr)
+	}
+	if len(records) != 1 || records[0].ID != "activity-1" {
+		t.Fatalf("unexpected activity records: %+v", records)
+	}
+}

@@ -44,19 +44,27 @@ type updateAnnouncementRequest struct {
 	Announcement  string `json:"announcement"`
 }
 
+type submitActivityRequest struct {
+	ActorPlayerID string `json:"actor_player_id"`
+}
+
 // Routes returns the guild HTTP routes.
 func (h *HTTPHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", h.handleHealth)
 	mux.HandleFunc("POST /v1/guilds", h.handleCreateGuild)
 	mux.HandleFunc("GET /v1/guilds/{guildID}", h.handleGetGuild)
+	mux.HandleFunc("GET /v1/guild-memberships/{playerID}", h.handleFindGuildByPlayer)
 	mux.HandleFunc("GET /v1/guilds/{guildID}/members", h.handleListMembers)
 	mux.HandleFunc("GET /v1/guilds/{guildID}/logs", h.handleListLogs)
+	mux.HandleFunc("GET /v1/guilds/activity-templates", h.handleListActivityTemplates)
+	mux.HandleFunc("GET /v1/guilds/{guildID}/activities", h.handleListActivities)
 	mux.HandleFunc("POST /v1/guilds/{guildID}/invites", h.handleCreateInvite)
 	mux.HandleFunc("POST /v1/guilds/{guildID}/join", h.handleJoinGuild)
 	mux.HandleFunc("POST /v1/guilds/{guildID}/kick", h.handleKickMember)
 	mux.HandleFunc("POST /v1/guilds/{guildID}/transfer-owner", h.handleTransferOwner)
 	mux.HandleFunc("POST /v1/guilds/{guildID}/announcement", h.handleUpdateAnnouncement)
+	mux.HandleFunc("POST /v1/guilds/{guildID}/activities/{templateKey}", h.handleSubmitActivity)
 	return mux
 }
 
@@ -93,6 +101,24 @@ func (h *HTTPHandler) handleGetGuild(w http.ResponseWriter, r *http.Request) {
 	transport.WriteJSON(w, http.StatusOK, guild)
 }
 
+func (h *HTTPHandler) handleFindGuildByPlayer(w http.ResponseWriter, r *http.Request) {
+	guild, members, appErr := h.guilds.FindGuildByPlayer(r.Context(), r.PathValue("playerID"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, map[string]any{
+		"id":                      guild.ID,
+		"name":                    guild.Name,
+		"owner_id":                guild.OwnerID,
+		"announcement":            guild.Announcement,
+		"announcement_updated_at": guild.AnnouncementUpdatedAt,
+		"count":                   len(members),
+		"members":                 members,
+	})
+}
+
 func (h *HTTPHandler) handleListMembers(w http.ResponseWriter, r *http.Request) {
 	members, appErr := h.guilds.ListMemberStates(r.Context(), r.PathValue("guildID"))
 	if appErr != nil {
@@ -118,6 +144,28 @@ func (h *HTTPHandler) handleListLogs(w http.ResponseWriter, r *http.Request) {
 		"guild_id": r.PathValue("guildID"),
 		"count":    len(logs),
 		"logs":     logs,
+	})
+}
+
+func (h *HTTPHandler) handleListActivityTemplates(w http.ResponseWriter, _ *http.Request) {
+	templates := h.guilds.ListActivityTemplates()
+	transport.WriteJSON(w, http.StatusOK, map[string]any{
+		"count":     len(templates),
+		"templates": templates,
+	})
+}
+
+func (h *HTTPHandler) handleListActivities(w http.ResponseWriter, r *http.Request) {
+	records, appErr := h.guilds.ListActivities(r.PathValue("guildID"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, map[string]any{
+		"guild_id":   r.PathValue("guildID"),
+		"count":      len(records),
+		"activities": records,
 	})
 }
 
@@ -199,6 +247,25 @@ func (h *HTTPHandler) handleUpdateAnnouncement(w http.ResponseWriter, r *http.Re
 	}
 
 	transport.WriteJSON(w, http.StatusOK, guild)
+}
+
+func (h *HTTPHandler) handleSubmitActivity(w http.ResponseWriter, r *http.Request) {
+	var request submitActivityRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	record, guild, appErr := h.guilds.SubmitActivity(r.PathValue("guildID"), request.ActorPlayerID, r.PathValue("templateKey"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, map[string]any{
+		"record": record,
+		"guild":  guild,
+	})
 }
 
 func invalidJSONError() apperrors.Error {

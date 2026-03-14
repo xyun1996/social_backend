@@ -14,18 +14,22 @@ type GuildStore interface {
 	ListGuilds() ([]domain.Guild, error)
 	SaveLog(entry domain.GuildLogEntry) error
 	ListLogs(guildID string) ([]domain.GuildLogEntry, error)
+	SaveActivity(record domain.GuildActivityRecord) error
+	ListActivities(guildID string) ([]domain.GuildActivityRecord, error)
 }
 
 type memoryGuildStore struct {
-	mu     sync.RWMutex
-	guilds map[string]domain.Guild
-	logs   map[string][]domain.GuildLogEntry
+	mu         sync.RWMutex
+	guilds     map[string]domain.Guild
+	logs       map[string][]domain.GuildLogEntry
+	activities map[string][]domain.GuildActivityRecord
 }
 
 func newMemoryGuildStore() *memoryGuildStore {
 	return &memoryGuildStore{
-		guilds: make(map[string]domain.Guild),
-		logs:   make(map[string][]domain.GuildLogEntry),
+		guilds:     make(map[string]domain.Guild),
+		logs:       make(map[string][]domain.GuildLogEntry),
+		activities: make(map[string][]domain.GuildActivityRecord),
 	}
 }
 
@@ -99,4 +103,34 @@ func (s *memoryGuildStore) ListLogs(guildID string) ([]domain.GuildLogEntry, err
 		}
 	})
 	return logs, nil
+}
+
+func (s *memoryGuildStore) SaveActivity(record domain.GuildActivityRecord) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.activities[record.GuildID] = append(s.activities[record.GuildID], record)
+	return nil
+}
+
+func (s *memoryGuildStore) ListActivities(guildID string) ([]domain.GuildActivityRecord, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	records := append([]domain.GuildActivityRecord(nil), s.activities[guildID]...)
+	slices.SortFunc(records, func(a domain.GuildActivityRecord, b domain.GuildActivityRecord) int {
+		if !a.CreatedAt.Equal(b.CreatedAt) {
+			if a.CreatedAt.Before(b.CreatedAt) {
+				return -1
+			}
+			return 1
+		}
+		switch {
+		case a.ID < b.ID:
+			return -1
+		case a.ID > b.ID:
+			return 1
+		default:
+			return 0
+		}
+	})
+	return records, nil
 }

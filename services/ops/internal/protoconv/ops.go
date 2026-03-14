@@ -31,6 +31,10 @@ func ToProtoPlayerOverview(overview opsservice.PlayerOverview) *opsv1.PlayerOver
 		BlockCount:         int32(overview.BlockCnt),
 		PendingInboxCount:  int32(overview.PendingInboxCount),
 		PendingOutboxCount: int32(overview.PendingOutboxCount),
+		CurrentPartyId:     overview.CurrentPartyID,
+		CurrentGuildId:     overview.CurrentGuildID,
+		CurrentGuildRole:   overview.CurrentGuildRole,
+		CurrentQueueStatus: overview.CurrentQueueStatus,
 	}
 }
 

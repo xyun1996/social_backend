@@ -147,6 +147,46 @@ func TestChannelDescriptorEndpoint(t *testing.T) {
 	}
 }
 
+func TestConversationSummaryEndpoints(t *testing.T) {
+	t.Parallel()
+
+	h := NewHTTPHandler(service.NewChatService(nil, nil))
+
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/conversations", bytes.NewBufferString(`{"kind":"private","member_player_ids":["p1","p2"]}`))
+	createRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(createRec, createReq)
+	if createRec.Code != http.StatusOK {
+		t.Fatalf("unexpected create status: got %d want %d", createRec.Code, http.StatusOK)
+	}
+
+	var conversation map[string]any
+	if err := json.Unmarshal(createRec.Body.Bytes(), &conversation); err != nil {
+		t.Fatalf("unmarshal create response: %v", err)
+	}
+	conversationID, _ := conversation["id"].(string)
+
+	sendReq := httptest.NewRequest(http.MethodPost, "/v1/conversations/"+conversationID+"/messages", bytes.NewBufferString(`{"sender_player_id":"p1","body":"hello"}`))
+	sendRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(sendRec, sendReq)
+	if sendRec.Code != http.StatusOK {
+		t.Fatalf("unexpected send status: got %d want %d", sendRec.Code, http.StatusOK)
+	}
+
+	summaryReq := httptest.NewRequest(http.MethodGet, "/v1/conversations/"+conversationID+"/summary?player_id=p2", nil)
+	summaryRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(summaryRec, summaryReq)
+	if summaryRec.Code != http.StatusOK {
+		t.Fatalf("unexpected summary status: got %d want %d", summaryRec.Code, http.StatusOK)
+	}
+
+	listReq := httptest.NewRequest(http.MethodGet, "/v1/conversation-summaries?player_id=p2", nil)
+	listRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(listRec, listReq)
+	if listRec.Code != http.StatusOK {
+		t.Fatalf("unexpected list summary status: got %d want %d", listRec.Code, http.StatusOK)
+	}
+}
+
 func TestRecordOfflineDeliveryEndpoint(t *testing.T) {
 	t.Parallel()
 

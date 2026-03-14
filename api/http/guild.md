@@ -41,6 +41,26 @@ Base purpose: guild creation, owner-scoped invite issuance, join via accepted in
 - `GET /v1/guilds/{guildID}`
 - Response `200`: guild shape from create response
 - Response also includes optional announcement fields when set
+- Response also includes progression fields:
+  - `level`
+  - `experience`
+
+## Find Guild Membership By Player
+
+- `GET /v1/guild-memberships/{playerID}`
+- Response `200`
+
+```json
+{
+  "id": "guild-1",
+  "name": "Raiders",
+  "owner_id": "p1",
+  "announcement": "Welcome to the guild",
+  "announcement_updated_at": "2026-03-13T10:05:00Z",
+  "count": 2,
+  "members": []
+}
+```
 
 ## Update Announcement
 
@@ -97,6 +117,73 @@ Base purpose: guild creation, owner-scoped invite issuance, join via accepted in
 - Rules
 - Logs are ordered oldest to newest in the current prototype
 - Current governance events include guild creation, member join, announcement update, member kick, and owner transfer
+- Activity submissions also append governance log entries
+
+## List Activity Templates
+
+- `GET /v1/guilds/activity-templates`
+- Response `200`
+
+```json
+{
+  "count": 3,
+  "templates": [
+    {
+      "key": "sign_in",
+      "name": "Daily Sign-In",
+      "contribution_xp": 10
+    }
+  ]
+}
+```
+
+## Submit Activity
+
+- `POST /v1/guilds/{guildID}/activities/{templateKey}`
+- Request
+
+```json
+{
+  "actor_player_id": "p1"
+}
+```
+
+- Response `200`
+
+```json
+{
+  "activity": {
+    "id": "act-1",
+    "guild_id": "guild-1",
+    "template_key": "sign_in",
+    "player_id": "p1",
+    "delta_xp": 10,
+    "created_at": "2026-03-13T10:10:00Z"
+  },
+  "guild": {
+    "id": "guild-1",
+    "level": 1,
+    "experience": 10
+  }
+}
+```
+
+- Rules
+- Only current guild members can submit activity templates
+- Unknown template keys return `404`
+
+## List Activity Records
+
+- `GET /v1/guilds/{guildID}/activities`
+- Response `200`
+
+```json
+{
+  "guild_id": "guild-1",
+  "count": 1,
+  "activities": []
+}
+```
 
 ## Create Guild Invite
 

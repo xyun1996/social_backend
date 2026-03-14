@@ -24,6 +24,11 @@ const (
 	actionGuildAnnouncementUpdated = "guild.announcement_updated"
 	actionGuildMemberKicked        = "guild.member_kicked"
 	actionGuildOwnerTransferred    = "guild.owner_transferred"
+	actionGuildActivitySubmitted   = "guild.activity_submitted"
+)
+
+const (
+	guildXPPerLevel = 100
 )
 
 // Invite contains the subset of invite state guild depends on.
@@ -68,12 +73,13 @@ type MemberState struct {
 
 // GuildService provides an in-memory prototype for guild creation and joins.
 type GuildService struct {
-	guilds     GuildStore
-	invites    InviteClient
-	presence   PresenceReader
-	now        func() time.Time
-	newGuildID func() (string, error)
-	newLogID   func() (string, error)
+	guilds        GuildStore
+	invites       InviteClient
+	presence      PresenceReader
+	now           func() time.Time
+	newGuildID    func() (string, error)
+	newLogID      func() (string, error)
+	newActivityID func() (string, error)
 }
 
 // NewGuildService constructs an in-memory guild service.
@@ -92,6 +98,9 @@ func NewGuildServiceWithStore(guilds GuildStore, invites InviteClient, presence 
 			return idgen.Token(8)
 		},
 		newLogID: func() (string, error) {
+			return idgen.Token(10)
+		},
+		newActivityID: func() (string, error) {
 			return idgen.Token(10)
 		},
 	}
@@ -116,6 +125,7 @@ func (s *GuildService) CreateGuild(name string, ownerID string) (domain.Guild, *
 		ID:      guildID,
 		Name:    name,
 		OwnerID: ownerID,
+		Level:   1,
 		Members: []domain.GuildMember{
 			{
 				PlayerID: ownerID,
@@ -134,6 +144,15 @@ func (s *GuildService) CreateGuild(name string, ownerID string) (domain.Guild, *
 		return domain.Guild{}, appErr
 	}
 	return guild, nil
+}
+
+// ListActivityTemplates returns the fixed guild activity templates.
+func (s *GuildService) ListActivityTemplates() []domain.GuildActivityTemplate {
+	return []domain.GuildActivityTemplate{
+		{Key: "sign_in", Name: "Daily Sign-In", ContributionXP: 10},
+		{Key: "donate", Name: "Guild Donation", ContributionXP: 25},
+		{Key: "task", Name: "Guild Task", ContributionXP: 40},
+	}
 }
 
 // ListMemberStates returns role and presence state for current guild members.
@@ -434,6 +453,117 @@ func (s *GuildService) ListLogs(guildID string) ([]domain.GuildLogEntry, *apperr
 		return nil, &internal
 	}
 	return logs, nil
+}
+
+// FindGuildByPlayer returns the current guild membership snapshot for a player.
+func (s *GuildService) FindGuildByPlayer(ctx context.Context, playerID string) (domain.Guild, []MemberState, *apperrors.Error) {
+	if playerID == "" {
+		err := apperrors.New("invalid_request", "player_id is required", http.StatusBadRequest)
+		return domain.Guild{}, nil, &err
+	}
+
+	guilds, err := s.guilds.ListGuilds()
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.Guild{}, nil, &internal
+	}
+	for _, guild := range guilds {
+		if !hasMember(guild.Members, playerID) {
+			continue
+		}
+		members, appErr := s.ListMemberStates(ctx, guild.ID)
+		if appErr != nil {
+			return domain.Guild{}, nil, appErr
+		}
+		return guild, members, nil
+	}
+
+	notFound := apperrors.New("not_found", "guild not found for player", http.StatusNotFound)
+	return domain.Guild{}, nil, &notFound
+}
+
+// SubmitActivity applies one of the fixed activity templates and grows guild experience.
+func (s *GuildService) SubmitActivity(guildID string, actorPlayerID string, templateKey string) (domain.GuildActivityRecord, domain.Guild, *apperrors.Error) {
+	if guildID == "" || actorPlayerID == "" || templateKey == "" {
+		err := apperrors.New("invalid_request", "guild_id, actor_player_id, and template_key are required", http.StatusBadRequest)
+		return domain.GuildActivityRecord{}, domain.Guild{}, &err
+	}
+
+	guild, ok, err := s.guilds.GetGuild(guildID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.GuildActivityRecord{}, domain.Guild{}, &internal
+	}
+	if !ok {
+		err := apperrors.New("not_found", "guild not found", http.StatusNotFound)
+		return domain.GuildActivityRecord{}, domain.Guild{}, &err
+	}
+	if !hasMember(guild.Members, actorPlayerID) {
+		err := apperrors.New("forbidden", "only guild members can submit activities", http.StatusForbidden)
+		return domain.GuildActivityRecord{}, domain.Guild{}, &err
+	}
+
+	var template *domain.GuildActivityTemplate
+	for _, candidate := range s.ListActivityTemplates() {
+		if candidate.Key == templateKey {
+			template = &candidate
+			break
+		}
+	}
+	if template == nil {
+		err := apperrors.New("not_found", "activity template not found", http.StatusNotFound)
+		return domain.GuildActivityRecord{}, domain.Guild{}, &err
+	}
+
+	activityID, idErr := s.newActivityID()
+	if idErr != nil {
+		internal := apperrors.Internal()
+		return domain.GuildActivityRecord{}, domain.Guild{}, &internal
+	}
+	record := domain.GuildActivityRecord{
+		ID:          activityID,
+		GuildID:     guildID,
+		TemplateKey: template.Key,
+		PlayerID:    actorPlayerID,
+		DeltaXP:     template.ContributionXP,
+		CreatedAt:   s.now(),
+	}
+
+	guild.Experience += template.ContributionXP
+	guild.Level = 1 + (guild.Experience / guildXPPerLevel)
+	if err := s.guilds.SaveGuild(guild); err != nil {
+		internal := apperrors.Internal()
+		return domain.GuildActivityRecord{}, domain.Guild{}, &internal
+	}
+	if err := s.guilds.SaveActivity(record); err != nil {
+		internal := apperrors.Internal()
+		return domain.GuildActivityRecord{}, domain.Guild{}, &internal
+	}
+	if appErr := s.appendLog(guild.ID, actionGuildActivitySubmitted, actorPlayerID, "", "guild activity submitted: "+template.Key); appErr != nil {
+		return domain.GuildActivityRecord{}, domain.Guild{}, appErr
+	}
+	return record, guild, nil
+}
+
+// ListActivities returns submitted activity records for a guild.
+func (s *GuildService) ListActivities(guildID string) ([]domain.GuildActivityRecord, *apperrors.Error) {
+	if guildID == "" {
+		err := apperrors.New("invalid_request", "guild_id is required", http.StatusBadRequest)
+		return nil, &err
+	}
+	if _, ok, err := s.guilds.GetGuild(guildID); err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
+	} else if !ok {
+		err := apperrors.New("not_found", "guild not found", http.StatusNotFound)
+		return nil, &err
+	}
+	records, err := s.guilds.ListActivities(guildID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
+	}
+	return records, nil
 }
 
 func hasMember(members []domain.GuildMember, playerID string) bool {

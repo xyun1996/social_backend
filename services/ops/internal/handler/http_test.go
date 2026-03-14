@@ -30,6 +30,10 @@ func (f *fakePartyReader) GetPartySnapshot(context.Context, string) (opsservice.
 	}, nil
 }
 
+func (f *fakePartyReader) GetPartyByPlayer(context.Context, string) (opsservice.PartySnapshot, *apperrors.Error) {
+	return f.GetPartySnapshot(context.Background(), "")
+}
+
 type fakeGuildReader struct{}
 
 func (f *fakeGuildReader) GetGuildSnapshot(context.Context, string) (opsservice.GuildSnapshot, *apperrors.Error) {
@@ -44,6 +48,10 @@ func (f *fakeGuildReader) GetGuildSnapshot(context.Context, string) (opsservice.
 			{ID: "log-1", Action: "guild.created"},
 		},
 	}, nil
+}
+
+func (f *fakeGuildReader) GetGuildByPlayer(context.Context, string) (opsservice.GuildSnapshot, *apperrors.Error) {
+	return f.GetGuildSnapshot(context.Background(), "")
 }
 
 type fakeWorkerReader struct{}

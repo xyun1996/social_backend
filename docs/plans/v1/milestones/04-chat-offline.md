@@ -1,6 +1,6 @@
 # 04 Chat Offline
 
-- Status: `planned`
+- Status: `in-progress`
 - Version: `v1`
 
 ## Goal
@@ -30,6 +30,7 @@ Define and implement private, guild, party, world, system, and custom channel me
 
 - Chat already supports conversation creation, seq ordering, ack cursors, replay, delivery planning, and offline delivery recording.
 - Resource-backed built-in kinds now use a stable `kind + resource_id` channel model with a readable descriptor surface.
+- Chat now exposes conversation summaries with unread counts, ack cursors, and last-message snapshots.
 
 ## Risks
 

@@ -221,6 +221,41 @@ func TestGetChannelDescriptorExplainsChannelPolicy(t *testing.T) {
 	}
 }
 
+func TestConversationSummaryTracksUnreadAndLastMessage(t *testing.T) {
+	t.Parallel()
+
+	svc := NewChatService(nil, nil)
+	conversation, err := svc.CreateConversation(kindPrivate, "", []string{"p1", "p2"})
+	if err != nil {
+		t.Fatalf("create conversation returned error: %+v", err)
+	}
+	if _, err := svc.SendMessage(conversation.ID, "p1", "hello"); err != nil {
+		t.Fatalf("send first message returned error: %+v", err)
+	}
+	if _, err := svc.SendMessage(conversation.ID, "p2", "hi"); err != nil {
+		t.Fatalf("send second message returned error: %+v", err)
+	}
+	if _, err := svc.AckConversation(conversation.ID, "p2", 1); err != nil {
+		t.Fatalf("ack returned error: %+v", err)
+	}
+
+	summary, summaryErr := svc.GetConversationSummary(conversation.ID, "p2")
+	if summaryErr != nil {
+		t.Fatalf("get conversation summary returned error: %+v", summaryErr)
+	}
+	if summary.UnreadCount != 1 || summary.LastMessage == nil || summary.LastMessage.Body != "hi" {
+		t.Fatalf("unexpected conversation summary: %+v", summary)
+	}
+
+	summaries, listErr := svc.ListConversationSummaries("p2")
+	if listErr != nil {
+		t.Fatalf("list conversation summaries returned error: %+v", listErr)
+	}
+	if len(summaries) != 1 || summaries[0].ConversationID != conversation.ID {
+		t.Fatalf("unexpected conversation summary list: %+v", summaries)
+	}
+}
+
 func TestGroupConversationRequiresTwoMembers(t *testing.T) {
 	t.Parallel()
 

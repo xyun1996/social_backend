@@ -503,6 +503,90 @@ func (x *QueueAssignment) GetAssignedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+type QueueResolution struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TicketId      string                 `protobuf:"bytes,1,opt,name=ticket_id,json=ticketId,proto3" json:"ticket_id,omitempty"`
+	PartyId       string                 `protobuf:"bytes,2,opt,name=party_id,json=partyId,proto3" json:"party_id,omitempty"`
+	QueueName     string                 `protobuf:"bytes,3,opt,name=queue_name,json=queueName,proto3" json:"queue_name,omitempty"`
+	MatchId       string                 `protobuf:"bytes,4,opt,name=match_id,json=matchId,proto3" json:"match_id,omitempty"`
+	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	ResolvedAt    *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=resolved_at,json=resolvedAt,proto3" json:"resolved_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QueueResolution) Reset() {
+	*x = QueueResolution{}
+	mi := &file_party_v1_party_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QueueResolution) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueueResolution) ProtoMessage() {}
+
+func (x *QueueResolution) ProtoReflect() protoreflect.Message {
+	mi := &file_party_v1_party_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QueueResolution.ProtoReflect.Descriptor instead.
+func (*QueueResolution) Descriptor() ([]byte, []int) {
+	return file_party_v1_party_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *QueueResolution) GetTicketId() string {
+	if x != nil {
+		return x.TicketId
+	}
+	return ""
+}
+
+func (x *QueueResolution) GetPartyId() string {
+	if x != nil {
+		return x.PartyId
+	}
+	return ""
+}
+
+func (x *QueueResolution) GetQueueName() string {
+	if x != nil {
+		return x.QueueName
+	}
+	return ""
+}
+
+func (x *QueueResolution) GetMatchId() string {
+	if x != nil {
+		return x.MatchId
+	}
+	return ""
+}
+
+func (x *QueueResolution) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *QueueResolution) GetResolvedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ResolvedAt
+	}
+	return nil
+}
+
 type MemberState struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PlayerId      string                 `protobuf:"bytes,1,opt,name=player_id,json=playerId,proto3" json:"player_id,omitempty"`
@@ -518,7 +602,7 @@ type MemberState struct {
 
 func (x *MemberState) Reset() {
 	*x = MemberState{}
-	mi := &file_party_v1_party_proto_msgTypes[6]
+	mi := &file_party_v1_party_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -530,7 +614,7 @@ func (x *MemberState) String() string {
 func (*MemberState) ProtoMessage() {}
 
 func (x *MemberState) ProtoReflect() protoreflect.Message {
-	mi := &file_party_v1_party_proto_msgTypes[6]
+	mi := &file_party_v1_party_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -543,7 +627,7 @@ func (x *MemberState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemberState.ProtoReflect.Descriptor instead.
 func (*MemberState) Descriptor() ([]byte, []int) {
-	return file_party_v1_party_proto_rawDescGZIP(), []int{6}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *MemberState) GetPlayerId() string {
@@ -604,7 +688,7 @@ type CreatePartyRequest struct {
 
 func (x *CreatePartyRequest) Reset() {
 	*x = CreatePartyRequest{}
-	mi := &file_party_v1_party_proto_msgTypes[7]
+	mi := &file_party_v1_party_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -616,7 +700,7 @@ func (x *CreatePartyRequest) String() string {
 func (*CreatePartyRequest) ProtoMessage() {}
 
 func (x *CreatePartyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_party_v1_party_proto_msgTypes[7]
+	mi := &file_party_v1_party_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -629,7 +713,7 @@ func (x *CreatePartyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePartyRequest.ProtoReflect.Descriptor instead.
 func (*CreatePartyRequest) Descriptor() ([]byte, []int) {
-	return file_party_v1_party_proto_rawDescGZIP(), []int{7}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CreatePartyRequest) GetLeaderId() string {
@@ -648,7 +732,7 @@ type GetPartyRequest struct {
 
 func (x *GetPartyRequest) Reset() {
 	*x = GetPartyRequest{}
-	mi := &file_party_v1_party_proto_msgTypes[8]
+	mi := &file_party_v1_party_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -660,7 +744,7 @@ func (x *GetPartyRequest) String() string {
 func (*GetPartyRequest) ProtoMessage() {}
 
 func (x *GetPartyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_party_v1_party_proto_msgTypes[8]
+	mi := &file_party_v1_party_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -673,7 +757,7 @@ func (x *GetPartyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPartyRequest.ProtoReflect.Descriptor instead.
 func (*GetPartyRequest) Descriptor() ([]byte, []int) {
-	return file_party_v1_party_proto_rawDescGZIP(), []int{8}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetPartyRequest) GetPartyId() string {
@@ -694,7 +778,7 @@ type CreatePartyInviteRequest struct {
 
 func (x *CreatePartyInviteRequest) Reset() {
 	*x = CreatePartyInviteRequest{}
-	mi := &file_party_v1_party_proto_msgTypes[9]
+	mi := &file_party_v1_party_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -706,7 +790,7 @@ func (x *CreatePartyInviteRequest) String() string {
 func (*CreatePartyInviteRequest) ProtoMessage() {}
 
 func (x *CreatePartyInviteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_party_v1_party_proto_msgTypes[9]
+	mi := &file_party_v1_party_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -719,7 +803,7 @@ func (x *CreatePartyInviteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePartyInviteRequest.ProtoReflect.Descriptor instead.
 func (*CreatePartyInviteRequest) Descriptor() ([]byte, []int) {
-	return file_party_v1_party_proto_rawDescGZIP(), []int{9}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CreatePartyInviteRequest) GetPartyId() string {
@@ -754,7 +838,7 @@ type JoinPartyRequest struct {
 
 func (x *JoinPartyRequest) Reset() {
 	*x = JoinPartyRequest{}
-	mi := &file_party_v1_party_proto_msgTypes[10]
+	mi := &file_party_v1_party_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -766,7 +850,7 @@ func (x *JoinPartyRequest) String() string {
 func (*JoinPartyRequest) ProtoMessage() {}
 
 func (x *JoinPartyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_party_v1_party_proto_msgTypes[10]
+	mi := &file_party_v1_party_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -779,7 +863,7 @@ func (x *JoinPartyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JoinPartyRequest.ProtoReflect.Descriptor instead.
 func (*JoinPartyRequest) Descriptor() ([]byte, []int) {
-	return file_party_v1_party_proto_rawDescGZIP(), []int{10}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *JoinPartyRequest) GetPartyId() string {
@@ -814,7 +898,7 @@ type SetReadyRequest struct {
 
 func (x *SetReadyRequest) Reset() {
 	*x = SetReadyRequest{}
-	mi := &file_party_v1_party_proto_msgTypes[11]
+	mi := &file_party_v1_party_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -826,7 +910,7 @@ func (x *SetReadyRequest) String() string {
 func (*SetReadyRequest) ProtoMessage() {}
 
 func (x *SetReadyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_party_v1_party_proto_msgTypes[11]
+	mi := &file_party_v1_party_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -839,7 +923,7 @@ func (x *SetReadyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetReadyRequest.ProtoReflect.Descriptor instead.
 func (*SetReadyRequest) Descriptor() ([]byte, []int) {
-	return file_party_v1_party_proto_rawDescGZIP(), []int{11}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *SetReadyRequest) GetPartyId() string {
@@ -874,7 +958,7 @@ type JoinQueueRequest struct {
 
 func (x *JoinQueueRequest) Reset() {
 	*x = JoinQueueRequest{}
-	mi := &file_party_v1_party_proto_msgTypes[12]
+	mi := &file_party_v1_party_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -886,7 +970,7 @@ func (x *JoinQueueRequest) String() string {
 func (*JoinQueueRequest) ProtoMessage() {}
 
 func (x *JoinQueueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_party_v1_party_proto_msgTypes[12]
+	mi := &file_party_v1_party_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -899,7 +983,7 @@ func (x *JoinQueueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JoinQueueRequest.ProtoReflect.Descriptor instead.
 func (*JoinQueueRequest) Descriptor() ([]byte, []int) {
-	return file_party_v1_party_proto_rawDescGZIP(), []int{12}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *JoinQueueRequest) GetPartyId() string {
@@ -933,7 +1017,7 @@ type LeaveQueueRequest struct {
 
 func (x *LeaveQueueRequest) Reset() {
 	*x = LeaveQueueRequest{}
-	mi := &file_party_v1_party_proto_msgTypes[13]
+	mi := &file_party_v1_party_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -945,7 +1029,7 @@ func (x *LeaveQueueRequest) String() string {
 func (*LeaveQueueRequest) ProtoMessage() {}
 
 func (x *LeaveQueueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_party_v1_party_proto_msgTypes[13]
+	mi := &file_party_v1_party_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -958,7 +1042,7 @@ func (x *LeaveQueueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LeaveQueueRequest.ProtoReflect.Descriptor instead.
 func (*LeaveQueueRequest) Descriptor() ([]byte, []int) {
-	return file_party_v1_party_proto_rawDescGZIP(), []int{13}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *LeaveQueueRequest) GetPartyId() string {
@@ -988,7 +1072,7 @@ type AssignMatchRequest struct {
 
 func (x *AssignMatchRequest) Reset() {
 	*x = AssignMatchRequest{}
-	mi := &file_party_v1_party_proto_msgTypes[14]
+	mi := &file_party_v1_party_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1000,7 +1084,7 @@ func (x *AssignMatchRequest) String() string {
 func (*AssignMatchRequest) ProtoMessage() {}
 
 func (x *AssignMatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_party_v1_party_proto_msgTypes[14]
+	mi := &file_party_v1_party_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1013,7 +1097,7 @@ func (x *AssignMatchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AssignMatchRequest.ProtoReflect.Descriptor instead.
 func (*AssignMatchRequest) Descriptor() ([]byte, []int) {
-	return file_party_v1_party_proto_rawDescGZIP(), []int{14}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *AssignMatchRequest) GetPartyId() string {
@@ -1051,6 +1135,74 @@ func (x *AssignMatchRequest) GetConnectionHint() string {
 	return ""
 }
 
+type ResolveMatchRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PartyId       string                 `protobuf:"bytes,1,opt,name=party_id,json=partyId,proto3" json:"party_id,omitempty"`
+	TicketId      string                 `protobuf:"bytes,2,opt,name=ticket_id,json=ticketId,proto3" json:"ticket_id,omitempty"`
+	MatchId       string                 `protobuf:"bytes,3,opt,name=match_id,json=matchId,proto3" json:"match_id,omitempty"`
+	Status        string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolveMatchRequest) Reset() {
+	*x = ResolveMatchRequest{}
+	mi := &file_party_v1_party_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolveMatchRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolveMatchRequest) ProtoMessage() {}
+
+func (x *ResolveMatchRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_party_v1_party_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolveMatchRequest.ProtoReflect.Descriptor instead.
+func (*ResolveMatchRequest) Descriptor() ([]byte, []int) {
+	return file_party_v1_party_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ResolveMatchRequest) GetPartyId() string {
+	if x != nil {
+		return x.PartyId
+	}
+	return ""
+}
+
+func (x *ResolveMatchRequest) GetTicketId() string {
+	if x != nil {
+		return x.TicketId
+	}
+	return ""
+}
+
+func (x *ResolveMatchRequest) GetMatchId() string {
+	if x != nil {
+		return x.MatchId
+	}
+	return ""
+}
+
+func (x *ResolveMatchRequest) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
 type ListReadyStatesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PartyId       string                 `protobuf:"bytes,1,opt,name=party_id,json=partyId,proto3" json:"party_id,omitempty"`
@@ -1061,7 +1213,7 @@ type ListReadyStatesResponse struct {
 
 func (x *ListReadyStatesResponse) Reset() {
 	*x = ListReadyStatesResponse{}
-	mi := &file_party_v1_party_proto_msgTypes[15]
+	mi := &file_party_v1_party_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1073,7 +1225,7 @@ func (x *ListReadyStatesResponse) String() string {
 func (*ListReadyStatesResponse) ProtoMessage() {}
 
 func (x *ListReadyStatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_party_v1_party_proto_msgTypes[15]
+	mi := &file_party_v1_party_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1086,7 +1238,7 @@ func (x *ListReadyStatesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListReadyStatesResponse.ProtoReflect.Descriptor instead.
 func (*ListReadyStatesResponse) Descriptor() ([]byte, []int) {
-	return file_party_v1_party_proto_rawDescGZIP(), []int{15}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ListReadyStatesResponse) GetPartyId() string {
@@ -1113,7 +1265,7 @@ type ListMemberStatesResponse struct {
 
 func (x *ListMemberStatesResponse) Reset() {
 	*x = ListMemberStatesResponse{}
-	mi := &file_party_v1_party_proto_msgTypes[16]
+	mi := &file_party_v1_party_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1125,7 +1277,7 @@ func (x *ListMemberStatesResponse) String() string {
 func (*ListMemberStatesResponse) ProtoMessage() {}
 
 func (x *ListMemberStatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_party_v1_party_proto_msgTypes[16]
+	mi := &file_party_v1_party_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1138,7 +1290,7 @@ func (x *ListMemberStatesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMemberStatesResponse.ProtoReflect.Descriptor instead.
 func (*ListMemberStatesResponse) Descriptor() ([]byte, []int) {
-	return file_party_v1_party_proto_rawDescGZIP(), []int{16}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ListMemberStatesResponse) GetPartyId() string {
@@ -1209,7 +1361,16 @@ const file_party_v1_party_proto_rawDesc = "" +
 	"\tserver_id\x18\x06 \x01(\tR\bserverId\x12'\n" +
 	"\x0fconnection_hint\x18\a \x01(\tR\x0econnectionHint\x12;\n" +
 	"\vassigned_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"assignedAt\"\xd4\x01\n" +
+	"assignedAt\"\xd8\x01\n" +
+	"\x0fQueueResolution\x12\x1b\n" +
+	"\tticket_id\x18\x01 \x01(\tR\bticketId\x12\x19\n" +
+	"\bparty_id\x18\x02 \x01(\tR\apartyId\x12\x1d\n" +
+	"\n" +
+	"queue_name\x18\x03 \x01(\tR\tqueueName\x12\x19\n" +
+	"\bmatch_id\x18\x04 \x01(\tR\amatchId\x12\x16\n" +
+	"\x06status\x18\x05 \x01(\tR\x06status\x12;\n" +
+	"\vresolved_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"resolvedAt\"\xd4\x01\n" +
 	"\vMemberState\x12\x1b\n" +
 	"\tplayer_id\x18\x01 \x01(\tR\bplayerId\x12\x1b\n" +
 	"\tis_leader\x18\x02 \x01(\bR\bisLeader\x12\x19\n" +
@@ -1249,13 +1410,18 @@ const file_party_v1_party_proto_rawDesc = "" +
 	"\tticket_id\x18\x02 \x01(\tR\bticketId\x12\x19\n" +
 	"\bmatch_id\x18\x03 \x01(\tR\amatchId\x12\x1b\n" +
 	"\tserver_id\x18\x04 \x01(\tR\bserverId\x12'\n" +
-	"\x0fconnection_hint\x18\x05 \x01(\tR\x0econnectionHint\"|\n" +
+	"\x0fconnection_hint\x18\x05 \x01(\tR\x0econnectionHint\"\x80\x01\n" +
+	"\x13ResolveMatchRequest\x12\x19\n" +
+	"\bparty_id\x18\x01 \x01(\tR\apartyId\x12\x1b\n" +
+	"\tticket_id\x18\x02 \x01(\tR\bticketId\x12\x19\n" +
+	"\bmatch_id\x18\x03 \x01(\tR\amatchId\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\"|\n" +
 	"\x17ListReadyStatesResponse\x12\x19\n" +
 	"\bparty_id\x18\x01 \x01(\tR\apartyId\x12F\n" +
 	"\fready_states\x18\x02 \x03(\v2#.social_backend.party.v1.ReadyStateR\vreadyStates\"u\n" +
 	"\x18ListMemberStatesResponse\x12\x19\n" +
 	"\bparty_id\x18\x01 \x01(\tR\apartyId\x12>\n" +
-	"\amembers\x18\x02 \x03(\v2$.social_backend.party.v1.MemberStateR\amembers2\x93\n" +
+	"\amembers\x18\x02 \x03(\v2$.social_backend.party.v1.MemberStateR\amembers2\xfb\n" +
 	"\n" +
 	"\fPartyService\x12Z\n" +
 	"\vCreateParty\x12+.social_backend.party.v1.CreatePartyRequest\x1a\x1e.social_backend.party.v1.Party\x12T\n" +
@@ -1269,7 +1435,8 @@ const file_party_v1_party_proto_rawDesc = "" +
 	"\rGetQueueState\x12(.social_backend.party.v1.GetPartyRequest\x1a#.social_backend.party.v1.QueueState\x12b\n" +
 	"\x0fGetQueueHandoff\x12(.social_backend.party.v1.GetPartyRequest\x1a%.social_backend.party.v1.QueueHandoff\x12d\n" +
 	"\vAssignMatch\x12+.social_backend.party.v1.AssignMatchRequest\x1a(.social_backend.party.v1.QueueAssignment\x12h\n" +
-	"\x12GetQueueAssignment\x12(.social_backend.party.v1.GetPartyRequest\x1a(.social_backend.party.v1.QueueAssignment\x12m\n" +
+	"\x12GetQueueAssignment\x12(.social_backend.party.v1.GetPartyRequest\x1a(.social_backend.party.v1.QueueAssignment\x12f\n" +
+	"\fResolveMatch\x12,.social_backend.party.v1.ResolveMatchRequest\x1a(.social_backend.party.v1.QueueResolution\x12m\n" +
 	"\x0fListReadyStates\x12(.social_backend.party.v1.GetPartyRequest\x1a0.social_backend.party.v1.ListReadyStatesResponse\x12o\n" +
 	"\x10ListMemberStates\x12(.social_backend.party.v1.GetPartyRequest\x1a1.social_backend.party.v1.ListMemberStatesResponseB\xe2\x01\n" +
 	"\x1bcom.social_backend.party.v1B\n" +
@@ -1287,7 +1454,7 @@ func file_party_v1_party_proto_rawDescGZIP() []byte {
 	return file_party_v1_party_proto_rawDescData
 }
 
-var file_party_v1_party_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_party_v1_party_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_party_v1_party_proto_goTypes = []any{
 	(*Party)(nil),                    // 0: social_backend.party.v1.Party
 	(*ReadyState)(nil),               // 1: social_backend.party.v1.ReadyState
@@ -1295,61 +1462,66 @@ var file_party_v1_party_proto_goTypes = []any{
 	(*QueueLeaveResult)(nil),         // 3: social_backend.party.v1.QueueLeaveResult
 	(*QueueHandoff)(nil),             // 4: social_backend.party.v1.QueueHandoff
 	(*QueueAssignment)(nil),          // 5: social_backend.party.v1.QueueAssignment
-	(*MemberState)(nil),              // 6: social_backend.party.v1.MemberState
-	(*CreatePartyRequest)(nil),       // 7: social_backend.party.v1.CreatePartyRequest
-	(*GetPartyRequest)(nil),          // 8: social_backend.party.v1.GetPartyRequest
-	(*CreatePartyInviteRequest)(nil), // 9: social_backend.party.v1.CreatePartyInviteRequest
-	(*JoinPartyRequest)(nil),         // 10: social_backend.party.v1.JoinPartyRequest
-	(*SetReadyRequest)(nil),          // 11: social_backend.party.v1.SetReadyRequest
-	(*JoinQueueRequest)(nil),         // 12: social_backend.party.v1.JoinQueueRequest
-	(*LeaveQueueRequest)(nil),        // 13: social_backend.party.v1.LeaveQueueRequest
-	(*AssignMatchRequest)(nil),       // 14: social_backend.party.v1.AssignMatchRequest
-	(*ListReadyStatesResponse)(nil),  // 15: social_backend.party.v1.ListReadyStatesResponse
-	(*ListMemberStatesResponse)(nil), // 16: social_backend.party.v1.ListMemberStatesResponse
-	(*timestamppb.Timestamp)(nil),    // 17: google.protobuf.Timestamp
-	(*v1.Invite)(nil),                // 18: social_backend.invite.v1.Invite
+	(*QueueResolution)(nil),          // 6: social_backend.party.v1.QueueResolution
+	(*MemberState)(nil),              // 7: social_backend.party.v1.MemberState
+	(*CreatePartyRequest)(nil),       // 8: social_backend.party.v1.CreatePartyRequest
+	(*GetPartyRequest)(nil),          // 9: social_backend.party.v1.GetPartyRequest
+	(*CreatePartyInviteRequest)(nil), // 10: social_backend.party.v1.CreatePartyInviteRequest
+	(*JoinPartyRequest)(nil),         // 11: social_backend.party.v1.JoinPartyRequest
+	(*SetReadyRequest)(nil),          // 12: social_backend.party.v1.SetReadyRequest
+	(*JoinQueueRequest)(nil),         // 13: social_backend.party.v1.JoinQueueRequest
+	(*LeaveQueueRequest)(nil),        // 14: social_backend.party.v1.LeaveQueueRequest
+	(*AssignMatchRequest)(nil),       // 15: social_backend.party.v1.AssignMatchRequest
+	(*ResolveMatchRequest)(nil),      // 16: social_backend.party.v1.ResolveMatchRequest
+	(*ListReadyStatesResponse)(nil),  // 17: social_backend.party.v1.ListReadyStatesResponse
+	(*ListMemberStatesResponse)(nil), // 18: social_backend.party.v1.ListMemberStatesResponse
+	(*timestamppb.Timestamp)(nil),    // 19: google.protobuf.Timestamp
+	(*v1.Invite)(nil),                // 20: social_backend.invite.v1.Invite
 }
 var file_party_v1_party_proto_depIdxs = []int32{
-	17, // 0: social_backend.party.v1.Party.created_at:type_name -> google.protobuf.Timestamp
-	17, // 1: social_backend.party.v1.ReadyState.updated_at:type_name -> google.protobuf.Timestamp
-	17, // 2: social_backend.party.v1.QueueState.joined_at:type_name -> google.protobuf.Timestamp
-	17, // 3: social_backend.party.v1.QueueLeaveResult.left_at:type_name -> google.protobuf.Timestamp
-	17, // 4: social_backend.party.v1.QueueHandoff.joined_at:type_name -> google.protobuf.Timestamp
-	6,  // 5: social_backend.party.v1.QueueHandoff.members:type_name -> social_backend.party.v1.MemberState
-	17, // 6: social_backend.party.v1.QueueAssignment.assigned_at:type_name -> google.protobuf.Timestamp
-	1,  // 7: social_backend.party.v1.ListReadyStatesResponse.ready_states:type_name -> social_backend.party.v1.ReadyState
-	6,  // 8: social_backend.party.v1.ListMemberStatesResponse.members:type_name -> social_backend.party.v1.MemberState
-	7,  // 9: social_backend.party.v1.PartyService.CreateParty:input_type -> social_backend.party.v1.CreatePartyRequest
-	8,  // 10: social_backend.party.v1.PartyService.GetParty:input_type -> social_backend.party.v1.GetPartyRequest
-	9,  // 11: social_backend.party.v1.PartyService.CreatePartyInvite:input_type -> social_backend.party.v1.CreatePartyInviteRequest
-	10, // 12: social_backend.party.v1.PartyService.JoinParty:input_type -> social_backend.party.v1.JoinPartyRequest
-	11, // 13: social_backend.party.v1.PartyService.SetReady:input_type -> social_backend.party.v1.SetReadyRequest
-	12, // 14: social_backend.party.v1.PartyService.JoinQueue:input_type -> social_backend.party.v1.JoinQueueRequest
-	13, // 15: social_backend.party.v1.PartyService.LeaveQueue:input_type -> social_backend.party.v1.LeaveQueueRequest
-	8,  // 16: social_backend.party.v1.PartyService.GetQueueState:input_type -> social_backend.party.v1.GetPartyRequest
-	8,  // 17: social_backend.party.v1.PartyService.GetQueueHandoff:input_type -> social_backend.party.v1.GetPartyRequest
-	14, // 18: social_backend.party.v1.PartyService.AssignMatch:input_type -> social_backend.party.v1.AssignMatchRequest
-	8,  // 19: social_backend.party.v1.PartyService.GetQueueAssignment:input_type -> social_backend.party.v1.GetPartyRequest
-	8,  // 20: social_backend.party.v1.PartyService.ListReadyStates:input_type -> social_backend.party.v1.GetPartyRequest
-	8,  // 21: social_backend.party.v1.PartyService.ListMemberStates:input_type -> social_backend.party.v1.GetPartyRequest
-	0,  // 22: social_backend.party.v1.PartyService.CreateParty:output_type -> social_backend.party.v1.Party
-	0,  // 23: social_backend.party.v1.PartyService.GetParty:output_type -> social_backend.party.v1.Party
-	18, // 24: social_backend.party.v1.PartyService.CreatePartyInvite:output_type -> social_backend.invite.v1.Invite
-	0,  // 25: social_backend.party.v1.PartyService.JoinParty:output_type -> social_backend.party.v1.Party
-	1,  // 26: social_backend.party.v1.PartyService.SetReady:output_type -> social_backend.party.v1.ReadyState
-	2,  // 27: social_backend.party.v1.PartyService.JoinQueue:output_type -> social_backend.party.v1.QueueState
-	3,  // 28: social_backend.party.v1.PartyService.LeaveQueue:output_type -> social_backend.party.v1.QueueLeaveResult
-	2,  // 29: social_backend.party.v1.PartyService.GetQueueState:output_type -> social_backend.party.v1.QueueState
-	4,  // 30: social_backend.party.v1.PartyService.GetQueueHandoff:output_type -> social_backend.party.v1.QueueHandoff
-	5,  // 31: social_backend.party.v1.PartyService.AssignMatch:output_type -> social_backend.party.v1.QueueAssignment
-	5,  // 32: social_backend.party.v1.PartyService.GetQueueAssignment:output_type -> social_backend.party.v1.QueueAssignment
-	15, // 33: social_backend.party.v1.PartyService.ListReadyStates:output_type -> social_backend.party.v1.ListReadyStatesResponse
-	16, // 34: social_backend.party.v1.PartyService.ListMemberStates:output_type -> social_backend.party.v1.ListMemberStatesResponse
-	22, // [22:35] is the sub-list for method output_type
-	9,  // [9:22] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	19, // 0: social_backend.party.v1.Party.created_at:type_name -> google.protobuf.Timestamp
+	19, // 1: social_backend.party.v1.ReadyState.updated_at:type_name -> google.protobuf.Timestamp
+	19, // 2: social_backend.party.v1.QueueState.joined_at:type_name -> google.protobuf.Timestamp
+	19, // 3: social_backend.party.v1.QueueLeaveResult.left_at:type_name -> google.protobuf.Timestamp
+	19, // 4: social_backend.party.v1.QueueHandoff.joined_at:type_name -> google.protobuf.Timestamp
+	7,  // 5: social_backend.party.v1.QueueHandoff.members:type_name -> social_backend.party.v1.MemberState
+	19, // 6: social_backend.party.v1.QueueAssignment.assigned_at:type_name -> google.protobuf.Timestamp
+	19, // 7: social_backend.party.v1.QueueResolution.resolved_at:type_name -> google.protobuf.Timestamp
+	1,  // 8: social_backend.party.v1.ListReadyStatesResponse.ready_states:type_name -> social_backend.party.v1.ReadyState
+	7,  // 9: social_backend.party.v1.ListMemberStatesResponse.members:type_name -> social_backend.party.v1.MemberState
+	8,  // 10: social_backend.party.v1.PartyService.CreateParty:input_type -> social_backend.party.v1.CreatePartyRequest
+	9,  // 11: social_backend.party.v1.PartyService.GetParty:input_type -> social_backend.party.v1.GetPartyRequest
+	10, // 12: social_backend.party.v1.PartyService.CreatePartyInvite:input_type -> social_backend.party.v1.CreatePartyInviteRequest
+	11, // 13: social_backend.party.v1.PartyService.JoinParty:input_type -> social_backend.party.v1.JoinPartyRequest
+	12, // 14: social_backend.party.v1.PartyService.SetReady:input_type -> social_backend.party.v1.SetReadyRequest
+	13, // 15: social_backend.party.v1.PartyService.JoinQueue:input_type -> social_backend.party.v1.JoinQueueRequest
+	14, // 16: social_backend.party.v1.PartyService.LeaveQueue:input_type -> social_backend.party.v1.LeaveQueueRequest
+	9,  // 17: social_backend.party.v1.PartyService.GetQueueState:input_type -> social_backend.party.v1.GetPartyRequest
+	9,  // 18: social_backend.party.v1.PartyService.GetQueueHandoff:input_type -> social_backend.party.v1.GetPartyRequest
+	15, // 19: social_backend.party.v1.PartyService.AssignMatch:input_type -> social_backend.party.v1.AssignMatchRequest
+	9,  // 20: social_backend.party.v1.PartyService.GetQueueAssignment:input_type -> social_backend.party.v1.GetPartyRequest
+	16, // 21: social_backend.party.v1.PartyService.ResolveMatch:input_type -> social_backend.party.v1.ResolveMatchRequest
+	9,  // 22: social_backend.party.v1.PartyService.ListReadyStates:input_type -> social_backend.party.v1.GetPartyRequest
+	9,  // 23: social_backend.party.v1.PartyService.ListMemberStates:input_type -> social_backend.party.v1.GetPartyRequest
+	0,  // 24: social_backend.party.v1.PartyService.CreateParty:output_type -> social_backend.party.v1.Party
+	0,  // 25: social_backend.party.v1.PartyService.GetParty:output_type -> social_backend.party.v1.Party
+	20, // 26: social_backend.party.v1.PartyService.CreatePartyInvite:output_type -> social_backend.invite.v1.Invite
+	0,  // 27: social_backend.party.v1.PartyService.JoinParty:output_type -> social_backend.party.v1.Party
+	1,  // 28: social_backend.party.v1.PartyService.SetReady:output_type -> social_backend.party.v1.ReadyState
+	2,  // 29: social_backend.party.v1.PartyService.JoinQueue:output_type -> social_backend.party.v1.QueueState
+	3,  // 30: social_backend.party.v1.PartyService.LeaveQueue:output_type -> social_backend.party.v1.QueueLeaveResult
+	2,  // 31: social_backend.party.v1.PartyService.GetQueueState:output_type -> social_backend.party.v1.QueueState
+	4,  // 32: social_backend.party.v1.PartyService.GetQueueHandoff:output_type -> social_backend.party.v1.QueueHandoff
+	5,  // 33: social_backend.party.v1.PartyService.AssignMatch:output_type -> social_backend.party.v1.QueueAssignment
+	5,  // 34: social_backend.party.v1.PartyService.GetQueueAssignment:output_type -> social_backend.party.v1.QueueAssignment
+	6,  // 35: social_backend.party.v1.PartyService.ResolveMatch:output_type -> social_backend.party.v1.QueueResolution
+	17, // 36: social_backend.party.v1.PartyService.ListReadyStates:output_type -> social_backend.party.v1.ListReadyStatesResponse
+	18, // 37: social_backend.party.v1.PartyService.ListMemberStates:output_type -> social_backend.party.v1.ListMemberStatesResponse
+	24, // [24:38] is the sub-list for method output_type
+	10, // [10:24] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_party_v1_party_proto_init() }
@@ -1363,7 +1535,7 @@ func file_party_v1_party_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_party_v1_party_proto_rawDesc), len(file_party_v1_party_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

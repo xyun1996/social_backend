@@ -30,7 +30,11 @@ Base purpose: operator-facing read queries across runtime-aware service boundari
   "friend_count": 1,
   "block_count": 1,
   "pending_inbox_count": 1,
-  "pending_outbox_count": 1
+  "pending_outbox_count": 1,
+  "current_party_id": "party-1",
+  "current_guild_id": "guild-1",
+  "current_guild_role": "owner",
+  "current_queue_status": "queued"
 }
 ```
 

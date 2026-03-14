@@ -19,13 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ChatService_CreateConversation_FullMethodName   = "/social_backend.chat.v1.ChatService/CreateConversation"
-	ChatService_ListConversations_FullMethodName    = "/social_backend.chat.v1.ChatService/ListConversations"
-	ChatService_SendMessage_FullMethodName          = "/social_backend.chat.v1.ChatService/SendMessage"
-	ChatService_ReplayMessages_FullMethodName       = "/social_backend.chat.v1.ChatService/ReplayMessages"
-	ChatService_AckConversation_FullMethodName      = "/social_backend.chat.v1.ChatService/AckConversation"
-	ChatService_GetChannelDescriptor_FullMethodName = "/social_backend.chat.v1.ChatService/GetChannelDescriptor"
-	ChatService_PlanDelivery_FullMethodName         = "/social_backend.chat.v1.ChatService/PlanDelivery"
+	ChatService_CreateConversation_FullMethodName        = "/social_backend.chat.v1.ChatService/CreateConversation"
+	ChatService_ListConversations_FullMethodName         = "/social_backend.chat.v1.ChatService/ListConversations"
+	ChatService_ListConversationSummaries_FullMethodName = "/social_backend.chat.v1.ChatService/ListConversationSummaries"
+	ChatService_SendMessage_FullMethodName               = "/social_backend.chat.v1.ChatService/SendMessage"
+	ChatService_ReplayMessages_FullMethodName            = "/social_backend.chat.v1.ChatService/ReplayMessages"
+	ChatService_AckConversation_FullMethodName           = "/social_backend.chat.v1.ChatService/AckConversation"
+	ChatService_GetConversationSummary_FullMethodName    = "/social_backend.chat.v1.ChatService/GetConversationSummary"
+	ChatService_GetChannelDescriptor_FullMethodName      = "/social_backend.chat.v1.ChatService/GetChannelDescriptor"
+	ChatService_PlanDelivery_FullMethodName              = "/social_backend.chat.v1.ChatService/PlanDelivery"
 )
 
 // ChatServiceClient is the client API for ChatService service.
@@ -34,9 +36,11 @@ const (
 type ChatServiceClient interface {
 	CreateConversation(ctx context.Context, in *CreateConversationRequest, opts ...grpc.CallOption) (*Conversation, error)
 	ListConversations(ctx context.Context, in *ListConversationsRequest, opts ...grpc.CallOption) (*ListConversationsResponse, error)
+	ListConversationSummaries(ctx context.Context, in *ListConversationSummariesRequest, opts ...grpc.CallOption) (*ListConversationSummariesResponse, error)
 	SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*Message, error)
 	ReplayMessages(ctx context.Context, in *ReplayMessagesRequest, opts ...grpc.CallOption) (*ReplayMessagesResponse, error)
 	AckConversation(ctx context.Context, in *AckConversationRequest, opts ...grpc.CallOption) (*ReadCursor, error)
+	GetConversationSummary(ctx context.Context, in *GetConversationSummaryRequest, opts ...grpc.CallOption) (*ConversationSummary, error)
 	GetChannelDescriptor(ctx context.Context, in *GetChannelDescriptorRequest, opts ...grpc.CallOption) (*ChannelDescriptor, error)
 	PlanDelivery(ctx context.Context, in *PlanDeliveryRequest, opts ...grpc.CallOption) (*PlanDeliveryResponse, error)
 }
@@ -63,6 +67,16 @@ func (c *chatServiceClient) ListConversations(ctx context.Context, in *ListConve
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListConversationsResponse)
 	err := c.cc.Invoke(ctx, ChatService_ListConversations_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatServiceClient) ListConversationSummaries(ctx context.Context, in *ListConversationSummariesRequest, opts ...grpc.CallOption) (*ListConversationSummariesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListConversationSummariesResponse)
+	err := c.cc.Invoke(ctx, ChatService_ListConversationSummaries_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -99,6 +113,16 @@ func (c *chatServiceClient) AckConversation(ctx context.Context, in *AckConversa
 	return out, nil
 }
 
+func (c *chatServiceClient) GetConversationSummary(ctx context.Context, in *GetConversationSummaryRequest, opts ...grpc.CallOption) (*ConversationSummary, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConversationSummary)
+	err := c.cc.Invoke(ctx, ChatService_GetConversationSummary_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *chatServiceClient) GetChannelDescriptor(ctx context.Context, in *GetChannelDescriptorRequest, opts ...grpc.CallOption) (*ChannelDescriptor, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ChannelDescriptor)
@@ -125,9 +149,11 @@ func (c *chatServiceClient) PlanDelivery(ctx context.Context, in *PlanDeliveryRe
 type ChatServiceServer interface {
 	CreateConversation(context.Context, *CreateConversationRequest) (*Conversation, error)
 	ListConversations(context.Context, *ListConversationsRequest) (*ListConversationsResponse, error)
+	ListConversationSummaries(context.Context, *ListConversationSummariesRequest) (*ListConversationSummariesResponse, error)
 	SendMessage(context.Context, *SendMessageRequest) (*Message, error)
 	ReplayMessages(context.Context, *ReplayMessagesRequest) (*ReplayMessagesResponse, error)
 	AckConversation(context.Context, *AckConversationRequest) (*ReadCursor, error)
+	GetConversationSummary(context.Context, *GetConversationSummaryRequest) (*ConversationSummary, error)
 	GetChannelDescriptor(context.Context, *GetChannelDescriptorRequest) (*ChannelDescriptor, error)
 	PlanDelivery(context.Context, *PlanDeliveryRequest) (*PlanDeliveryResponse, error)
 	mustEmbedUnimplementedChatServiceServer()
@@ -146,6 +172,9 @@ func (UnimplementedChatServiceServer) CreateConversation(context.Context, *Creat
 func (UnimplementedChatServiceServer) ListConversations(context.Context, *ListConversationsRequest) (*ListConversationsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListConversations not implemented")
 }
+func (UnimplementedChatServiceServer) ListConversationSummaries(context.Context, *ListConversationSummariesRequest) (*ListConversationSummariesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListConversationSummaries not implemented")
+}
 func (UnimplementedChatServiceServer) SendMessage(context.Context, *SendMessageRequest) (*Message, error) {
 	return nil, status.Error(codes.Unimplemented, "method SendMessage not implemented")
 }
@@ -154,6 +183,9 @@ func (UnimplementedChatServiceServer) ReplayMessages(context.Context, *ReplayMes
 }
 func (UnimplementedChatServiceServer) AckConversation(context.Context, *AckConversationRequest) (*ReadCursor, error) {
 	return nil, status.Error(codes.Unimplemented, "method AckConversation not implemented")
+}
+func (UnimplementedChatServiceServer) GetConversationSummary(context.Context, *GetConversationSummaryRequest) (*ConversationSummary, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetConversationSummary not implemented")
 }
 func (UnimplementedChatServiceServer) GetChannelDescriptor(context.Context, *GetChannelDescriptorRequest) (*ChannelDescriptor, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetChannelDescriptor not implemented")
@@ -218,6 +250,24 @@ func _ChatService_ListConversations_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChatService_ListConversationSummaries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListConversationSummariesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).ListConversationSummaries(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_ListConversationSummaries_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).ListConversationSummaries(ctx, req.(*ListConversationSummariesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ChatService_SendMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SendMessageRequest)
 	if err := dec(in); err != nil {
@@ -268,6 +318,24 @@ func _ChatService_AckConversation_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ChatServiceServer).AckConversation(ctx, req.(*AckConversationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChatService_GetConversationSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetConversationSummaryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).GetConversationSummary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_GetConversationSummary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).GetConversationSummary(ctx, req.(*GetConversationSummaryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -324,6 +392,10 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ChatService_ListConversations_Handler,
 		},
 		{
+			MethodName: "ListConversationSummaries",
+			Handler:    _ChatService_ListConversationSummaries_Handler,
+		},
+		{
 			MethodName: "SendMessage",
 			Handler:    _ChatService_SendMessage_Handler,
 		},
@@ -334,6 +406,10 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AckConversation",
 			Handler:    _ChatService_AckConversation_Handler,
+		},
+		{
+			MethodName: "GetConversationSummary",
+			Handler:    _ChatService_GetConversationSummary_Handler,
 		},
 		{
 			MethodName: "GetChannelDescriptor",

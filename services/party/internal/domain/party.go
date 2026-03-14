@@ -39,6 +39,16 @@ type QueueAssignment struct {
 	AssignedAt     time.Time `json:"assigned_at"`
 }
 
+// QueueResolution records the terminal cleanup event after an assigned match is consumed or cancelled.
+type QueueResolution struct {
+	TicketID   string    `json:"ticket_id"`
+	PartyID    string    `json:"party_id"`
+	QueueName  string    `json:"queue_name"`
+	MatchID    string    `json:"match_id"`
+	Status     string    `json:"status"`
+	ResolvedAt time.Time `json:"resolved_at"`
+}
+
 // QueueLeaveResult describes a successful queue exit.
 type QueueLeaveResult struct {
 	PartyID   string    `json:"party_id"`

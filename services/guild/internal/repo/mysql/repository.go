@@ -16,9 +16,10 @@ type schemaExecutor interface {
 }
 
 const (
-	GuildsTable       = "guild_guilds"
-	GuildMembersTable = "guild_members"
-	GuildLogsTable    = "guild_logs"
+	GuildsTable          = "guild_guilds"
+	GuildMembersTable    = "guild_members"
+	GuildLogsTable       = "guild_logs"
+	GuildActivitiesTable = "guild_activities"
 )
 
 // Repository implements guild durable storage on MySQL.
@@ -81,6 +82,24 @@ func (r *Repository) Migrations() []db.Migration {
 				);`,
 			},
 		},
+		{
+			ID: "004_guild_progression",
+			Statements: []string{
+				`ALTER TABLE guild_guilds
+				 ADD COLUMN level INT NOT NULL DEFAULT 1`,
+				`ALTER TABLE guild_guilds
+				 ADD COLUMN experience INT NOT NULL DEFAULT 0`,
+				`CREATE TABLE IF NOT EXISTS guild_activities (
+					activity_id VARCHAR(64) PRIMARY KEY,
+					guild_id VARCHAR(64) NOT NULL,
+					template_key VARCHAR(64) NOT NULL,
+					player_id VARCHAR(64) NOT NULL,
+					delta_xp INT NOT NULL,
+					created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					INDEX idx_guild_activities_guild_created (guild_id, created_at)
+				);`,
+			},
+		},
 	}
 }
 
@@ -108,17 +127,21 @@ func (r *Repository) SaveGuild(guild domain.Guild) error {
 
 	if _, err := tx.ExecContext(
 		context.Background(),
-		`INSERT INTO guild_guilds (guild_id, name, owner_id, announcement, announcement_updated_at, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?)
+		`INSERT INTO guild_guilds (guild_id, name, owner_id, level, experience, announcement, announcement_updated_at, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		 ON DUPLICATE KEY UPDATE
 		   name = VALUES(name),
 		   owner_id = VALUES(owner_id),
+		   level = VALUES(level),
+		   experience = VALUES(experience),
 		   announcement = VALUES(announcement),
 		   announcement_updated_at = VALUES(announcement_updated_at),
 		   created_at = VALUES(created_at)`,
 		guild.ID,
 		guild.Name,
 		guild.OwnerID,
+		guild.Level,
+		guild.Experience,
 		guild.Announcement,
 		nullableTime(guild.AnnouncementUpdatedAt),
 		guild.CreatedAt.UTC(),
@@ -152,13 +175,13 @@ func (r *Repository) GetGuild(guildID string) (domain.Guild, bool, error) {
 
 	row := r.sqlDB.QueryRowContext(
 		context.Background(),
-		`SELECT guild_id, name, owner_id, announcement, announcement_updated_at, created_at FROM guild_guilds WHERE guild_id = ?`,
+		`SELECT guild_id, name, owner_id, level, experience, announcement, announcement_updated_at, created_at FROM guild_guilds WHERE guild_id = ?`,
 		guildID,
 	)
 
 	var guild domain.Guild
 	var announcementUpdatedAt sql.NullTime
-	if err := row.Scan(&guild.ID, &guild.Name, &guild.OwnerID, &guild.Announcement, &announcementUpdatedAt, &guild.CreatedAt); err != nil {
+	if err := row.Scan(&guild.ID, &guild.Name, &guild.OwnerID, &guild.Level, &guild.Experience, &guild.Announcement, &announcementUpdatedAt, &guild.CreatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.Guild{}, false, nil
 		}
@@ -181,7 +204,7 @@ func (r *Repository) ListGuilds() ([]domain.Guild, error) {
 		return nil, errors.New("mysql repository is not configured")
 	}
 
-	rows, err := r.sqlDB.QueryContext(context.Background(), `SELECT guild_id, name, owner_id, announcement, announcement_updated_at, created_at FROM guild_guilds`)
+	rows, err := r.sqlDB.QueryContext(context.Background(), `SELECT guild_id, name, owner_id, level, experience, announcement, announcement_updated_at, created_at FROM guild_guilds`)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +214,7 @@ func (r *Repository) ListGuilds() ([]domain.Guild, error) {
 	for rows.Next() {
 		var guild domain.Guild
 		var announcementUpdatedAt sql.NullTime
-		if err := rows.Scan(&guild.ID, &guild.Name, &guild.OwnerID, &guild.Announcement, &announcementUpdatedAt, &guild.CreatedAt); err != nil {
+		if err := rows.Scan(&guild.ID, &guild.Name, &guild.OwnerID, &guild.Level, &guild.Experience, &guild.Announcement, &announcementUpdatedAt, &guild.CreatedAt); err != nil {
 			return nil, err
 		}
 		if announcementUpdatedAt.Valid {
@@ -342,4 +365,74 @@ func (r *Repository) ListLogs(guildID string) ([]domain.GuildLogEntry, error) {
 		}
 	})
 	return logs, nil
+}
+
+func (r *Repository) SaveActivity(record domain.GuildActivityRecord) error {
+	if r == nil || r.sqlDB == nil {
+		return errors.New("mysql repository is not configured")
+	}
+
+	_, err := r.sqlDB.ExecContext(
+		context.Background(),
+		`INSERT INTO guild_activities (activity_id, guild_id, template_key, player_id, delta_xp, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?)
+		 ON DUPLICATE KEY UPDATE
+		   template_key = VALUES(template_key),
+		   player_id = VALUES(player_id),
+		   delta_xp = VALUES(delta_xp),
+		   created_at = VALUES(created_at)`,
+		record.ID,
+		record.GuildID,
+		record.TemplateKey,
+		record.PlayerID,
+		record.DeltaXP,
+		record.CreatedAt.UTC(),
+	)
+	return err
+}
+
+func (r *Repository) ListActivities(guildID string) ([]domain.GuildActivityRecord, error) {
+	if r == nil || r.sqlDB == nil {
+		return nil, errors.New("mysql repository is not configured")
+	}
+	rows, err := r.sqlDB.QueryContext(
+		context.Background(),
+		`SELECT activity_id, guild_id, template_key, player_id, delta_xp, created_at
+		 FROM guild_activities
+		 WHERE guild_id = ?`,
+		guildID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	records := make([]domain.GuildActivityRecord, 0)
+	for rows.Next() {
+		var record domain.GuildActivityRecord
+		if err := rows.Scan(&record.ID, &record.GuildID, &record.TemplateKey, &record.PlayerID, &record.DeltaXP, &record.CreatedAt); err != nil {
+			return nil, err
+		}
+		records = append(records, record)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	slices.SortFunc(records, func(a domain.GuildActivityRecord, b domain.GuildActivityRecord) int {
+		if !a.CreatedAt.Equal(b.CreatedAt) {
+			if a.CreatedAt.Before(b.CreatedAt) {
+				return -1
+			}
+			return 1
+		}
+		switch {
+		case a.ID < b.ID:
+			return -1
+		case a.ID > b.ID:
+			return 1
+		default:
+			return 0
+		}
+	})
+	return records, nil
 }

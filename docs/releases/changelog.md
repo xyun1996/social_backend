@@ -19,3 +19,7 @@
 - Added guild governance logs with durable storage support
 - Added guild kick and transfer-owner operations
 - Added invite cancellation and aligned HTTP/task docs with gateway ack compaction and resume trimming flows
+- Added party match resolution callbacks that clear queue assignment ownership after handoff
+- Added guild progression and durable activity templates for sign-in, donation, and guild tasks
+- Added chat conversation summaries with unread counts and last-message snapshots
+- Expanded ops player overview with current party, guild, role, and queue status reads

@@ -242,6 +242,41 @@ Base purpose: party creation, shared-invite-based joins, ready state updates, co
 - `GET /v1/parties/{partyID}/queue/assignment`
 - Response `200`: queue assignment shape from the assign response
 
+## Resolve Match
+
+- `POST /v1/parties/{partyID}/queue/assignment/resolve`
+- Request
+
+```json
+{
+  "ticket_id": "ticket:party-1:casual-2v2:1760000000",
+  "match_id": "match-1",
+  "status": "completed"
+}
+```
+
+- Response `200`
+
+```json
+{
+  "ticket_id": "ticket:party-1:casual-2v2:1760000000",
+  "party_id": "party-1",
+  "queue_name": "casual-2v2",
+  "match_id": "match-1",
+  "status": "completed",
+  "resolved_at": "2026-03-13T10:12:00Z"
+}
+```
+
+- Rules
+- Resolution must match the active assignment ticket and `match_id`
+- Successful resolution clears both queue state and queue assignment ownership
+
+## Find Party By Player
+
+- `GET /v1/party-memberships/{playerID}`
+- Response `200`: current party membership snapshot for the player
+
 ## Leave Queue
 
 - `POST /v1/parties/{partyID}/queue/leave`

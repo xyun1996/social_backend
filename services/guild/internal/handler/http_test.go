@@ -205,3 +205,43 @@ func TestGuildAnnouncementEndpoint(t *testing.T) {
 		t.Fatalf("unexpected announcement payload: %+v", payload)
 	}
 }
+
+func TestGuildActivityEndpoints(t *testing.T) {
+	t.Parallel()
+
+	h := NewHTTPHandler(guildservice.NewGuildService(&fakeInviteClient{}, nil))
+
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/guilds", bytes.NewBufferString(`{"name":"Raiders","owner_id":"p1"}`))
+	createRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(createRec, createReq)
+	if createRec.Code != http.StatusOK {
+		t.Fatalf("unexpected create status: got %d want %d", createRec.Code, http.StatusOK)
+	}
+
+	var created map[string]any
+	if err := json.Unmarshal(createRec.Body.Bytes(), &created); err != nil {
+		t.Fatalf("unmarshal create response: %v", err)
+	}
+	guildID, _ := created["id"].(string)
+
+	templatesReq := httptest.NewRequest(http.MethodGet, "/v1/guilds/activity-templates", nil)
+	templatesRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(templatesRec, templatesReq)
+	if templatesRec.Code != http.StatusOK {
+		t.Fatalf("unexpected templates status: got %d want %d", templatesRec.Code, http.StatusOK)
+	}
+
+	submitReq := httptest.NewRequest(http.MethodPost, "/v1/guilds/"+guildID+"/activities/sign_in", bytes.NewBufferString(`{"actor_player_id":"p1"}`))
+	submitRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(submitRec, submitReq)
+	if submitRec.Code != http.StatusOK {
+		t.Fatalf("unexpected activity submit status: got %d want %d", submitRec.Code, http.StatusOK)
+	}
+
+	listReq := httptest.NewRequest(http.MethodGet, "/v1/guilds/"+guildID+"/activities", nil)
+	listRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(listRec, listReq)
+	if listRec.Code != http.StatusOK {
+		t.Fatalf("unexpected activity list status: got %d want %d", listRec.Code, http.StatusOK)
+	}
+}
