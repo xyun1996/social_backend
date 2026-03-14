@@ -55,4 +55,11 @@ func TestMountedCorePhaseAEndpoints(t *testing.T) {
 	if inviteRec.Code != http.StatusOK {
 		t.Fatalf("expected invite status %d, got %d", http.StatusOK, inviteRec.Code)
 	}
+
+	privateChatReq := httptest.NewRequest(http.MethodPost, "/v1/private-chat/conversations", bytes.NewReader([]byte(`{"member_player_ids":["player-1","player-2"]}`)))
+	privateChatRec := httptest.NewRecorder()
+	mux.ServeHTTP(privateChatRec, privateChatReq)
+	if privateChatRec.Code != http.StatusOK {
+		t.Fatalf("expected private chat create status %d, got %d", http.StatusOK, privateChatRec.Code)
+	}
 }

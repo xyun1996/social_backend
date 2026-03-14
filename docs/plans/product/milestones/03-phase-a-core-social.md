@@ -27,3 +27,5 @@ Deliver the first genuinely product-grade capability slice:
   login/refresh/introspect and friends/blocks basics, instead of only documenting them.
 - `social-core` also serves invite lifecycle endpoints directly for
   create/get/respond/cancel/list, giving the rebuilt runtime its first cross-domain flow.
+- `social-core` also serves a minimal direct-message slice:
+  private conversations, message send/replay, ack, and conversation summaries.
