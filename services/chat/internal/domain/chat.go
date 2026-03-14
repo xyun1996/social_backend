@@ -12,6 +12,18 @@ type Conversation struct {
 	CreatedAt       time.Time `json:"created_at"`
 }
 
+// ChannelDescriptor explains the policy surface implied by a conversation kind.
+type ChannelDescriptor struct {
+	ConversationID   string `json:"conversation_id"`
+	Kind             string `json:"kind"`
+	ResourceID       string `json:"resource_id,omitempty"`
+	Scope            string `json:"scope"`
+	MembershipMode   string `json:"membership_mode"`
+	SendPolicy       string `json:"send_policy"`
+	ResourceRequired bool   `json:"resource_required"`
+	MemberCount      int    `json:"member_count"`
+}
+
 // Message is an immutable conversation entry ordered by seq.
 type Message struct {
 	ID             string    `json:"id"`

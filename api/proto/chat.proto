@@ -40,6 +40,17 @@ message DeliveryTarget {
   string location = 6;
 }
 
+message ChannelDescriptor {
+  string conversation_id = 1;
+  string kind = 2;
+  string resource_id = 3;
+  string scope = 4;
+  string membership_mode = 5;
+  string send_policy = 6;
+  bool resource_required = 7;
+  int32 member_count = 8;
+}
+
 message CreateConversationRequest {
   string kind = 1;
   string resource_id = 2;
@@ -86,6 +97,10 @@ message PlanDeliveryRequest {
   string sender_player_id = 2;
 }
 
+message GetChannelDescriptorRequest {
+  string conversation_id = 1;
+}
+
 message PlanDeliveryResponse {
   string conversation_id = 1;
   string sender_player_id = 2;
@@ -98,5 +113,6 @@ service ChatService {
   rpc SendMessage(SendMessageRequest) returns (Message);
   rpc ReplayMessages(ReplayMessagesRequest) returns (ReplayMessagesResponse);
   rpc AckConversation(AckConversationRequest) returns (ReadCursor);
+  rpc GetChannelDescriptor(GetChannelDescriptorRequest) returns (ChannelDescriptor);
   rpc PlanDelivery(PlanDeliveryRequest) returns (PlanDeliveryResponse);
 }

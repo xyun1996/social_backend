@@ -52,6 +52,7 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("POST /v1/conversations/{conversationID}/messages", h.handleSendMessage)
 	mux.HandleFunc("GET /v1/conversations/{conversationID}/messages", h.handleReplayMessages)
 	mux.HandleFunc("POST /v1/conversations/{conversationID}/ack", h.handleAckConversation)
+	mux.HandleFunc("GET /v1/conversations/{conversationID}/channel", h.handleGetChannelDescriptor)
 	mux.HandleFunc("GET /v1/conversations/{conversationID}/delivery", h.handleDeliveryPlan)
 	mux.HandleFunc("POST /v1/internal/offline-deliveries", h.handleRecordOfflineDelivery)
 	return mux
@@ -154,6 +155,16 @@ func (h *HTTPHandler) handleAckConversation(w http.ResponseWriter, r *http.Reque
 	}
 
 	transport.WriteJSON(w, http.StatusOK, cursor)
+}
+
+func (h *HTTPHandler) handleGetChannelDescriptor(w http.ResponseWriter, r *http.Request) {
+	descriptor, appErr := h.chat.GetChannelDescriptor(r.PathValue("conversationID"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, descriptor)
 }
 
 func (h *HTTPHandler) handleDeliveryPlan(w http.ResponseWriter, r *http.Request) {

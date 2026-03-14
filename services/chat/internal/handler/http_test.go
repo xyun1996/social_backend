@@ -121,6 +121,32 @@ func TestDeliveryPlanEndpoint(t *testing.T) {
 	}
 }
 
+func TestChannelDescriptorEndpoint(t *testing.T) {
+	t.Parallel()
+
+	h := NewHTTPHandler(service.NewChatService(nil, nil))
+
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/conversations", bytes.NewBufferString(`{"kind":"guild","resource_id":"guild-1","member_player_ids":["p1","p2"]}`))
+	createRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(createRec, createReq)
+	if createRec.Code != http.StatusOK {
+		t.Fatalf("unexpected create status: got %d want %d", createRec.Code, http.StatusOK)
+	}
+
+	var conversation map[string]any
+	if err := json.Unmarshal(createRec.Body.Bytes(), &conversation); err != nil {
+		t.Fatalf("unmarshal create response: %v", err)
+	}
+	conversationID, _ := conversation["id"].(string)
+
+	channelReq := httptest.NewRequest(http.MethodGet, "/v1/conversations/"+conversationID+"/channel", nil)
+	channelRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(channelRec, channelReq)
+	if channelRec.Code != http.StatusOK {
+		t.Fatalf("unexpected channel descriptor status: got %d want %d", channelRec.Code, http.StatusOK)
+	}
+}
+
 func TestRecordOfflineDeliveryEndpoint(t *testing.T) {
 	t.Parallel()
 

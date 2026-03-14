@@ -24,13 +24,19 @@ const (
 	kindSystem  = "system"
 	kindCustom  = "custom"
 
-	defaultReplayLimit = 50
-	maxReplayLimit     = 200
-	deliveryModePush   = "online_push"
-	deliveryModeReplay = "offline_replay"
-	presenceOnline     = "online"
-	presenceOffline    = "offline"
-	offlineJobType     = "chat.offline_delivery"
+	defaultReplayLimit   = 50
+	maxReplayLimit       = 200
+	deliveryModePush     = "online_push"
+	deliveryModeReplay   = "offline_replay"
+	presenceOnline       = "online"
+	presenceOffline      = "offline"
+	offlineJobType       = "chat.offline_delivery"
+	channelScopeDirect   = "direct"
+	channelScopeResource = "resource"
+	membershipExplicit   = "explicit"
+	membershipBound      = "resource_bound"
+	sendPolicyMembers    = "members"
+	sendPolicySystemOnly = "system_only"
 )
 
 // PresenceSnapshot contains the subset of presence state chat uses for planning.
@@ -125,7 +131,7 @@ func NewChatServiceWithStores(conversations ConversationStore, messages MessageS
 
 // CreateConversation creates a conversation with explicit member scope.
 func (s *ChatService) CreateConversation(kind string, resourceID string, memberPlayerIDs []string) (domain.Conversation, *apperrors.Error) {
-	normalizedMembers, err := normalizeMembers(kind, memberPlayerIDs)
+	normalizedMembers, normalizedResourceID, err := normalizeMembers(kind, resourceID, memberPlayerIDs)
 	if err != nil {
 		return domain.Conversation{}, err
 	}
@@ -137,8 +143,27 @@ func (s *ChatService) CreateConversation(kind string, resourceID string, memberP
 	}
 
 	for _, conversation := range conversations {
-		if conversation.Kind == kind &&
-			conversation.ResourceID == resourceID &&
+		if conversation.Kind != kind {
+			continue
+		}
+
+		if isResourceBoundKind(kind) {
+			if conversation.ResourceID != normalizedResourceID {
+				continue
+			}
+
+			mergedMembers := mergeMembers(conversation.MemberPlayerIDs, normalizedMembers)
+			if !slices.Equal(conversation.MemberPlayerIDs, mergedMembers) {
+				conversation.MemberPlayerIDs = mergedMembers
+				if err := s.conversations.SaveConversation(conversation); err != nil {
+					internal := apperrors.Internal()
+					return domain.Conversation{}, &internal
+				}
+			}
+			return conversation, nil
+		}
+
+		if conversation.ResourceID == normalizedResourceID &&
 			slices.Equal(conversation.MemberPlayerIDs, normalizedMembers) {
 			return conversation, nil
 		}
@@ -153,7 +178,7 @@ func (s *ChatService) CreateConversation(kind string, resourceID string, memberP
 	conversation := domain.Conversation{
 		ID:              conversationID,
 		Kind:            kind,
-		ResourceID:      resourceID,
+		ResourceID:      normalizedResourceID,
 		MemberPlayerIDs: normalizedMembers,
 		LastSeq:         0,
 		CreatedAt:       s.now(),
@@ -164,6 +189,26 @@ func (s *ChatService) CreateConversation(kind string, resourceID string, memberP
 		return domain.Conversation{}, &internal
 	}
 	return conversation, nil
+}
+
+// GetChannelDescriptor returns the resolved policy surface for a stored conversation.
+func (s *ChatService) GetChannelDescriptor(conversationID string) (domain.ChannelDescriptor, *apperrors.Error) {
+	if conversationID == "" {
+		err := apperrors.New("invalid_request", "conversation_id is required", http.StatusBadRequest)
+		return domain.ChannelDescriptor{}, &err
+	}
+
+	conversation, ok, err := s.conversations.GetConversation(conversationID)
+	if !ok {
+		err := apperrors.New("not_found", "conversation not found", http.StatusNotFound)
+		return domain.ChannelDescriptor{}, &err
+	}
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.ChannelDescriptor{}, &internal
+	}
+
+	return buildChannelDescriptor(conversation), nil
 }
 
 // ListConversations returns conversations visible to the given player.
@@ -496,11 +541,13 @@ func (s *ChatService) ListOfflineDeliveries(conversationID string) []OfflineDeli
 	return receipts
 }
 
-func normalizeMembers(kind string, members []string) ([]string, *apperrors.Error) {
+func normalizeMembers(kind string, resourceID string, members []string) ([]string, string, *apperrors.Error) {
 	if !isSupportedKind(kind) {
 		err := apperrors.New("invalid_request", "unsupported conversation kind", http.StatusBadRequest)
-		return nil, &err
+		return nil, "", &err
 	}
+
+	resourceID = strings.TrimSpace(resourceID)
 
 	seen := make(map[string]struct{}, len(members))
 	normalized := make([]string, 0, len(members))
@@ -520,23 +567,44 @@ func normalizeMembers(kind string, members []string) ([]string, *apperrors.Error
 
 	switch kind {
 	case kindPrivate:
+		if resourceID != "" {
+			err := apperrors.New("invalid_request", "private conversations cannot set resource_id", http.StatusBadRequest)
+			return nil, "", &err
+		}
 		if len(normalized) != 2 {
 			err := apperrors.New("invalid_request", "private conversations require exactly 2 members", http.StatusBadRequest)
-			return nil, &err
+			return nil, "", &err
+		}
+	case kindGroup:
+		if resourceID != "" {
+			err := apperrors.New("invalid_request", "group conversations cannot set resource_id", http.StatusBadRequest)
+			return nil, "", &err
+		}
+		if len(normalized) < 2 {
+			err := apperrors.New("invalid_request", "group conversations require at least 2 members", http.StatusBadRequest)
+			return nil, "", &err
 		}
 	case kindSystem:
+		if resourceID == "" {
+			err := apperrors.New("invalid_request", "system conversations require resource_id", http.StatusBadRequest)
+			return nil, "", &err
+		}
 		if len(normalized) == 0 {
 			err := apperrors.New("invalid_request", "system conversations require at least 1 member", http.StatusBadRequest)
-			return nil, &err
+			return nil, "", &err
 		}
-	default:
+	case kindGuild, kindParty, kindWorld, kindCustom:
+		if resourceID == "" {
+			err := apperrors.New("invalid_request", "resource-backed conversations require resource_id", http.StatusBadRequest)
+			return nil, "", &err
+		}
 		if len(normalized) == 0 {
 			err := apperrors.New("invalid_request", "conversation requires at least 1 member", http.StatusBadRequest)
-			return nil, &err
+			return nil, "", &err
 		}
 	}
 
-	return normalized, nil
+	return normalized, resourceID, nil
 }
 
 func validateSendPermission(conversation domain.Conversation, senderPlayerID string) *apperrors.Error {
@@ -570,6 +638,60 @@ func isSupportedKind(kind string) bool {
 	default:
 		return false
 	}
+}
+
+func isResourceBoundKind(kind string) bool {
+	switch kind {
+	case kindGuild, kindParty, kindWorld, kindSystem, kindCustom:
+		return true
+	default:
+		return false
+	}
+}
+
+func mergeMembers(existing []string, incoming []string) []string {
+	seen := make(map[string]struct{}, len(existing)+len(incoming))
+	merged := make([]string, 0, len(existing)+len(incoming))
+	for _, memberID := range existing {
+		if _, ok := seen[memberID]; ok {
+			continue
+		}
+		seen[memberID] = struct{}{}
+		merged = append(merged, memberID)
+	}
+	for _, memberID := range incoming {
+		if _, ok := seen[memberID]; ok {
+			continue
+		}
+		seen[memberID] = struct{}{}
+		merged = append(merged, memberID)
+	}
+	slices.Sort(merged)
+	return merged
+}
+
+func buildChannelDescriptor(conversation domain.Conversation) domain.ChannelDescriptor {
+	descriptor := domain.ChannelDescriptor{
+		ConversationID:   conversation.ID,
+		Kind:             conversation.Kind,
+		ResourceID:       conversation.ResourceID,
+		Scope:            channelScopeDirect,
+		MembershipMode:   membershipExplicit,
+		SendPolicy:       sendPolicyMembers,
+		ResourceRequired: false,
+		MemberCount:      len(conversation.MemberPlayerIDs),
+	}
+
+	if isResourceBoundKind(conversation.Kind) {
+		descriptor.Scope = channelScopeResource
+		descriptor.MembershipMode = membershipBound
+		descriptor.ResourceRequired = true
+	}
+	if conversation.Kind == kindSystem {
+		descriptor.SendPolicy = sendPolicySystemOnly
+	}
+
+	return descriptor
 }
 
 func (s *ChatService) String() string {

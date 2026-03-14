@@ -35,7 +35,10 @@ Base purpose: conversation creation, message sequencing, read acknowledgement, a
 - Rules
 - Supported `kind`: `private`, `group`, `guild`, `party`, `world`, `system`, `custom`
 - `private` requires exactly 2 distinct members
-- `system` requires at least 1 member
+- `group` requires at least 2 distinct members
+- `guild`, `party`, `world`, `system`, and `custom` require `resource_id`
+- `private` and `group` cannot set `resource_id`
+- Resource-backed kinds reuse the same conversation for the same `kind + resource_id` and reconcile member scope on repeated create calls
 
 ## List Conversations
 
@@ -126,6 +129,29 @@ Base purpose: conversation creation, message sequencing, read acknowledgement, a
 - Rules
 - `ack_seq` cannot exceed `last_seq`
 - Ack cursor is monotonic and never moves backward
+
+## Get Channel Descriptor
+
+- `GET /v1/conversations/{conversationID}/channel`
+- Response `200`
+
+```json
+{
+  "conversation_id": "conv-1",
+  "kind": "guild",
+  "resource_id": "guild-1",
+  "scope": "resource",
+  "membership_mode": "resource_bound",
+  "send_policy": "members",
+  "resource_required": true,
+  "member_count": 3
+}
+```
+
+- Rules
+- Resource-backed kinds (`guild`, `party`, `world`, `system`, `custom`) report `scope = resource`
+- Direct conversations (`private`, `group`) report `scope = direct`
+- `system` channels report `send_policy = system_only`
 
 ## Delivery Plan
 

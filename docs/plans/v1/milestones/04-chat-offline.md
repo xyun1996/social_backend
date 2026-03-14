@@ -26,6 +26,11 @@ Define and implement private, guild, party, world, system, and custom channel me
 - Offline window policy is explicit.
 - Channel permission checks are defined for all built-in channel types.
 
+## Progress Notes
+
+- Chat already supports conversation creation, seq ordering, ack cursors, replay, delivery planning, and offline delivery recording.
+- Resource-backed built-in kinds now use a stable `kind + resource_id` channel model with a readable descriptor surface.
+
 ## Risks
 
 - Message ordering, ack behavior, and replay windows are easy sources of drift.

@@ -174,6 +174,62 @@ func TestSystemConversationOnlyAllowsSystemSender(t *testing.T) {
 	}
 }
 
+func TestResourceBackedConversationRequiresResourceAndReusesChannel(t *testing.T) {
+	t.Parallel()
+
+	svc := NewChatService(nil, nil)
+
+	if _, err := svc.CreateConversation(kindGuild, "", []string{"p1"}); err == nil {
+		t.Fatalf("expected guild conversation without resource_id to fail")
+	}
+
+	first, err := svc.CreateConversation(kindGuild, "guild-1", []string{"p1", "p2"})
+	if err != nil {
+		t.Fatalf("create guild conversation returned error: %+v", err)
+	}
+	second, err := svc.CreateConversation(kindGuild, "guild-1", []string{"p2", "p3"})
+	if err != nil {
+		t.Fatalf("recreate guild conversation returned error: %+v", err)
+	}
+
+	if first.ID != second.ID {
+		t.Fatalf("expected resource-backed channel reuse, got first=%s second=%s", first.ID, second.ID)
+	}
+	if len(second.MemberPlayerIDs) != 3 || second.MemberPlayerIDs[2] != "p3" {
+		t.Fatalf("expected resource-backed channel members to reconcile, got %+v", second.MemberPlayerIDs)
+	}
+}
+
+func TestGetChannelDescriptorExplainsChannelPolicy(t *testing.T) {
+	t.Parallel()
+
+	svc := NewChatService(nil, nil)
+	conversation, err := svc.CreateConversation(kindSystem, "system-global", []string{"p1"})
+	if err != nil {
+		t.Fatalf("create system conversation returned error: %+v", err)
+	}
+
+	descriptor, descErr := svc.GetChannelDescriptor(conversation.ID)
+	if descErr != nil {
+		t.Fatalf("get channel descriptor returned error: %+v", descErr)
+	}
+	if descriptor.Scope != channelScopeResource || descriptor.MembershipMode != membershipBound {
+		t.Fatalf("unexpected channel descriptor scope: %+v", descriptor)
+	}
+	if descriptor.SendPolicy != sendPolicySystemOnly || !descriptor.ResourceRequired {
+		t.Fatalf("unexpected channel descriptor policy: %+v", descriptor)
+	}
+}
+
+func TestGroupConversationRequiresTwoMembers(t *testing.T) {
+	t.Parallel()
+
+	svc := NewChatService(nil, nil)
+	if _, err := svc.CreateConversation(kindGroup, "", []string{"p1"}); err == nil {
+		t.Fatalf("expected group conversation with one member to fail")
+	}
+}
+
 func TestPlanDeliveryUsesPresenceForRouting(t *testing.T) {
 	t.Parallel()
 
