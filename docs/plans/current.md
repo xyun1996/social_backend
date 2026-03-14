@@ -1,12 +1,12 @@
 # Current Plan
 
-- Version: `v1-freeze`
+- Version: `v1`
 - Last updated: `2026-03-14`
 - Source of truth level: highest
 
 ## Current Goal
 
-Finish the smallest shippable `v1` of the Social Backend by freezing scope, closing only delivery-blocking gaps, and preparing a clean release handoff.
+`v1` is complete. Preserve the release line, keep the repository healthy, and route any feature-deepening work into backlog and future versions.
 
 ## Success Criteria
 
@@ -45,15 +45,14 @@ Finish the smallest shippable `v1` of the Social Backend by freezing scope, clos
 
 ## Current Focus
 
-- Keep implementation changes limited to `v1`-blocking gaps
-- Treat feature-deepening work as `v2` unless it is required for acceptance
-- Use [docs/plans/v1/freeze.md](v1/freeze.md) as the detailed finish line
+- Preserve the shipped `v1` release line
+- Use [docs/plans/v1/freeze.md](v1/freeze.md) as the historical acceptance line
+- Route new expansion work into backlog and `v2`
 
 ## Current Risks
 
-- The codebase is ahead of milestone bookkeeping in a few areas, so release-state drift is still possible without deliberate doc updates.
-- Some services already support deeper prototypes than `v1` needs, which makes accidental scope creep likely.
-- Local durable checks are strong, but release framing still needs a single, explicit finish line.
+- Future work could accidentally reopen `v1` scope instead of being scheduled as `v2`.
+- Durable local assumptions are strong, but production deployment and advanced operations remain intentionally out of scope.
 
 ## Key Dependencies
 
@@ -75,6 +74,5 @@ Finish the smallest shippable `v1` of the Social Backend by freezing scope, clos
 
 ## Update Rules
 
-- Update this file first when the `v1` finish line changes.
-- Move anything non-blocking for `v1` into [docs/plans/backlog.md](backlog.md) instead of expanding active scope.
-- Reflect release-facing changes in freeze notes, milestones, tasks, and changelog together.
+- Do not expand `v1` scope from this file; new feature work should go through backlog and future version plans.
+- Keep release-facing documents aligned when the shipped baseline changes.

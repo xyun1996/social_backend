@@ -1,12 +1,12 @@
 # V1 Roadmap
 
 - Version: `v1`
-- Status: `planned`
-- Last updated: `2026-03-12`
+- Status: `done`
+- Last updated: `2026-03-14`
 
 ## Goal
 
-Prepare a maintainable foundation for a reusable game social backend, then turn that foundation into implementable milestones for the major domains: identity, social graph, chat, guild, and party queue.
+Deliver a maintainable, locally durable `v1` social backend that covers the core identity, social, invite, chat, guild, party, and ops flows for a reusable game middle platform.
 
 ## Milestone Order
 
@@ -17,19 +17,19 @@ Prepare a maintainable foundation for a reusable game social backend, then turn 
 5. [05 Guild](milestones/05-guild.md)
 6. [06 Party Queue](milestones/06-party-queue.md)
 
-## Planned Deliverables
+## Delivered
 
 - Repository and governance scaffold
-- Foundational architecture, glossary, and constraints
-- ADR baseline for transport, session identity, realm model, and delivery semantics
-- Milestone-level breakdown for implementation sequencing
+- Foundational architecture, glossary, constraints, and ADR baseline
+- Durable local runtime for MySQL and Redis-backed services
+- Contract-first HTTP/proto/TCP surfaces with generated bindings
+- Core `v1` social backend modules and operator read surfaces
 
-## Dependency Notes
+## Completion Notes
 
-- Foundation unlocks all other milestones.
-- Identity/session assumptions influence gateway, presence, chat, guild, and party.
-- Social graph and chat can proceed in parallel once identity primitives are settled.
-- Guild and party both depend on invite semantics and presence expectations.
+- `v1` is now intentionally freeze-scoped by [freeze.md](freeze.md).
+- The release line is verified by `go test ./...`, `make check-dev`, and `make test-local-durable`.
+- Future feature-deepening work should be scheduled through backlog and `v2`, not by reopening `v1`.
 
 ## Deferred to Backlog
 

@@ -1,6 +1,6 @@
 # 06 Party Queue
 
-- Status: `in-progress`
+- Status: `done`
 - Version: `v1`
 
 ## Goal
@@ -39,3 +39,7 @@ Define and implement party management and social queue orchestration while keepi
 ## Risks
 
 - Queue state can become tightly coupled to combat systems if scope is not guarded.
+
+## Completion Notes
+
+- Party now meets the `v1` line for management, queue orchestration, handoff, assignment, and resolution cleanup.

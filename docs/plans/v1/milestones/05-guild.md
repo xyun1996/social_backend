@@ -1,6 +1,6 @@
 # 05 Guild
 
-- Status: `in-progress`
+- Status: `done`
 - Version: `v1`
 
 ## Goal
@@ -37,3 +37,7 @@ Define and implement guild organization, governance, growth, and the first activ
 ## Risks
 
 - Guild activity scope can expand quickly unless held to the roadmap.
+
+## Completion Notes
+
+- Guild now meets the `v1` line for governance, announcements, logs, growth, and the first durable activity template skeleton.

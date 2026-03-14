@@ -1,6 +1,6 @@
 # 04 Chat Offline
 
-- Status: `in-progress`
+- Status: `done`
 - Version: `v1`
 
 ## Goal
@@ -36,3 +36,7 @@ Define and implement private, guild, party, world, system, and custom channel me
 ## Risks
 
 - Message ordering, ack behavior, and replay windows are easy sources of drift.
+
+## Completion Notes
+
+- Chat now meets the `v1` line for conversation creation, delivery, replay, unread summaries, resource channels, and guild/party permission alignment.

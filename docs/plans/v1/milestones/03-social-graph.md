@@ -1,6 +1,6 @@
 # 03 Social Graph
 
-- Status: `in-progress`
+- Status: `done`
 - Version: `v1`
 
 ## Goal
@@ -30,3 +30,7 @@ Define and implement friend, blocklist, and relationship semantics with clear st
 ## Risks
 
 - Relationship semantics can become inconsistent if copied into multiple services.
+
+## Completion Notes
+
+- Friend, block, and pending social state are implemented and surfaced through `ops` player overview for `v1`.

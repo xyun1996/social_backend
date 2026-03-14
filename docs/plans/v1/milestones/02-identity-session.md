@@ -1,6 +1,6 @@
 # 02 Identity Session
 
-- Status: `in-progress`
+- Status: `done`
 - Version: `v1`
 
 ## Goal
@@ -31,3 +31,7 @@ Define and implement the account, token, player-selection, and real-time session
 ## Risks
 
 - Identity shortcuts can leak ambiguity into every downstream service.
+
+## Completion Notes
+
+- `identity`, `gateway`, and `presence` now provide the `v1` login, refresh, introspection, and player-scoped session baseline.

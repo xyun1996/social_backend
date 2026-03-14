@@ -1,6 +1,6 @@
 # 01 Foundation
 
-- Status: `in-progress`
+- Status: `done`
 - Version: `v1`
 
 ## Goal
@@ -36,3 +36,7 @@ Establish repository structure, documentation governance, templates, and the fir
 
 - Shared bootstrap packages, durable local run targets, and Windows-friendly make flows are in place.
 - Proto source contracts now live under versioned service directories and `buf lint` passes on the default repository layout.
+
+## Completion Notes
+
+- Repository governance, reusable bootstrap code, local run entrypoints, and durable tooling are all in place for `v1`.
