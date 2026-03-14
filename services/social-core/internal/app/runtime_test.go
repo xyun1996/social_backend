@@ -62,4 +62,11 @@ func TestMountedCorePhaseAEndpoints(t *testing.T) {
 	if privateChatRec.Code != http.StatusOK {
 		t.Fatalf("expected private chat create status %d, got %d", http.StatusOK, privateChatRec.Code)
 	}
+
+	guildReq := httptest.NewRequest(http.MethodPost, "/v1/guilds", bytes.NewReader([]byte(`{"name":"Guild One","owner_id":"player-1"}`)))
+	guildRec := httptest.NewRecorder()
+	mux.ServeHTTP(guildRec, guildReq)
+	if guildRec.Code != http.StatusOK {
+		t.Fatalf("expected guild create status %d, got %d", http.StatusOK, guildRec.Code)
+	}
 }

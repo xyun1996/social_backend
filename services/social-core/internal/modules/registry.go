@@ -25,7 +25,7 @@ func NewRegistry() Registry {
 		{Name: "social", Scope: "friends, blocks, relationship read models", DependsOn: []string{"identity"}, Phase: "phase-a", ProductGrade: true},
 		{Name: "invite", Scope: "cross-domain invite lifecycle", DependsOn: []string{"identity", "social"}, Phase: "phase-a", ProductGrade: true},
 		{Name: "private-chat", Scope: "direct messaging and conversation summaries", DependsOn: []string{"identity", "social"}, Phase: "phase-a", ProductGrade: true},
-		{Name: "guild-basics", Scope: "guild membership, governance, and guild chat entry points", DependsOn: []string{"identity", "invite"}, Phase: "phase-a", ProductGrade: false},
+		{Name: "guild-basics", Scope: "guild membership, governance, and guild chat entry points", DependsOn: []string{"identity", "invite"}, Phase: "phase-a", ProductGrade: true},
 		{Name: "party-basics", Scope: "party formation, readiness, and invite-backed membership", DependsOn: []string{"identity", "invite"}, Phase: "phase-a", ProductGrade: false},
 	}
 

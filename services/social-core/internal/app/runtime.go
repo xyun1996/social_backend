@@ -6,6 +6,7 @@ import (
 	"github.com/xyun1996/social_backend/pkg/transport"
 	"github.com/xyun1996/social_backend/services/social-core/internal/foundation/contracts"
 	"github.com/xyun1996/social_backend/services/social-core/internal/modules"
+	guildmodule "github.com/xyun1996/social_backend/services/social-core/internal/modules/guild"
 	identitymodule "github.com/xyun1996/social_backend/services/social-core/internal/modules/identity"
 	invitemodule "github.com/xyun1996/social_backend/services/social-core/internal/modules/invite"
 	privatechatmodule "github.com/xyun1996/social_backend/services/social-core/internal/modules/privatechat"
@@ -23,18 +24,21 @@ type Runtime struct {
 	Social      *socialmodule.Service
 	Invite      *invitemodule.Service
 	PrivateChat *privatechatmodule.Service
+	Guild       *guildmodule.Service
 }
 
 // NewRuntime creates the minimum runtime shape that future product-grade
 // modules will register against.
 func NewRuntime() Runtime {
-	return Runtime{
+	runtime := Runtime{
 		Registry:    modules.NewRegistry(),
 		Identity:    identitymodule.NewService(0, 0),
 		Social:      socialmodule.NewService(),
 		Invite:      invitemodule.NewService(),
 		PrivateChat: privatechatmodule.NewService(),
 	}
+	runtime.Guild = guildmodule.NewService(runtime.Invite)
+	return runtime
 }
 
 // MountRuntimeEndpoints exposes the rebuild inventory so progress stays tied
@@ -44,6 +48,7 @@ func (r Runtime) MountRuntimeEndpoints(mux *http.ServeMux) {
 	socialmodule.NewHTTPHandler(r.Social).Mount(mux)
 	invitemodule.NewHTTPHandler(r.Invite).Mount(mux)
 	privatechatmodule.NewHTTPHandler(r.PrivateChat).Mount(mux)
+	guildmodule.NewHTTPHandler(r.Guild).Mount(mux)
 	mux.HandleFunc("GET /v1/runtime/status", func(w http.ResponseWriter, _ *http.Request) {
 		transport.WriteJSON(w, http.StatusOK, map[string]any{
 			"runtime": "social-core",
