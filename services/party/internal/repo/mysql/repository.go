@@ -15,10 +15,11 @@ type schemaExecutor interface {
 }
 
 const (
-	PartiesTable      = "party_parties"
-	PartyMembersTable = "party_members"
-	PartyReadyTable   = "party_ready_states"
-	PartyQueueTable   = "party_queue_states"
+	PartiesTable         = "party_parties"
+	PartyMembersTable    = "party_members"
+	PartyReadyTable      = "party_ready_states"
+	PartyQueueTable      = "party_queue_states"
+	PartyAssignmentTable = "party_queue_assignments"
 )
 
 // Repository implements party durable storage on MySQL.
@@ -70,6 +71,22 @@ func (r *Repository) Migrations() []db.Migration {
 					status VARCHAR(32) NOT NULL,
 					joined_by VARCHAR(64) NOT NULL,
 					joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+				);`,
+			},
+		},
+		{
+			ID: "003_party_assignment",
+			Statements: []string{
+				`CREATE TABLE IF NOT EXISTS party_queue_assignments (
+					party_id VARCHAR(64) PRIMARY KEY,
+					ticket_id VARCHAR(255) NOT NULL,
+					queue_name VARCHAR(128) NOT NULL,
+					match_id VARCHAR(128) NOT NULL,
+					status VARCHAR(32) NOT NULL,
+					server_id VARCHAR(128) NOT NULL DEFAULT '',
+					connection_hint VARCHAR(255) NOT NULL DEFAULT '',
+					assigned_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					INDEX idx_party_queue_assignments_ticket (ticket_id)
 				);`,
 			},
 		},
@@ -335,6 +352,80 @@ func (r *Repository) DeleteQueueState(partyID string) error {
 	_, err := r.sqlDB.ExecContext(
 		context.Background(),
 		`DELETE FROM party_queue_states WHERE party_id = ?`,
+		partyID,
+	)
+	return err
+}
+
+func (r *Repository) SaveQueueAssignment(assignment domain.QueueAssignment) error {
+	if r == nil || r.sqlDB == nil {
+		return errors.New("mysql repository is not configured")
+	}
+
+	_, err := r.sqlDB.ExecContext(
+		context.Background(),
+		`INSERT INTO party_queue_assignments (party_id, ticket_id, queue_name, match_id, status, server_id, connection_hint, assigned_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		 ON DUPLICATE KEY UPDATE
+		   ticket_id = VALUES(ticket_id),
+		   queue_name = VALUES(queue_name),
+		   match_id = VALUES(match_id),
+		   status = VALUES(status),
+		   server_id = VALUES(server_id),
+		   connection_hint = VALUES(connection_hint),
+		   assigned_at = VALUES(assigned_at)`,
+		assignment.PartyID,
+		assignment.TicketID,
+		assignment.QueueName,
+		assignment.MatchID,
+		assignment.Status,
+		assignment.ServerID,
+		assignment.ConnectionHint,
+		assignment.AssignedAt.UTC(),
+	)
+	return err
+}
+
+func (r *Repository) GetQueueAssignment(partyID string) (domain.QueueAssignment, bool, error) {
+	if r == nil || r.sqlDB == nil {
+		return domain.QueueAssignment{}, false, errors.New("mysql repository is not configured")
+	}
+
+	row := r.sqlDB.QueryRowContext(
+		context.Background(),
+		`SELECT party_id, ticket_id, queue_name, match_id, status, server_id, connection_hint, assigned_at
+		 FROM party_queue_assignments
+		 WHERE party_id = ?`,
+		partyID,
+	)
+
+	var assignment domain.QueueAssignment
+	if err := row.Scan(
+		&assignment.PartyID,
+		&assignment.TicketID,
+		&assignment.QueueName,
+		&assignment.MatchID,
+		&assignment.Status,
+		&assignment.ServerID,
+		&assignment.ConnectionHint,
+		&assignment.AssignedAt,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.QueueAssignment{}, false, nil
+		}
+		return domain.QueueAssignment{}, false, err
+	}
+	return assignment, true, nil
+}
+
+func (r *Repository) DeleteQueueAssignment(partyID string) error {
+	if r == nil || r.sqlDB == nil {
+		return errors.New("mysql repository is not configured")
+	}
+
+	_, err := r.sqlDB.ExecContext(
+		context.Background(),
+		`DELETE FROM party_queue_assignments WHERE party_id = ?`,
 		partyID,
 	)
 	return err

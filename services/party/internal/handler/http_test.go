@@ -249,6 +249,30 @@ func TestPartyQueueEndpoints(t *testing.T) {
 		t.Fatalf("unexpected queue handoff status: got %d want %d", queueHandoffRec.Code, http.StatusOK)
 	}
 
+	var handoff map[string]any
+	if err := json.Unmarshal(queueHandoffRec.Body.Bytes(), &handoff); err != nil {
+		t.Fatalf("unmarshal queue handoff response: %v", err)
+	}
+	ticketID, _ := handoff["ticket_id"].(string)
+
+	assignReq := httptest.NewRequest(
+		http.MethodPost,
+		"/v1/parties/"+partyID+"/queue/assignment",
+		bytes.NewBufferString(`{"ticket_id":"`+ticketID+`","match_id":"match-1","server_id":"game-1","connection_hint":"wss://game-1/session/match-1"}`),
+	)
+	assignRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(assignRec, assignReq)
+	if assignRec.Code != http.StatusOK {
+		t.Fatalf("unexpected queue assignment status: got %d want %d", assignRec.Code, http.StatusOK)
+	}
+
+	getAssignmentReq := httptest.NewRequest(http.MethodGet, "/v1/parties/"+partyID+"/queue/assignment", nil)
+	getAssignmentRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(getAssignmentRec, getAssignmentReq)
+	if getAssignmentRec.Code != http.StatusOK {
+		t.Fatalf("unexpected queue assignment get status: got %d want %d", getAssignmentRec.Code, http.StatusOK)
+	}
+
 	queuedLeaveReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/leave", bytes.NewBufferString(`{"actor_player_id":"p2"}`))
 	queuedLeaveRec := httptest.NewRecorder()
 	h.Routes().ServeHTTP(queuedLeaveRec, queuedLeaveReq)
@@ -259,7 +283,7 @@ func TestPartyQueueEndpoints(t *testing.T) {
 	queueLeaveReq := httptest.NewRequest(http.MethodPost, "/v1/parties/"+partyID+"/queue/leave", bytes.NewBufferString(`{"actor_player_id":"p1"}`))
 	queueLeaveRec := httptest.NewRecorder()
 	h.Routes().ServeHTTP(queueLeaveRec, queueLeaveReq)
-	if queueLeaveRec.Code != http.StatusOK {
-		t.Fatalf("unexpected queue leave status: got %d want %d", queueLeaveRec.Code, http.StatusOK)
+	if queueLeaveRec.Code != http.StatusConflict {
+		t.Fatalf("expected assigned queue leave conflict, got %d", queueLeaveRec.Code)
 	}
 }

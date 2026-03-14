@@ -52,6 +52,13 @@ type queueJoinRequest struct {
 	QueueName     string `json:"queue_name"`
 }
 
+type queueAssignmentRequest struct {
+	TicketID       string `json:"ticket_id"`
+	MatchID        string `json:"match_id"`
+	ServerID       string `json:"server_id"`
+	ConnectionHint string `json:"connection_hint"`
+}
+
 // Routes returns the party HTTP routes.
 func (h *HTTPHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
@@ -68,6 +75,8 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("POST /v1/parties/{partyID}/queue/leave", h.handleLeaveQueue)
 	mux.HandleFunc("GET /v1/parties/{partyID}/queue", h.handleGetQueue)
 	mux.HandleFunc("GET /v1/parties/{partyID}/queue/handoff", h.handleGetQueueHandoff)
+	mux.HandleFunc("POST /v1/parties/{partyID}/queue/assignment", h.handleAssignMatch)
+	mux.HandleFunc("GET /v1/parties/{partyID}/queue/assignment", h.handleGetQueueAssignment)
 	mux.HandleFunc("GET /v1/parties/{partyID}/ready", h.handleListReady)
 	mux.HandleFunc("GET /v1/parties/{partyID}/members", h.handleListMembers)
 	return mux
@@ -261,6 +270,39 @@ func (h *HTTPHandler) handleGetQueueHandoff(w http.ResponseWriter, r *http.Reque
 		"member_count": len(members),
 		"members":      members,
 	})
+}
+
+func (h *HTTPHandler) handleAssignMatch(w http.ResponseWriter, r *http.Request) {
+	var request queueAssignmentRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		transport.WriteError(w, invalidJSONError())
+		return
+	}
+
+	assignment, appErr := h.parties.AssignMatch(
+		r.Context(),
+		r.PathValue("partyID"),
+		request.TicketID,
+		request.MatchID,
+		request.ServerID,
+		request.ConnectionHint,
+	)
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, assignment)
+}
+
+func (h *HTTPHandler) handleGetQueueAssignment(w http.ResponseWriter, r *http.Request) {
+	assignment, appErr := h.parties.GetQueueAssignment(r.PathValue("partyID"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, assignment)
 }
 
 func (h *HTTPHandler) handleListReady(w http.ResponseWriter, r *http.Request) {

@@ -26,6 +26,9 @@ type QueueStateStore interface {
 	SaveQueueState(state domain.QueueState) error
 	GetQueueState(partyID string) (domain.QueueState, bool, error)
 	DeleteQueueState(partyID string) error
+	SaveQueueAssignment(assignment domain.QueueAssignment) error
+	GetQueueAssignment(partyID string) (domain.QueueAssignment, bool, error)
+	DeleteQueueAssignment(partyID string) error
 }
 
 type memoryPartyStore struct {
@@ -86,8 +89,9 @@ type memoryReadyStateStore struct {
 }
 
 type memoryQueueStateStore struct {
-	mu     sync.RWMutex
-	queues map[string]domain.QueueState
+	mu          sync.RWMutex
+	queues      map[string]domain.QueueState
+	assignments map[string]domain.QueueAssignment
 }
 
 func newMemoryReadyStateStore() *memoryReadyStateStore {
@@ -98,7 +102,8 @@ func newMemoryReadyStateStore() *memoryReadyStateStore {
 
 func newMemoryQueueStateStore() *memoryQueueStateStore {
 	return &memoryQueueStateStore{
-		queues: make(map[string]domain.QueueState),
+		queues:      make(map[string]domain.QueueState),
+		assignments: make(map[string]domain.QueueAssignment),
 	}
 }
 
@@ -167,5 +172,26 @@ func (s *memoryQueueStateStore) DeleteQueueState(partyID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.queues, partyID)
+	return nil
+}
+
+func (s *memoryQueueStateStore) SaveQueueAssignment(assignment domain.QueueAssignment) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.assignments[assignment.PartyID] = assignment
+	return nil
+}
+
+func (s *memoryQueueStateStore) GetQueueAssignment(partyID string) (domain.QueueAssignment, bool, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	assignment, ok := s.assignments[partyID]
+	return assignment, ok, nil
+}
+
+func (s *memoryQueueStateStore) DeleteQueueAssignment(partyID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.assignments, partyID)
 	return nil
 }

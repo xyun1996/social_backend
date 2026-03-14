@@ -27,6 +27,18 @@ type QueueState struct {
 	JoinedAt  time.Time `json:"joined_at"`
 }
 
+// QueueAssignment captures the callback payload after an external matchmaker consumes a handoff.
+type QueueAssignment struct {
+	TicketID       string    `json:"ticket_id"`
+	PartyID        string    `json:"party_id"`
+	QueueName      string    `json:"queue_name"`
+	MatchID        string    `json:"match_id"`
+	Status         string    `json:"status"`
+	ServerID       string    `json:"server_id,omitempty"`
+	ConnectionHint string    `json:"connection_hint,omitempty"`
+	AssignedAt     time.Time `json:"assigned_at"`
+}
+
 // QueueLeaveResult describes a successful queue exit.
 type QueueLeaveResult struct {
 	PartyID   string    `json:"party_id"`

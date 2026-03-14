@@ -27,6 +27,7 @@ Define and implement party management and social queue orchestration while keepi
 - Active queue enrollment blocks party membership mutation until the leader leaves queue.
 - Ops party snapshots now surface active queue enrollment for operator visibility.
 - Party now exposes a stable queue handoff snapshot as the future external matchmaker boundary.
+- Party now accepts post-handoff match assignment callbacks and locks queue ownership after assignment.
 
 ## Acceptance Criteria
 

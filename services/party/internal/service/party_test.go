@@ -344,6 +344,114 @@ func TestGetQueueHandoffIncludesPartyAndMemberSnapshot(t *testing.T) {
 	}
 }
 
+func TestAssignMatchLocksQueueAndStoresAssignment(t *testing.T) {
+	t.Parallel()
+
+	invites := &fakeInviteClient{
+		get: Invite{
+			ID:         "inv-1",
+			Domain:     inviteDomainParty,
+			ResourceID: "party-1",
+			ToPlayerID: "p2",
+			Status:     "accepted",
+		},
+	}
+	presence := &fakePresenceReader{
+		snapshots: map[string]PresenceSnapshot{
+			"p1": {PlayerID: "p1", Status: presenceOnline, SessionID: "sess-1"},
+			"p2": {PlayerID: "p2", Status: presenceOnline, SessionID: "sess-2"},
+		},
+	}
+
+	svc := NewPartyService(invites, presence)
+	svc.newPartyID = func() (string, error) { return "party-1", nil }
+	svc.now = func() time.Time { return time.Date(2026, 3, 13, 12, 0, 0, 0, time.UTC) }
+
+	party, err := svc.CreateParty("p1")
+	if err != nil {
+		t.Fatalf("create party returned error: %+v", err)
+	}
+	if _, joinErr := svc.JoinWithInvite(context.Background(), party.ID, "inv-1", "p2"); joinErr != nil {
+		t.Fatalf("join returned error: %+v", joinErr)
+	}
+	if _, readyErr := svc.SetReady(party.ID, "p1", true); readyErr != nil {
+		t.Fatalf("set ready returned error: %+v", readyErr)
+	}
+	if _, readyErr := svc.SetReady(party.ID, "p2", true); readyErr != nil {
+		t.Fatalf("set ready returned error: %+v", readyErr)
+	}
+	state, queueErr := svc.JoinQueue(context.Background(), party.ID, "p1", "casual-2v2")
+	if queueErr != nil {
+		t.Fatalf("join queue returned error: %+v", queueErr)
+	}
+
+	assignment, assignErr := svc.AssignMatch(
+		context.Background(),
+		party.ID,
+		queueTicketID(party.ID, state.QueueName, state.JoinedAt),
+		"match-1",
+		"game-1",
+		"wss://game-1/session/match-1",
+	)
+	if assignErr != nil {
+		t.Fatalf("assign match returned error: %+v", assignErr)
+	}
+	if assignment.Status != queueStatusAssigned || assignment.MatchID != "match-1" {
+		t.Fatalf("unexpected assignment payload: %+v", assignment)
+	}
+
+	currentState, getErr := svc.GetQueueState(party.ID)
+	if getErr != nil {
+		t.Fatalf("get queue state returned error: %+v", getErr)
+	}
+	if currentState.Status != queueStatusAssigned {
+		t.Fatalf("expected assigned queue state, got %+v", currentState)
+	}
+
+	loadedAssignment, loadErr := svc.GetQueueAssignment(party.ID)
+	if loadErr != nil {
+		t.Fatalf("get queue assignment returned error: %+v", loadErr)
+	}
+	if loadedAssignment.MatchID != "match-1" || loadedAssignment.ServerID != "game-1" {
+		t.Fatalf("unexpected loaded assignment: %+v", loadedAssignment)
+	}
+
+	if _, _, handoffErr := svc.GetQueueHandoff(context.Background(), party.ID); handoffErr == nil {
+		t.Fatalf("expected handoff to be blocked after assignment")
+	}
+	if _, leaveQueueErr := svc.LeaveQueue(party.ID, "p1"); leaveQueueErr == nil {
+		t.Fatalf("expected leave queue to be blocked after assignment")
+	}
+}
+
+func TestAssignMatchRequiresMatchingTicket(t *testing.T) {
+	t.Parallel()
+
+	presence := &fakePresenceReader{
+		snapshots: map[string]PresenceSnapshot{
+			"p1": {PlayerID: "p1", Status: presenceOnline},
+		},
+	}
+
+	svc := NewPartyService(&fakeInviteClient{}, presence)
+	svc.newPartyID = func() (string, error) { return "party-1", nil }
+
+	party, err := svc.CreateParty("p1")
+	if err != nil {
+		t.Fatalf("create party returned error: %+v", err)
+	}
+	if _, readyErr := svc.SetReady(party.ID, "p1", true); readyErr != nil {
+		t.Fatalf("set ready returned error: %+v", readyErr)
+	}
+	if _, queueErr := svc.JoinQueue(context.Background(), party.ID, "p1", "casual-2v2"); queueErr != nil {
+		t.Fatalf("join queue returned error: %+v", queueErr)
+	}
+
+	if _, assignErr := svc.AssignMatch(context.Background(), party.ID, "ticket:wrong", "match-1", "", ""); assignErr == nil {
+		t.Fatalf("expected mismatched ticket assignment to fail")
+	}
+}
+
 func TestTransferLeaderAndLeaveParty(t *testing.T) {
 	t.Parallel()
 

@@ -202,6 +202,46 @@ Base purpose: party creation, shared-invite-based joins, ready state updates, co
 - The handoff payload is the stable boundary intended for a future external matchmaker
 - Matchmaker ownership starts after consuming this snapshot; party still owns queue state and membership rules
 
+## Assign Match
+
+- `POST /v1/parties/{partyID}/queue/assignment`
+- Request
+
+```json
+{
+  "ticket_id": "ticket:party-1:casual-2v2:1760000000",
+  "match_id": "match-1",
+  "server_id": "game-1",
+  "connection_hint": "wss://game-1/session/match-1"
+}
+```
+
+- Response `200`
+
+```json
+{
+  "ticket_id": "ticket:party-1:casual-2v2:1760000000",
+  "party_id": "party-1",
+  "queue_name": "casual-2v2",
+  "match_id": "match-1",
+  "status": "assigned",
+  "server_id": "game-1",
+  "connection_hint": "wss://game-1/session/match-1",
+  "assigned_at": "2026-03-13T10:06:00Z"
+}
+```
+
+- Rules
+- This endpoint is the callback boundary after an external matchmaker consumes a handoff snapshot
+- `ticket_id` must match the active queue handoff for the party
+- Repeating the same assignment callback is idempotent
+- Once assigned, handoff reads and queue-leave semantics are locked until a later match-resolution flow is introduced
+
+## Get Queue Assignment
+
+- `GET /v1/parties/{partyID}/queue/assignment`
+- Response `200`: queue assignment shape from the assign response
+
 ## Leave Queue
 
 - `POST /v1/parties/{partyID}/queue/leave`
@@ -227,6 +267,7 @@ Base purpose: party creation, shared-invite-based joins, ready state updates, co
 - Rules
 - Only the current `leader_id` can leave queue
 - Member-changing operations and ready toggles are rejected while the party has an active queue state
+- Assigned parties cannot leave through this endpoint; match resolution must clear ownership later
 
 ## List Ready States
 

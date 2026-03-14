@@ -20,17 +20,19 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PartyService_CreateParty_FullMethodName       = "/social_backend.party.v1.PartyService/CreateParty"
-	PartyService_GetParty_FullMethodName          = "/social_backend.party.v1.PartyService/GetParty"
-	PartyService_CreatePartyInvite_FullMethodName = "/social_backend.party.v1.PartyService/CreatePartyInvite"
-	PartyService_JoinParty_FullMethodName         = "/social_backend.party.v1.PartyService/JoinParty"
-	PartyService_SetReady_FullMethodName          = "/social_backend.party.v1.PartyService/SetReady"
-	PartyService_JoinQueue_FullMethodName         = "/social_backend.party.v1.PartyService/JoinQueue"
-	PartyService_LeaveQueue_FullMethodName        = "/social_backend.party.v1.PartyService/LeaveQueue"
-	PartyService_GetQueueState_FullMethodName     = "/social_backend.party.v1.PartyService/GetQueueState"
-	PartyService_GetQueueHandoff_FullMethodName   = "/social_backend.party.v1.PartyService/GetQueueHandoff"
-	PartyService_ListReadyStates_FullMethodName   = "/social_backend.party.v1.PartyService/ListReadyStates"
-	PartyService_ListMemberStates_FullMethodName  = "/social_backend.party.v1.PartyService/ListMemberStates"
+	PartyService_CreateParty_FullMethodName        = "/social_backend.party.v1.PartyService/CreateParty"
+	PartyService_GetParty_FullMethodName           = "/social_backend.party.v1.PartyService/GetParty"
+	PartyService_CreatePartyInvite_FullMethodName  = "/social_backend.party.v1.PartyService/CreatePartyInvite"
+	PartyService_JoinParty_FullMethodName          = "/social_backend.party.v1.PartyService/JoinParty"
+	PartyService_SetReady_FullMethodName           = "/social_backend.party.v1.PartyService/SetReady"
+	PartyService_JoinQueue_FullMethodName          = "/social_backend.party.v1.PartyService/JoinQueue"
+	PartyService_LeaveQueue_FullMethodName         = "/social_backend.party.v1.PartyService/LeaveQueue"
+	PartyService_GetQueueState_FullMethodName      = "/social_backend.party.v1.PartyService/GetQueueState"
+	PartyService_GetQueueHandoff_FullMethodName    = "/social_backend.party.v1.PartyService/GetQueueHandoff"
+	PartyService_AssignMatch_FullMethodName        = "/social_backend.party.v1.PartyService/AssignMatch"
+	PartyService_GetQueueAssignment_FullMethodName = "/social_backend.party.v1.PartyService/GetQueueAssignment"
+	PartyService_ListReadyStates_FullMethodName    = "/social_backend.party.v1.PartyService/ListReadyStates"
+	PartyService_ListMemberStates_FullMethodName   = "/social_backend.party.v1.PartyService/ListMemberStates"
 )
 
 // PartyServiceClient is the client API for PartyService service.
@@ -46,6 +48,8 @@ type PartyServiceClient interface {
 	LeaveQueue(ctx context.Context, in *LeaveQueueRequest, opts ...grpc.CallOption) (*QueueLeaveResult, error)
 	GetQueueState(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*QueueState, error)
 	GetQueueHandoff(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*QueueHandoff, error)
+	AssignMatch(ctx context.Context, in *AssignMatchRequest, opts ...grpc.CallOption) (*QueueAssignment, error)
+	GetQueueAssignment(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*QueueAssignment, error)
 	ListReadyStates(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*ListReadyStatesResponse, error)
 	ListMemberStates(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*ListMemberStatesResponse, error)
 }
@@ -148,6 +152,26 @@ func (c *partyServiceClient) GetQueueHandoff(ctx context.Context, in *GetPartyRe
 	return out, nil
 }
 
+func (c *partyServiceClient) AssignMatch(ctx context.Context, in *AssignMatchRequest, opts ...grpc.CallOption) (*QueueAssignment, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(QueueAssignment)
+	err := c.cc.Invoke(ctx, PartyService_AssignMatch_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *partyServiceClient) GetQueueAssignment(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*QueueAssignment, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(QueueAssignment)
+	err := c.cc.Invoke(ctx, PartyService_GetQueueAssignment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *partyServiceClient) ListReadyStates(ctx context.Context, in *GetPartyRequest, opts ...grpc.CallOption) (*ListReadyStatesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListReadyStatesResponse)
@@ -181,6 +205,8 @@ type PartyServiceServer interface {
 	LeaveQueue(context.Context, *LeaveQueueRequest) (*QueueLeaveResult, error)
 	GetQueueState(context.Context, *GetPartyRequest) (*QueueState, error)
 	GetQueueHandoff(context.Context, *GetPartyRequest) (*QueueHandoff, error)
+	AssignMatch(context.Context, *AssignMatchRequest) (*QueueAssignment, error)
+	GetQueueAssignment(context.Context, *GetPartyRequest) (*QueueAssignment, error)
 	ListReadyStates(context.Context, *GetPartyRequest) (*ListReadyStatesResponse, error)
 	ListMemberStates(context.Context, *GetPartyRequest) (*ListMemberStatesResponse, error)
 	mustEmbedUnimplementedPartyServiceServer()
@@ -219,6 +245,12 @@ func (UnimplementedPartyServiceServer) GetQueueState(context.Context, *GetPartyR
 }
 func (UnimplementedPartyServiceServer) GetQueueHandoff(context.Context, *GetPartyRequest) (*QueueHandoff, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetQueueHandoff not implemented")
+}
+func (UnimplementedPartyServiceServer) AssignMatch(context.Context, *AssignMatchRequest) (*QueueAssignment, error) {
+	return nil, status.Error(codes.Unimplemented, "method AssignMatch not implemented")
+}
+func (UnimplementedPartyServiceServer) GetQueueAssignment(context.Context, *GetPartyRequest) (*QueueAssignment, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetQueueAssignment not implemented")
 }
 func (UnimplementedPartyServiceServer) ListReadyStates(context.Context, *GetPartyRequest) (*ListReadyStatesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListReadyStates not implemented")
@@ -409,6 +441,42 @@ func _PartyService_GetQueueHandoff_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PartyService_AssignMatch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AssignMatchRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PartyServiceServer).AssignMatch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PartyService_AssignMatch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PartyServiceServer).AssignMatch(ctx, req.(*AssignMatchRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PartyService_GetQueueAssignment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPartyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PartyServiceServer).GetQueueAssignment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PartyService_GetQueueAssignment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PartyServiceServer).GetQueueAssignment(ctx, req.(*GetPartyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PartyService_ListReadyStates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetPartyRequest)
 	if err := dec(in); err != nil {
@@ -487,6 +555,14 @@ var PartyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetQueueHandoff",
 			Handler:    _PartyService_GetQueueHandoff_Handler,
+		},
+		{
+			MethodName: "AssignMatch",
+			Handler:    _PartyService_AssignMatch_Handler,
+		},
+		{
+			MethodName: "GetQueueAssignment",
+			Handler:    _PartyService_GetQueueAssignment_Handler,
 		},
 		{
 			MethodName: "ListReadyStates",

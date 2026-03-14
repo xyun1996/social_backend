@@ -40,6 +40,15 @@ func TestRepositoryBootstrapSchema(t *testing.T) {
 	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO schema_migrations (service_name, migration_id) VALUES (?, ?)")).
 		WithArgs("party", "002_party_queue").
 		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT 1 FROM schema_migrations WHERE service_name = ? AND migration_id = ? LIMIT 1")).
+		WithArgs("party", "003_party_assignment").
+		WillReturnRows(sqlmock.NewRows([]string{"1"}))
+	for _, statement := range repo.Migrations()[2].Statements {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO schema_migrations (service_name, migration_id) VALUES (?, ?)")).
+		WithArgs("party", "003_party_assignment").
+		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	if err := repo.BootstrapSchema(context.Background()); err != nil {
 		t.Fatalf("BootstrapSchema returned error: %v", err)
@@ -240,6 +249,91 @@ func TestRepositorySaveAndDeleteQueueState(t *testing.T) {
 
 	if err := repo.DeleteQueueState(state.PartyID); err != nil {
 		t.Fatalf("DeleteQueueState returned error: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet sql expectations: %v", err)
+	}
+}
+
+func TestRepositorySaveAndDeleteQueueAssignment(t *testing.T) {
+	t.Parallel()
+
+	sqlDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock.New failed: %v", err)
+	}
+	defer sqlDB.Close()
+
+	repo := NewRepository(db.MySQLConfig{}, sqlDB)
+	assignment := domain.QueueAssignment{
+		TicketID:       "ticket:party-1:casual-2v2:1760000000",
+		PartyID:        "party-1",
+		QueueName:      "casual-2v2",
+		MatchID:        "match-1",
+		Status:         "assigned",
+		ServerID:       "game-1",
+		ConnectionHint: "wss://game-1/session/match-1",
+		AssignedAt:     time.Date(2026, 3, 13, 12, 5, 0, 0, time.UTC),
+	}
+
+	mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO party_queue_assignments (party_id, ticket_id, queue_name, match_id, status, server_id, connection_hint, assigned_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		 ON DUPLICATE KEY UPDATE
+		   ticket_id = VALUES(ticket_id),
+		   queue_name = VALUES(queue_name),
+		   match_id = VALUES(match_id),
+		   status = VALUES(status),
+		   server_id = VALUES(server_id),
+		   connection_hint = VALUES(connection_hint),
+		   assigned_at = VALUES(assigned_at)`)).
+		WithArgs(
+			assignment.PartyID,
+			assignment.TicketID,
+			assignment.QueueName,
+			assignment.MatchID,
+			assignment.Status,
+			assignment.ServerID,
+			assignment.ConnectionHint,
+			assignment.AssignedAt.UTC(),
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	if err := repo.SaveQueueAssignment(assignment); err != nil {
+		t.Fatalf("SaveQueueAssignment returned error: %v", err)
+	}
+
+	rows := sqlmock.NewRows([]string{"party_id", "ticket_id", "queue_name", "match_id", "status", "server_id", "connection_hint", "assigned_at"}).
+		AddRow(
+			assignment.PartyID,
+			assignment.TicketID,
+			assignment.QueueName,
+			assignment.MatchID,
+			assignment.Status,
+			assignment.ServerID,
+			assignment.ConnectionHint,
+			assignment.AssignedAt,
+		)
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT party_id, ticket_id, queue_name, match_id, status, server_id, connection_hint, assigned_at
+		 FROM party_queue_assignments
+		 WHERE party_id = ?`)).
+		WithArgs(assignment.PartyID).
+		WillReturnRows(rows)
+
+	loaded, ok, err := repo.GetQueueAssignment(assignment.PartyID)
+	if err != nil {
+		t.Fatalf("GetQueueAssignment returned error: %v", err)
+	}
+	if !ok || loaded.MatchID != assignment.MatchID || loaded.ServerID != assignment.ServerID {
+		t.Fatalf("unexpected loaded queue assignment: %+v", loaded)
+	}
+
+	mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM party_queue_assignments WHERE party_id = ?`)).
+		WithArgs(assignment.PartyID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	if err := repo.DeleteQueueAssignment(assignment.PartyID); err != nil {
+		t.Fatalf("DeleteQueueAssignment returned error: %v", err)
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {

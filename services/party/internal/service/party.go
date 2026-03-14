@@ -15,10 +15,11 @@ import (
 const inviteDomainParty = "party"
 
 const (
-	presenceOnline  = "online"
-	presenceOffline = "offline"
-	queueStatusOpen = "queued"
-	queueStatusLeft = "left"
+	presenceOnline      = "online"
+	presenceOffline     = "offline"
+	queueStatusOpen     = "queued"
+	queueStatusAssigned = "assigned"
+	queueStatusLeft     = "left"
 )
 
 // Invite contains the subset of invite state party depends on.
@@ -303,8 +304,12 @@ func (s *PartyService) JoinQueue(ctx context.Context, partyID string, actorPlaye
 		return domain.QueueState{}, &internal
 	}
 	if exists {
-		if current.QueueName == queueName {
+		if current.QueueName == queueName && current.Status == queueStatusOpen {
 			return current, nil
+		}
+		if current.Status == queueStatusAssigned {
+			err := apperrors.New("match_assigned", "party already has an assigned match", http.StatusConflict)
+			return domain.QueueState{}, &err
 		}
 		err := apperrors.New("already_queued", "party is already queued in a different queue", http.StatusConflict)
 		return domain.QueueState{}, &err
@@ -322,6 +327,10 @@ func (s *PartyService) JoinQueue(ctx context.Context, partyID string, actorPlaye
 		JoinedAt:  s.now(),
 	}
 	if err := s.queues.SaveQueueState(state); err != nil {
+		internal := apperrors.Internal()
+		return domain.QueueState{}, &internal
+	}
+	if err := s.queues.DeleteQueueAssignment(partyID); err != nil {
 		internal := apperrors.Internal()
 		return domain.QueueState{}, &internal
 	}
@@ -379,6 +388,10 @@ func (s *PartyService) GetQueueHandoff(ctx context.Context, partyID string) (dom
 		err := apperrors.New("not_found", "party queue state not found", http.StatusNotFound)
 		return domain.QueueHandoff{}, nil, &err
 	}
+	if state.Status != queueStatusOpen {
+		err := apperrors.New("match_assigned", "party queue handoff is no longer open", http.StatusConflict)
+		return domain.QueueHandoff{}, nil, &err
+	}
 
 	members, appErr := s.ListMemberStates(ctx, partyID)
 	if appErr != nil {
@@ -394,6 +407,105 @@ func (s *PartyService) GetQueueHandoff(ctx context.Context, partyID string) (dom
 		JoinedAt:  state.JoinedAt,
 	}
 	return handoff, members, nil
+}
+
+// AssignMatch records the callback payload after an external matchmaker consumes a queue handoff.
+func (s *PartyService) AssignMatch(ctx context.Context, partyID string, ticketID string, matchID string, serverID string, connectionHint string) (domain.QueueAssignment, *apperrors.Error) {
+	if partyID == "" || ticketID == "" || matchID == "" {
+		err := apperrors.New("invalid_request", "party_id, ticket_id, and match_id are required", http.StatusBadRequest)
+		return domain.QueueAssignment{}, &err
+	}
+
+	party, ok, appErr := s.getParty(partyID)
+	if appErr != nil {
+		return domain.QueueAssignment{}, appErr
+	}
+	if !ok {
+		err := apperrors.New("not_found", "party not found", http.StatusNotFound)
+		return domain.QueueAssignment{}, &err
+	}
+
+	state, ok, err := s.queues.GetQueueState(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.QueueAssignment{}, &internal
+	}
+	if !ok {
+		err := apperrors.New("not_found", "party queue state not found", http.StatusNotFound)
+		return domain.QueueAssignment{}, &err
+	}
+
+	expectedTicketID := queueTicketID(party.ID, state.QueueName, state.JoinedAt)
+	if ticketID != expectedTicketID {
+		err := apperrors.New("ticket_mismatch", "ticket_id does not match the active queue handoff", http.StatusConflict)
+		return domain.QueueAssignment{}, &err
+	}
+
+	if state.Status == queueStatusAssigned {
+		assignment, ok, err := s.queues.GetQueueAssignment(partyID)
+		if err != nil {
+			internal := apperrors.Internal()
+			return domain.QueueAssignment{}, &internal
+		}
+		if ok && assignment.TicketID == ticketID && assignment.MatchID == matchID {
+			return assignment, nil
+		}
+		conflict := apperrors.New("match_assigned", "party already has an assigned match", http.StatusConflict)
+		return domain.QueueAssignment{}, &conflict
+	}
+
+	if appErr := s.requireQueueReady(ctx, party); appErr != nil {
+		return domain.QueueAssignment{}, appErr
+	}
+
+	assignment := domain.QueueAssignment{
+		TicketID:       ticketID,
+		PartyID:        partyID,
+		QueueName:      state.QueueName,
+		MatchID:        matchID,
+		Status:         queueStatusAssigned,
+		ServerID:       serverID,
+		ConnectionHint: connectionHint,
+		AssignedAt:     s.now(),
+	}
+	state.Status = queueStatusAssigned
+
+	if err := s.queues.SaveQueueState(state); err != nil {
+		internal := apperrors.Internal()
+		return domain.QueueAssignment{}, &internal
+	}
+	if err := s.queues.SaveQueueAssignment(assignment); err != nil {
+		internal := apperrors.Internal()
+		return domain.QueueAssignment{}, &internal
+	}
+
+	return assignment, nil
+}
+
+// GetQueueAssignment returns the current match assignment for a queued party.
+func (s *PartyService) GetQueueAssignment(partyID string) (domain.QueueAssignment, *apperrors.Error) {
+	if partyID == "" {
+		err := apperrors.New("invalid_request", "party_id is required", http.StatusBadRequest)
+		return domain.QueueAssignment{}, &err
+	}
+
+	if _, ok, appErr := s.getParty(partyID); appErr != nil {
+		return domain.QueueAssignment{}, appErr
+	} else if !ok {
+		err := apperrors.New("not_found", "party not found", http.StatusNotFound)
+		return domain.QueueAssignment{}, &err
+	}
+
+	assignment, ok, err := s.queues.GetQueueAssignment(partyID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return domain.QueueAssignment{}, &internal
+	}
+	if !ok {
+		err := apperrors.New("not_found", "party queue assignment not found", http.StatusNotFound)
+		return domain.QueueAssignment{}, &err
+	}
+	return assignment, nil
 }
 
 // LeaveQueue removes the active queue enrollment for a party.
@@ -425,7 +537,15 @@ func (s *PartyService) LeaveQueue(partyID string, actorPlayerID string) (domain.
 		err := apperrors.New("not_found", "party queue state not found", http.StatusNotFound)
 		return domain.QueueLeaveResult{}, &err
 	}
+	if state.Status == queueStatusAssigned {
+		err := apperrors.New("match_assigned", "assigned matches cannot leave queue through the social queue endpoint", http.StatusConflict)
+		return domain.QueueLeaveResult{}, &err
+	}
 	if err := s.queues.DeleteQueueState(partyID); err != nil {
+		internal := apperrors.Internal()
+		return domain.QueueLeaveResult{}, &internal
+	}
+	if err := s.queues.DeleteQueueAssignment(partyID); err != nil {
 		internal := apperrors.Internal()
 		return domain.QueueLeaveResult{}, &internal
 	}
@@ -694,7 +814,7 @@ func (s *PartyService) ensureQueueUnlocked(partyID string) *apperrors.Error {
 		return &internal
 	}
 	if ok {
-		msg := fmt.Sprintf("party is queued in %s", state.QueueName)
+		msg := fmt.Sprintf("party queue is locked in %s (%s)", state.QueueName, state.Status)
 		err := apperrors.New("party_queued", msg, http.StatusConflict)
 		return &err
 	}
