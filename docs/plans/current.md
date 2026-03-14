@@ -1,42 +1,41 @@
 # Current Plan
 
-- Version: `production`
+- Version: `product-rebuild`
 - Last updated: `2026-03-14`
 - Source of truth level: highest
 
 ## Current Goal
 
-Turn the completed `v1 + v2` feature line into a single-region production baseline with explicit security, observability, deployment, and operator recovery rules.
+Reposition the repository from “feature-complete prototype” to “product rebuild in progress”, using the current codebase as a reference asset set rather than the final runtime target.
 
 ## Success Criteria
 
-- Internal endpoints require service tokens when configured.
-- Ops endpoints require bearer auth when configured.
-- Shared request logging, request IDs, recovery, audit events, metrics, and mutating-request rate limiting are enabled by default.
-- CI validates tests, proto checks, contract inventory, and release dry-run entrypoints.
-- Production runbooks exist for Redis, MySQL, worker backlog, gateway disconnect storms, and chat delivery failures.
-- `go test ./...`, `make check-dev`, and `make test-local-durable` stay green.
+- The new target runtime is explicitly defined as `api-gateway + social-core + ops-worker`.
+- Existing prototype services are treated as frozen reference implementations.
+- Product rebuild documentation, milestones, and runtime entrypoints exist.
+- New implementation work starts on the rebuilt runtime line rather than widening the prototype surface.
 
 ## Status
 
-`production` hardening is active.
+`product-rebuild` is active.
 
 ## Active Milestones
 
-1. Security and trust boundaries
-2. Observability and alerting baseline
-3. Release and rollback baseline
-4. Incident runbooks and drills
-5. Load and failure validation
+1. [01 Runtime Consolidation](product/milestones/01-runtime-consolidation.md)
+2. [02 Foundation Rebuild](product/milestones/02-foundation-rebuild.md)
+3. [03 Phase A Core Social Package](product/milestones/03-phase-a-core-social.md)
+4. [04 Staging Release Readiness](product/milestones/04-staging-release-readiness.md)
 
 ## Remaining Follow-ups
 
-- Proto contracts still trail some HTTP/runtime surfaces.
-- Deep moderation products, advanced worker scheduling, and multi-region rollout remain backlog items.
-- Production dashboards and external alert routing still need infrastructure-side hookup.
+- Production hardening work remains useful, but now serves the rebuild instead of the frozen prototype line.
+- The old per-service runtime remains available for regression comparison and domain reference.
+- Product-grade implementation depth still needs to be rebuilt on the new runtime.
 
 ## Key Dependencies
 
+- [docs/plans/product-rebuild.md](product-rebuild.md)
+- [docs/plans/product/roadmap.md](product/roadmap.md)
 - [docs/plans/v2/roadmap.md](v2/roadmap.md)
 - [docs/plans/production/roadmap.md](production/roadmap.md)
 - [docs/plans/backlog.md](backlog.md)
@@ -45,4 +44,5 @@ Turn the completed `v1 + v2` feature line into a single-region production baseli
 ## Update Rules
 
 - `v1` and `v2` release docs remain historical facts.
-- Production hardening is a separate line and should not reopen closed feature scopes without an explicit plan update.
+- `production` hardening remains a valid reference line but is no longer the active implementation target.
+- New runtime and product work should land on the rebuild path first.

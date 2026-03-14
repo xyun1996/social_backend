@@ -1,4 +1,4 @@
-.PHONY: help bootstrap test proto proto-check proto-lint check-contracts check-dev lint format docs run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker run-identity-mysql run-social-mysql run-invite-mysql run-chat-mysql run-party-mysql run-guild-mysql run-presence-redis run-worker-redis run-gateway-redis run-ops-durable test-local-durable bootstrap-local-mysql verify-local-mysql-migrations check-local-durable-status release-dry-run load-hot-paths fault-drill
+.PHONY: help bootstrap test proto proto-check proto-lint check-contracts check-dev lint format docs run-api-gateway run-social-core run-ops-worker run-gateway run-identity run-social run-invite run-chat run-party run-guild run-presence run-ops run-worker run-identity-mysql run-social-mysql run-invite-mysql run-chat-mysql run-party-mysql run-guild-mysql run-presence-redis run-worker-redis run-gateway-redis run-ops-durable test-local-durable bootstrap-local-mysql verify-local-mysql-migrations check-local-durable-status release-dry-run load-hot-paths fault-drill
 
 help:
 	@echo "Available targets:"
@@ -12,6 +12,9 @@ help:
 	@echo "  lint      - reserved for future lint entrypoint"
 	@echo "  format    - reserved for future format entrypoint"
 	@echo "  docs      - show current documentation entrypoints"
+	@echo "  run-api-gateway - start the rebuilt client ingress runtime"
+	@echo "  run-social-core - start the rebuilt core social runtime"
+	@echo "  run-ops-worker  - start the rebuilt ops/worker runtime"
 	@echo "  run-gateway  - start the gateway starter service"
 	@echo "  run-identity - start the identity starter service"
 	@echo "  run-social   - start the social starter service"
@@ -70,9 +73,18 @@ format:
 
 docs:
 	@echo "Current plan: docs/plans/current.md"
-	@echo "Roadmap:      docs/plans/v1/roadmap.md"
+	@echo "Roadmap:      docs/plans/product/roadmap.md"
 	@echo "Architecture: docs/architecture/overview.md"
 	@echo "Constraints:  docs/memory/constraints.md"
+
+run-api-gateway:
+	go run ./services/api-gateway/cmd/api-gateway
+
+run-social-core:
+	go run ./services/social-core/cmd/social-core
+
+run-ops-worker:
+	go run ./services/ops-worker/cmd/ops-worker
 
 run-gateway:
 	go run ./services/gateway/cmd/gateway

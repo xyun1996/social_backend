@@ -42,23 +42,33 @@ docs/       Plans, architecture, operations, releases, memory, templates
 - Local durable troubleshooting: [docs/operations/local-durable-troubleshooting.md](docs/operations/local-durable-troubleshooting.md)
 - Proto generation: [docs/operations/proto-generation.md](docs/operations/proto-generation.md)
 
-## Tooling Status
+## Repository Status
 
-This repository currently provides the project scaffold, governance documents, and the first reusable Go service bootstrap plus early in-memory service prototypes.
+This repository now contains two distinct layers:
+
+- a frozen high-fidelity prototype/service set under `services/{gateway,identity,...}`
+- an active product rebuild line targeting a reduced runtime topology
+
+The active rebuild target is documented in:
+
+- [docs/plans/product-rebuild.md](docs/plans/product-rebuild.md)
+- [docs/plans/product/roadmap.md](docs/plans/product/roadmap.md)
+- [docs/architecture/product-runtime-topology.md](docs/architecture/product-runtime-topology.md)
 
 - `go.mod` initializes the repository as the root Go module.
 - `go.work` is pre-created as the future monorepo entrypoint.
 - `pkg/app`, `pkg/config`, and `pkg/logging` provide a minimal shared runtime layer.
-- `services/gateway`, `services/identity`, `services/social`, `services/invite`, `services/chat`, `services/party`, `services/guild`, and `services/presence` now have runnable starter binaries or in-memory prototypes.
+- `services/gateway`, `services/identity`, `services/social`, `services/invite`, `services/chat`, `services/party`, `services/guild`, and `services/presence` remain runnable prototype implementations.
+- `services/api-gateway`, `services/social-core`, and `services/ops-worker` are the new active runtime targets for the rebuild.
 - `Makefile` exposes placeholder targets so later automation has a stable home.
 - Most leaf directories include `.gitkeep` placeholders so the intended shape survives in version control.
 
 ## Quick Start
 
 1. Review [docs/plans/current.md](docs/plans/current.md)
-2. Review [docs/plans/v1/roadmap.md](docs/plans/v1/roadmap.md)
-3. Check active constraints and ADRs under [docs/memory](docs/memory)
-4. Start creating service modules under `services/` as milestones move into implementation
+2. Review [docs/plans/product-rebuild.md](docs/plans/product-rebuild.md)
+3. Review [docs/plans/product/roadmap.md](docs/plans/product/roadmap.md)
+4. Check active constraints and ADRs under [docs/memory](docs/memory)
 
 ## Local Runflow
 
