@@ -64,6 +64,15 @@ message GuildMemberState {
   string location = 6;
 }
 
+message GuildLogEntry {
+  string id = 1;
+  string action = 2;
+  string actor_id = 3;
+  string target_id = 4;
+  string message = 5;
+  string created_at = 6;
+}
+
 message PartySnapshot {
   string party_id = 1;
   int32 count = 2;
@@ -73,8 +82,14 @@ message PartySnapshot {
 
 message GuildSnapshot {
   string guild_id = 1;
-  int32 count = 2;
-  repeated GuildMemberState members = 3;
+  string name = 2;
+  string owner_id = 3;
+  string announcement = 4;
+  string announcement_updated_at = 5;
+  int32 count = 6;
+  repeated GuildMemberState members = 7;
+  int32 log_count = 8;
+  repeated GuildLogEntry logs = 9;
 }
 
 message WorkerJob {

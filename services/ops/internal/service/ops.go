@@ -73,6 +73,16 @@ type GuildMemberState struct {
 	Location  string `json:"location,omitempty"`
 }
 
+// GuildLogEntry is the operator-facing governance log shape.
+type GuildLogEntry struct {
+	ID        string `json:"id"`
+	Action    string `json:"action"`
+	ActorID   string `json:"actor_id,omitempty"`
+	TargetID  string `json:"target_id,omitempty"`
+	Message   string `json:"message,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+}
+
 // PartySnapshot aggregates current party runtime state.
 type PartySnapshot struct {
 	PartyID string             `json:"party_id"`
@@ -83,9 +93,15 @@ type PartySnapshot struct {
 
 // GuildSnapshot aggregates current guild runtime state.
 type GuildSnapshot struct {
-	GuildID string             `json:"guild_id"`
-	Count   int                `json:"count"`
-	Members []GuildMemberState `json:"members"`
+	GuildID               string             `json:"guild_id"`
+	Name                  string             `json:"name,omitempty"`
+	OwnerID               string             `json:"owner_id,omitempty"`
+	Announcement          string             `json:"announcement,omitempty"`
+	AnnouncementUpdatedAt string             `json:"announcement_updated_at,omitempty"`
+	Count                 int                `json:"count"`
+	Members               []GuildMemberState `json:"members"`
+	LogCount              int                `json:"log_count"`
+	Logs                  []GuildLogEntry    `json:"logs,omitempty"`
 }
 
 // WorkerJob is the operator-facing async job shape.

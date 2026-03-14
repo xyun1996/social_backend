@@ -47,11 +47,21 @@ func ToProtoPartySnapshot(snapshot opsservice.PartySnapshot) *opsv1.PartySnapsho
 			Location:  member.Location,
 		})
 	}
-	return &opsv1.PartySnapshot{
+	record := &opsv1.PartySnapshot{
 		PartyId: snapshot.PartyID,
 		Count:   int32(snapshot.Count),
 		Members: members,
 	}
+	if snapshot.Queue != nil {
+		record.Queue = &opsv1.PartyQueueState{
+			PartyId:   snapshot.Queue.PartyID,
+			QueueName: snapshot.Queue.QueueName,
+			Status:    snapshot.Queue.Status,
+			JoinedBy:  snapshot.Queue.JoinedBy,
+			JoinedAt:  snapshot.Queue.JoinedAt,
+		}
+	}
+	return record
 }
 
 func ToProtoGuildSnapshot(snapshot opsservice.GuildSnapshot) *opsv1.GuildSnapshot {
@@ -66,10 +76,27 @@ func ToProtoGuildSnapshot(snapshot opsservice.GuildSnapshot) *opsv1.GuildSnapsho
 			Location:  member.Location,
 		})
 	}
+	logs := make([]*opsv1.GuildLogEntry, 0, len(snapshot.Logs))
+	for _, entry := range snapshot.Logs {
+		logs = append(logs, &opsv1.GuildLogEntry{
+			Id:        entry.ID,
+			Action:    entry.Action,
+			ActorId:   entry.ActorID,
+			TargetId:  entry.TargetID,
+			Message:   entry.Message,
+			CreatedAt: entry.CreatedAt,
+		})
+	}
 	return &opsv1.GuildSnapshot{
-		GuildId: snapshot.GuildID,
-		Count:   int32(snapshot.Count),
-		Members: members,
+		GuildId:               snapshot.GuildID,
+		Name:                  snapshot.Name,
+		OwnerId:               snapshot.OwnerID,
+		Announcement:          snapshot.Announcement,
+		AnnouncementUpdatedAt: snapshot.AnnouncementUpdatedAt,
+		Count:                 int32(snapshot.Count),
+		Members:               members,
+		LogCount:              int32(snapshot.LogCount),
+		Logs:                  logs,
 	}
 }
 

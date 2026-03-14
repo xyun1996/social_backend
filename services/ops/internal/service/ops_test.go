@@ -110,6 +110,32 @@ func TestGetPartySnapshot(t *testing.T) {
 	}
 }
 
+func TestGetGuildSnapshot(t *testing.T) {
+	t.Parallel()
+
+	svc := NewOpsService(nil, nil, &fakeGuildReader{
+		record: GuildSnapshot{
+			GuildID:      "guild-1",
+			Name:         "Raiders",
+			OwnerID:      "p1",
+			Announcement: "Welcome",
+			Count:        2,
+			LogCount:     1,
+			Logs: []GuildLogEntry{
+				{ID: "log-1", Action: "guild.created"},
+			},
+		},
+	}, nil, nil, nil, nil)
+
+	record, err := svc.GetGuildSnapshot(context.Background(), "guild-1")
+	if err != nil {
+		t.Fatalf("get guild returned error: %+v", err)
+	}
+	if record.GuildID != "guild-1" || record.Name != "Raiders" || record.LogCount != 1 {
+		t.Fatalf("unexpected guild snapshot: %+v", record)
+	}
+}
+
 func TestGetWorkerSnapshot(t *testing.T) {
 	t.Parallel()
 

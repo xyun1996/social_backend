@@ -65,8 +65,14 @@ Base purpose: operator-facing read queries across runtime-aware service boundari
 ```json
 {
   "guild_id": "guild-1",
+  "name": "Raiders",
+  "owner_id": "p1",
+  "announcement": "Welcome to the guild",
+  "announcement_updated_at": "2026-03-13T10:05:00Z",
   "count": 2,
-  "members": []
+  "members": [],
+  "log_count": 3,
+  "logs": []
 }
 ```
 

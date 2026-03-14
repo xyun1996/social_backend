@@ -27,35 +27,138 @@ func NewHTTPClient(baseURL string) *HTTPClient {
 
 // GetGuildSnapshot fetches the guild member snapshot.
 func (c *HTTPClient) GetGuildSnapshot(ctx context.Context, guildID string) (opsservice.GuildSnapshot, *apperrors.Error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/v1/guilds/"+guildID+"/members", nil)
+	guildRecord, appErr := c.getGuild(ctx, guildID)
+	if appErr != nil {
+		return opsservice.GuildSnapshot{}, appErr
+	}
+	memberRecord, appErr := c.getMembers(ctx, guildID)
+	if appErr != nil {
+		return opsservice.GuildSnapshot{}, appErr
+	}
+	logRecord, appErr := c.getLogs(ctx, guildID)
+	if appErr != nil {
+		return opsservice.GuildSnapshot{}, appErr
+	}
+
+	return opsservice.GuildSnapshot{
+		GuildID:               guildRecord.ID,
+		Name:                  guildRecord.Name,
+		OwnerID:               guildRecord.OwnerID,
+		Announcement:          guildRecord.Announcement,
+		AnnouncementUpdatedAt: guildRecord.AnnouncementUpdatedAt,
+		Count:                 memberRecord.Count,
+		Members:               memberRecord.Members,
+		LogCount:              logRecord.Count,
+		Logs:                  logRecord.Logs,
+	}, nil
+}
+
+type guildAggregate struct {
+	ID                    string `json:"id"`
+	Name                  string `json:"name"`
+	OwnerID               string `json:"owner_id"`
+	Announcement          string `json:"announcement"`
+	AnnouncementUpdatedAt string `json:"announcement_updated_at"`
+}
+
+type memberSnapshot struct {
+	GuildID string                        `json:"guild_id"`
+	Count   int                           `json:"count"`
+	Members []opsservice.GuildMemberState `json:"members"`
+}
+
+type logSnapshot struct {
+	GuildID string                     `json:"guild_id"`
+	Count   int                        `json:"count"`
+	Logs    []opsservice.GuildLogEntry `json:"logs"`
+}
+
+func (c *HTTPClient) getGuild(ctx context.Context, guildID string) (guildAggregate, *apperrors.Error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/v1/guilds/"+guildID, nil)
 	if err != nil {
 		internal := apperrors.Internal()
-		return opsservice.GuildSnapshot{}, &internal
+		return guildAggregate{}, &internal
 	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
 		badGateway := apperrors.New("guild_unavailable", "guild service is unavailable", http.StatusBadGateway)
-		return opsservice.GuildSnapshot{}, &badGateway
+		return guildAggregate{}, &badGateway
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		var appErr apperrors.Error
-		if decodeErr := json.NewDecoder(resp.Body).Decode(&appErr); decodeErr != nil {
-			badGateway := apperrors.New("guild_invalid_response", "guild service returned an invalid response", http.StatusBadGateway)
-			return opsservice.GuildSnapshot{}, &badGateway
-		}
-		appErr.Status = resp.StatusCode
-		return opsservice.GuildSnapshot{}, &appErr
+		return guildAggregate{}, decodeGuildError(resp)
 	}
 
-	var record opsservice.GuildSnapshot
+	var record guildAggregate
 	if err := json.NewDecoder(resp.Body).Decode(&record); err != nil {
 		badGateway := apperrors.New("guild_invalid_response", "guild service returned an invalid response", http.StatusBadGateway)
-		return opsservice.GuildSnapshot{}, &badGateway
+		return guildAggregate{}, &badGateway
 	}
 	return record, nil
+}
+
+func (c *HTTPClient) getMembers(ctx context.Context, guildID string) (memberSnapshot, *apperrors.Error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/v1/guilds/"+guildID+"/members", nil)
+	if err != nil {
+		internal := apperrors.Internal()
+		return memberSnapshot{}, &internal
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		badGateway := apperrors.New("guild_unavailable", "guild service is unavailable", http.StatusBadGateway)
+		return memberSnapshot{}, &badGateway
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return memberSnapshot{}, decodeGuildError(resp)
+	}
+
+	var record memberSnapshot
+	if err := json.NewDecoder(resp.Body).Decode(&record); err != nil {
+		badGateway := apperrors.New("guild_invalid_response", "guild service returned an invalid response", http.StatusBadGateway)
+		return memberSnapshot{}, &badGateway
+	}
+	return record, nil
+}
+
+func (c *HTTPClient) getLogs(ctx context.Context, guildID string) (logSnapshot, *apperrors.Error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/v1/guilds/"+guildID+"/logs", nil)
+	if err != nil {
+		internal := apperrors.Internal()
+		return logSnapshot{}, &internal
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		badGateway := apperrors.New("guild_unavailable", "guild service is unavailable", http.StatusBadGateway)
+		return logSnapshot{}, &badGateway
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return logSnapshot{}, decodeGuildError(resp)
+	}
+
+	var record logSnapshot
+	if err := json.NewDecoder(resp.Body).Decode(&record); err != nil {
+		badGateway := apperrors.New("guild_invalid_response", "guild service returned an invalid response", http.StatusBadGateway)
+		return logSnapshot{}, &badGateway
+	}
+	return record, nil
+}
+
+func decodeGuildError(resp *http.Response) *apperrors.Error {
+	var appErr apperrors.Error
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&appErr); decodeErr != nil {
+		badGateway := apperrors.New("guild_invalid_response", "guild service returned an invalid response", http.StatusBadGateway)
+		return &badGateway
+	}
+	appErr.Status = resp.StatusCode
+	return &appErr
 }
 
 func (c *HTTPClient) String() string {

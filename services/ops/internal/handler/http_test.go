@@ -33,7 +33,17 @@ func (f *fakePartyReader) GetPartySnapshot(context.Context, string) (opsservice.
 type fakeGuildReader struct{}
 
 func (f *fakeGuildReader) GetGuildSnapshot(context.Context, string) (opsservice.GuildSnapshot, *apperrors.Error) {
-	return opsservice.GuildSnapshot{GuildID: "guild-1", Count: 1}, nil
+	return opsservice.GuildSnapshot{
+		GuildID:      "guild-1",
+		Name:         "Raiders",
+		OwnerID:      "p1",
+		Announcement: "Welcome",
+		Count:        1,
+		LogCount:     1,
+		Logs: []opsservice.GuildLogEntry{
+			{ID: "log-1", Action: "guild.created"},
+		},
+	}, nil
 }
 
 type fakeWorkerReader struct{}

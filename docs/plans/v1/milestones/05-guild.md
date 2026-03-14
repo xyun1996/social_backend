@@ -25,6 +25,7 @@ Define and implement guild organization, governance, growth, and the first activ
 - Guild create, invite, join, kick, transfer-owner, and presence-aware member reads are implemented.
 - Guilds now support owner-managed announcement updates on the core guild aggregate.
 - Guild governance logs are now readable; growth and activity templates remain the main unfinished guild areas.
+- Ops guild snapshots now aggregate announcement state and governance logs for operator visibility.
 
 ## Acceptance Criteria
 
