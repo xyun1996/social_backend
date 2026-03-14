@@ -51,6 +51,7 @@ func (h *HTTPHandler) Routes() http.Handler {
 	mux.HandleFunc("POST /v1/guilds", h.handleCreateGuild)
 	mux.HandleFunc("GET /v1/guilds/{guildID}", h.handleGetGuild)
 	mux.HandleFunc("GET /v1/guilds/{guildID}/members", h.handleListMembers)
+	mux.HandleFunc("GET /v1/guilds/{guildID}/logs", h.handleListLogs)
 	mux.HandleFunc("POST /v1/guilds/{guildID}/invites", h.handleCreateInvite)
 	mux.HandleFunc("POST /v1/guilds/{guildID}/join", h.handleJoinGuild)
 	mux.HandleFunc("POST /v1/guilds/{guildID}/kick", h.handleKickMember)
@@ -103,6 +104,20 @@ func (h *HTTPHandler) handleListMembers(w http.ResponseWriter, r *http.Request) 
 		"guild_id": r.PathValue("guildID"),
 		"count":    len(members),
 		"members":  members,
+	})
+}
+
+func (h *HTTPHandler) handleListLogs(w http.ResponseWriter, r *http.Request) {
+	logs, appErr := h.guilds.ListLogs(r.PathValue("guildID"))
+	if appErr != nil {
+		transport.WriteError(w, *appErr)
+		return
+	}
+
+	transport.WriteJSON(w, http.StatusOK, map[string]any{
+		"guild_id": r.PathValue("guildID"),
+		"count":    len(logs),
+		"logs":     logs,
 	})
 }
 

@@ -19,3 +19,14 @@ type GuildMember struct {
 	Role     string    `json:"role"`
 	JoinedAt time.Time `json:"joined_at"`
 }
+
+// GuildLogEntry captures a governance event in guild history.
+type GuildLogEntry struct {
+	ID        string    `json:"id"`
+	GuildID   string    `json:"guild_id"`
+	Action    string    `json:"action"`
+	ActorID   string    `json:"actor_id,omitempty"`
+	TargetID  string    `json:"target_id,omitempty"`
+	Message   string    `json:"message,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+}

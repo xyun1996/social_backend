@@ -32,6 +32,16 @@ message MemberState {
   string location = 6;
 }
 
+message GuildLogEntry {
+  string id = 1;
+  string guild_id = 2;
+  string action = 3;
+  string actor_id = 4;
+  string target_id = 5;
+  string message = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
 message CreateGuildRequest {
   string name = 1;
   string owner_id = 2;
@@ -64,6 +74,11 @@ message ListMemberStatesResponse {
   repeated MemberState members = 2;
 }
 
+message ListGuildLogsResponse {
+  string guild_id = 1;
+  repeated GuildLogEntry logs = 2;
+}
+
 service GuildService {
   rpc CreateGuild(CreateGuildRequest) returns (Guild);
   rpc GetGuild(GetGuildRequest) returns (Guild);
@@ -71,4 +86,5 @@ service GuildService {
   rpc JoinGuild(JoinGuildRequest) returns (Guild);
   rpc UpdateGuildAnnouncement(UpdateGuildAnnouncementRequest) returns (Guild);
   rpc ListMemberStates(GetGuildRequest) returns (ListMemberStatesResponse);
+  rpc ListGuildLogs(GetGuildRequest) returns (ListGuildLogsResponse);
 }

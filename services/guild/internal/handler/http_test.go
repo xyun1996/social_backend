@@ -102,6 +102,13 @@ func TestGuildLifecycleEndpoints(t *testing.T) {
 	if memberRec.Code != http.StatusOK {
 		t.Fatalf("unexpected members status: got %d want %d", memberRec.Code, http.StatusOK)
 	}
+
+	logReq := httptest.NewRequest(http.MethodGet, "/v1/guilds/"+guildID+"/logs", nil)
+	logRec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(logRec, logReq)
+	if logRec.Code != http.StatusOK {
+		t.Fatalf("unexpected logs status: got %d want %d", logRec.Code, http.StatusOK)
+	}
 }
 
 func TestGuildManagementEndpoints(t *testing.T) {

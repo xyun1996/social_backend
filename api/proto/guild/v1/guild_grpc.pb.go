@@ -26,6 +26,7 @@ const (
 	GuildService_JoinGuild_FullMethodName               = "/social_backend.guild.v1.GuildService/JoinGuild"
 	GuildService_UpdateGuildAnnouncement_FullMethodName = "/social_backend.guild.v1.GuildService/UpdateGuildAnnouncement"
 	GuildService_ListMemberStates_FullMethodName        = "/social_backend.guild.v1.GuildService/ListMemberStates"
+	GuildService_ListGuildLogs_FullMethodName           = "/social_backend.guild.v1.GuildService/ListGuildLogs"
 )
 
 // GuildServiceClient is the client API for GuildService service.
@@ -38,6 +39,7 @@ type GuildServiceClient interface {
 	JoinGuild(ctx context.Context, in *JoinGuildRequest, opts ...grpc.CallOption) (*Guild, error)
 	UpdateGuildAnnouncement(ctx context.Context, in *UpdateGuildAnnouncementRequest, opts ...grpc.CallOption) (*Guild, error)
 	ListMemberStates(ctx context.Context, in *GetGuildRequest, opts ...grpc.CallOption) (*ListMemberStatesResponse, error)
+	ListGuildLogs(ctx context.Context, in *GetGuildRequest, opts ...grpc.CallOption) (*ListGuildLogsResponse, error)
 }
 
 type guildServiceClient struct {
@@ -108,6 +110,16 @@ func (c *guildServiceClient) ListMemberStates(ctx context.Context, in *GetGuildR
 	return out, nil
 }
 
+func (c *guildServiceClient) ListGuildLogs(ctx context.Context, in *GetGuildRequest, opts ...grpc.CallOption) (*ListGuildLogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListGuildLogsResponse)
+	err := c.cc.Invoke(ctx, GuildService_ListGuildLogs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GuildServiceServer is the server API for GuildService service.
 // All implementations must embed UnimplementedGuildServiceServer
 // for forward compatibility.
@@ -118,6 +130,7 @@ type GuildServiceServer interface {
 	JoinGuild(context.Context, *JoinGuildRequest) (*Guild, error)
 	UpdateGuildAnnouncement(context.Context, *UpdateGuildAnnouncementRequest) (*Guild, error)
 	ListMemberStates(context.Context, *GetGuildRequest) (*ListMemberStatesResponse, error)
+	ListGuildLogs(context.Context, *GetGuildRequest) (*ListGuildLogsResponse, error)
 	mustEmbedUnimplementedGuildServiceServer()
 }
 
@@ -145,6 +158,9 @@ func (UnimplementedGuildServiceServer) UpdateGuildAnnouncement(context.Context, 
 }
 func (UnimplementedGuildServiceServer) ListMemberStates(context.Context, *GetGuildRequest) (*ListMemberStatesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListMemberStates not implemented")
+}
+func (UnimplementedGuildServiceServer) ListGuildLogs(context.Context, *GetGuildRequest) (*ListGuildLogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListGuildLogs not implemented")
 }
 func (UnimplementedGuildServiceServer) mustEmbedUnimplementedGuildServiceServer() {}
 func (UnimplementedGuildServiceServer) testEmbeddedByValue()                      {}
@@ -275,6 +291,24 @@ func _GuildService_ListMemberStates_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GuildService_ListGuildLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetGuildRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).ListGuildLogs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_ListGuildLogs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).ListGuildLogs(ctx, req.(*GetGuildRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GuildService_ServiceDesc is the grpc.ServiceDesc for GuildService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -305,6 +339,10 @@ var GuildService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListMemberStates",
 			Handler:    _GuildService_ListMemberStates_Handler,
+		},
+		{
+			MethodName: "ListGuildLogs",
+			Handler:    _GuildService_ListGuildLogs_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

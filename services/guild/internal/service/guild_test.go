@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	apperrors "github.com/xyun1996/social_backend/pkg/errors"
@@ -55,6 +56,7 @@ func TestCreateInviteAndJoinGuild(t *testing.T) {
 
 	svc := NewGuildService(invites, nil)
 	svc.newGuildID = func() (string, error) { return "guild-1", nil }
+	svc.newLogID = func() (string, error) { return "log-1", nil }
 
 	guild, err := svc.CreateGuild("Test Guild", "p1")
 	if err != nil {
@@ -93,6 +95,7 @@ func TestListMemberStatesIncludesPresence(t *testing.T) {
 		},
 	})
 	svc.newGuildID = func() (string, error) { return "guild-1", nil }
+	svc.newLogID = func() (string, error) { return "log-1", nil }
 
 	guild, err := svc.CreateGuild("Guild", "p1")
 	if err != nil {
@@ -115,6 +118,7 @@ func TestGuildServiceWithInjectedStore(t *testing.T) {
 	guilds := newMemoryGuildStore()
 	svc := NewGuildServiceWithStore(guilds, &fakeInviteClient{}, nil)
 	svc.newGuildID = func() (string, error) { return "guild-1", nil }
+	svc.newLogID = func() (string, error) { return "log-1", nil }
 
 	guild, err := svc.CreateGuild("Guild", "p1")
 	if err != nil {
@@ -145,6 +149,7 @@ func TestTransferOwnershipAndKickMember(t *testing.T) {
 
 	svc := NewGuildService(invites, nil)
 	svc.newGuildID = func() (string, error) { return "guild-1", nil }
+	svc.newLogID = func() (string, error) { return "log-1", nil }
 
 	guild, err := svc.CreateGuild("Guild", "p1")
 	if err != nil {
@@ -176,6 +181,7 @@ func TestUpdateAnnouncement(t *testing.T) {
 
 	svc := NewGuildService(&fakeInviteClient{}, nil)
 	svc.newGuildID = func() (string, error) { return "guild-1", nil }
+	svc.newLogID = func() (string, error) { return "log-1", nil }
 
 	guild, err := svc.CreateGuild("Guild", "p1")
 	if err != nil {
@@ -188,5 +194,49 @@ func TestUpdateAnnouncement(t *testing.T) {
 	}
 	if updated.Announcement != "Welcome to the guild" || updated.AnnouncementUpdatedAt.IsZero() {
 		t.Fatalf("unexpected guild announcement state: %+v", updated)
+	}
+}
+
+func TestListLogsIncludesGovernanceEvents(t *testing.T) {
+	t.Parallel()
+
+	invites := &fakeInviteClient{
+		get: Invite{
+			ID:         "inv-1",
+			Domain:     inviteDomainGuild,
+			ResourceID: "guild-1",
+			ToPlayerID: "p2",
+			Status:     "accepted",
+		},
+	}
+
+	svc := NewGuildService(invites, nil)
+	svc.newGuildID = func() (string, error) { return "guild-1", nil }
+	logID := 0
+	svc.newLogID = func() (string, error) {
+		logID++
+		return fmt.Sprintf("log-%d", logID), nil
+	}
+
+	guild, err := svc.CreateGuild("Guild", "p1")
+	if err != nil {
+		t.Fatalf("create guild returned error: %+v", err)
+	}
+	if _, joinErr := svc.JoinWithInvite(context.Background(), guild.ID, "inv-1", "p2"); joinErr != nil {
+		t.Fatalf("join returned error: %+v", joinErr)
+	}
+	if _, updateErr := svc.UpdateAnnouncement(guild.ID, "p1", "Welcome"); updateErr != nil {
+		t.Fatalf("update announcement returned error: %+v", updateErr)
+	}
+
+	logs, logErr := svc.ListLogs(guild.ID)
+	if logErr != nil {
+		t.Fatalf("list logs returned error: %+v", logErr)
+	}
+	if len(logs) != 3 {
+		t.Fatalf("unexpected guild logs: %+v", logs)
+	}
+	if logs[0].Action != actionGuildCreated || logs[1].Action != actionGuildJoined || logs[2].Action != actionGuildAnnouncementUpdated {
+		t.Fatalf("unexpected guild log actions: %+v", logs)
 	}
 }

@@ -14,11 +14,16 @@ import (
 )
 
 const (
-	inviteDomainGuild = "guild"
-	roleOwner         = "owner"
-	roleMember        = "member"
-	presenceOnline    = "online"
-	presenceOffline   = "offline"
+	inviteDomainGuild              = "guild"
+	roleOwner                      = "owner"
+	roleMember                     = "member"
+	presenceOnline                 = "online"
+	presenceOffline                = "offline"
+	actionGuildCreated             = "guild.created"
+	actionGuildJoined              = "guild.joined"
+	actionGuildAnnouncementUpdated = "guild.announcement_updated"
+	actionGuildMemberKicked        = "guild.member_kicked"
+	actionGuildOwnerTransferred    = "guild.owner_transferred"
 )
 
 // Invite contains the subset of invite state guild depends on.
@@ -68,6 +73,7 @@ type GuildService struct {
 	presence   PresenceReader
 	now        func() time.Time
 	newGuildID func() (string, error)
+	newLogID   func() (string, error)
 }
 
 // NewGuildService constructs an in-memory guild service.
@@ -84,6 +90,9 @@ func NewGuildServiceWithStore(guilds GuildStore, invites InviteClient, presence 
 		now:      time.Now,
 		newGuildID: func() (string, error) {
 			return idgen.Token(8)
+		},
+		newLogID: func() (string, error) {
+			return idgen.Token(10)
 		},
 	}
 }
@@ -120,6 +129,9 @@ func (s *GuildService) CreateGuild(name string, ownerID string) (domain.Guild, *
 	if err := s.guilds.SaveGuild(guild); err != nil {
 		internal := apperrors.Internal()
 		return domain.Guild{}, &internal
+	}
+	if appErr := s.appendLog(guild.ID, actionGuildCreated, ownerID, "", "guild created"); appErr != nil {
+		return domain.Guild{}, appErr
 	}
 	return guild, nil
 }
@@ -215,6 +227,9 @@ func (s *GuildService) UpdateAnnouncement(guildID string, actorPlayerID string, 
 		internal := apperrors.Internal()
 		return domain.Guild{}, &internal
 	}
+	if appErr := s.appendLog(guild.ID, actionGuildAnnouncementUpdated, actorPlayerID, "", "guild announcement updated"); appErr != nil {
+		return domain.Guild{}, appErr
+	}
 	return guild, nil
 }
 
@@ -309,6 +324,9 @@ func (s *GuildService) JoinWithInvite(ctx context.Context, guildID string, invit
 		internal := apperrors.Internal()
 		return domain.Guild{}, &internal
 	}
+	if appErr := s.appendLog(guild.ID, actionGuildJoined, actorPlayerID, actorPlayerID, "member joined guild"); appErr != nil {
+		return domain.Guild{}, appErr
+	}
 	return guild, nil
 }
 
@@ -345,6 +363,9 @@ func (s *GuildService) KickMember(guildID string, actorPlayerID string, targetPl
 	if err := s.guilds.SaveGuild(guild); err != nil {
 		internal := apperrors.Internal()
 		return domain.Guild{}, &internal
+	}
+	if appErr := s.appendLog(guild.ID, actionGuildMemberKicked, actorPlayerID, targetPlayerID, "member removed from guild"); appErr != nil {
+		return domain.Guild{}, appErr
 	}
 	return guild, nil
 }
@@ -387,7 +408,32 @@ func (s *GuildService) TransferOwnership(guildID string, actorPlayerID string, t
 		internal := apperrors.Internal()
 		return domain.Guild{}, &internal
 	}
+	if appErr := s.appendLog(guild.ID, actionGuildOwnerTransferred, actorPlayerID, targetPlayerID, "guild ownership transferred"); appErr != nil {
+		return domain.Guild{}, appErr
+	}
 	return guild, nil
+}
+
+// ListLogs returns governance log entries for a guild.
+func (s *GuildService) ListLogs(guildID string) ([]domain.GuildLogEntry, *apperrors.Error) {
+	if guildID == "" {
+		err := apperrors.New("invalid_request", "guild_id is required", http.StatusBadRequest)
+		return nil, &err
+	}
+	if _, ok, err := s.guilds.GetGuild(guildID); err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
+	} else if !ok {
+		err := apperrors.New("not_found", "guild not found", http.StatusNotFound)
+		return nil, &err
+	}
+
+	logs, err := s.guilds.ListLogs(guildID)
+	if err != nil {
+		internal := apperrors.Internal()
+		return nil, &internal
+	}
+	return logs, nil
 }
 
 func hasMember(members []domain.GuildMember, playerID string) bool {
@@ -409,6 +455,28 @@ func deleteGuildMember(members []domain.GuildMember, playerID string) []domain.G
 		filtered = append(filtered, member)
 	}
 	return filtered
+}
+
+func (s *GuildService) appendLog(guildID string, action string, actorID string, targetID string, message string) *apperrors.Error {
+	logID, idErr := s.newLogID()
+	if idErr != nil {
+		internal := apperrors.Internal()
+		return &internal
+	}
+	entry := domain.GuildLogEntry{
+		ID:        logID,
+		GuildID:   guildID,
+		Action:    action,
+		ActorID:   actorID,
+		TargetID:  targetID,
+		Message:   message,
+		CreatedAt: s.now(),
+	}
+	if err := s.guilds.SaveLog(entry); err != nil {
+		internal := apperrors.Internal()
+		return &internal
+	}
+	return nil
 }
 
 func (s *GuildService) String() string {

@@ -18,6 +18,7 @@ type schemaExecutor interface {
 const (
 	GuildsTable       = "guild_guilds"
 	GuildMembersTable = "guild_members"
+	GuildLogsTable    = "guild_logs"
 )
 
 // Repository implements guild durable storage on MySQL.
@@ -63,6 +64,21 @@ func (r *Repository) Migrations() []db.Migration {
 				 ADD COLUMN announcement TEXT NOT NULL DEFAULT ''`,
 				`ALTER TABLE guild_guilds
 				 ADD COLUMN announcement_updated_at TIMESTAMP NULL DEFAULT NULL`,
+			},
+		},
+		{
+			ID: "003_guild_logs",
+			Statements: []string{
+				`CREATE TABLE IF NOT EXISTS guild_logs (
+					log_id VARCHAR(64) PRIMARY KEY,
+					guild_id VARCHAR(64) NOT NULL,
+					action VARCHAR(64) NOT NULL,
+					actor_id VARCHAR(64) NOT NULL DEFAULT '',
+					target_id VARCHAR(64) NOT NULL DEFAULT '',
+					message TEXT NOT NULL,
+					created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					INDEX idx_guild_logs_guild_created (guild_id, created_at)
+				);`,
 			},
 		},
 	}
@@ -252,4 +268,78 @@ func (r *Repository) listMembers(guildID string) ([]domain.GuildMember, error) {
 		}
 	})
 	return members, nil
+}
+
+func (r *Repository) SaveLog(entry domain.GuildLogEntry) error {
+	if r == nil || r.sqlDB == nil {
+		return errors.New("mysql repository is not configured")
+	}
+
+	_, err := r.sqlDB.ExecContext(
+		context.Background(),
+		`INSERT INTO guild_logs (log_id, guild_id, action, actor_id, target_id, message, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)
+		 ON DUPLICATE KEY UPDATE
+		   action = VALUES(action),
+		   actor_id = VALUES(actor_id),
+		   target_id = VALUES(target_id),
+		   message = VALUES(message),
+		   created_at = VALUES(created_at)`,
+		entry.ID,
+		entry.GuildID,
+		entry.Action,
+		entry.ActorID,
+		entry.TargetID,
+		entry.Message,
+		entry.CreatedAt.UTC(),
+	)
+	return err
+}
+
+func (r *Repository) ListLogs(guildID string) ([]domain.GuildLogEntry, error) {
+	if r == nil || r.sqlDB == nil {
+		return nil, errors.New("mysql repository is not configured")
+	}
+
+	rows, err := r.sqlDB.QueryContext(
+		context.Background(),
+		`SELECT log_id, guild_id, action, actor_id, target_id, message, created_at
+		 FROM guild_logs
+		 WHERE guild_id = ?`,
+		guildID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	logs := make([]domain.GuildLogEntry, 0)
+	for rows.Next() {
+		var entry domain.GuildLogEntry
+		if err := rows.Scan(&entry.ID, &entry.GuildID, &entry.Action, &entry.ActorID, &entry.TargetID, &entry.Message, &entry.CreatedAt); err != nil {
+			return nil, err
+		}
+		logs = append(logs, entry)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	slices.SortFunc(logs, func(a domain.GuildLogEntry, b domain.GuildLogEntry) int {
+		if !a.CreatedAt.Equal(b.CreatedAt) {
+			if a.CreatedAt.Before(b.CreatedAt) {
+				return -1
+			}
+			return 1
+		}
+		switch {
+		case a.ID < b.ID:
+			return -1
+		case a.ID > b.ID:
+			return 1
+		default:
+			return 0
+		}
+	})
+	return logs, nil
 }

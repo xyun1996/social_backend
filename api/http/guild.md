@@ -81,6 +81,23 @@ Base purpose: guild creation, owner-scoped invite issuance, join via accepted in
 }
 ```
 
+## List Guild Logs
+
+- `GET /v1/guilds/{guildID}/logs`
+- Response `200`
+
+```json
+{
+  "guild_id": "guild-1",
+  "count": 3,
+  "logs": []
+}
+```
+
+- Rules
+- Logs are ordered oldest to newest in the current prototype
+- Current governance events include guild creation, member join, announcement update, member kick, and owner transfer
+
 ## Create Guild Invite
 
 - `POST /v1/guilds/{guildID}/invites`

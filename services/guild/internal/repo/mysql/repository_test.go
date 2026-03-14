@@ -40,10 +40,75 @@ func TestRepositoryBootstrapSchema(t *testing.T) {
 	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO schema_migrations (service_name, migration_id) VALUES (?, ?)")).
 		WithArgs("guild", "002_guild_announcement").
 		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT 1 FROM schema_migrations WHERE service_name = ? AND migration_id = ? LIMIT 1")).
+		WithArgs("guild", "003_guild_logs").
+		WillReturnRows(sqlmock.NewRows([]string{"1"}))
+	for _, statement := range repo.Migrations()[2].Statements {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO schema_migrations (service_name, migration_id) VALUES (?, ?)")).
+		WithArgs("guild", "003_guild_logs").
+		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	if err := repo.BootstrapSchema(context.Background()); err != nil {
 		t.Fatalf("BootstrapSchema returned error: %v", err)
 	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet sql expectations: %v", err)
+	}
+}
+
+func TestRepositorySaveAndListLogs(t *testing.T) {
+	t.Parallel()
+
+	sqlDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock.New failed: %v", err)
+	}
+	defer sqlDB.Close()
+
+	repo := NewRepository(db.MySQLConfig{}, sqlDB)
+	entry := domain.GuildLogEntry{
+		ID:        "log-1",
+		GuildID:   "guild-1",
+		Action:    "guild.created",
+		ActorID:   "p1",
+		TargetID:  "",
+		Message:   "guild created",
+		CreatedAt: time.Date(2026, 3, 14, 10, 0, 0, 0, time.UTC),
+	}
+
+	mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO guild_logs (log_id, guild_id, action, actor_id, target_id, message, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)
+		 ON DUPLICATE KEY UPDATE
+		   action = VALUES(action),
+		   actor_id = VALUES(actor_id),
+		   target_id = VALUES(target_id),
+		   message = VALUES(message),
+		   created_at = VALUES(created_at)`)).
+		WithArgs(entry.ID, entry.GuildID, entry.Action, entry.ActorID, entry.TargetID, entry.Message, entry.CreatedAt.UTC()).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	if err := repo.SaveLog(entry); err != nil {
+		t.Fatalf("SaveLog returned error: %v", err)
+	}
+
+	rows := sqlmock.NewRows([]string{"log_id", "guild_id", "action", "actor_id", "target_id", "message", "created_at"}).
+		AddRow(entry.ID, entry.GuildID, entry.Action, entry.ActorID, entry.TargetID, entry.Message, entry.CreatedAt)
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT log_id, guild_id, action, actor_id, target_id, message, created_at
+		 FROM guild_logs
+		 WHERE guild_id = ?`)).
+		WithArgs(entry.GuildID).
+		WillReturnRows(rows)
+
+	logs, err := repo.ListLogs(entry.GuildID)
+	if err != nil {
+		t.Fatalf("ListLogs returned error: %v", err)
+	}
+	if len(logs) != 1 || logs[0].Action != entry.Action {
+		t.Fatalf("unexpected guild logs: %+v", logs)
+	}
+
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("unmet sql expectations: %v", err)
 	}
