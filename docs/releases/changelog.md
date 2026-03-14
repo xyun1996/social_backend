@@ -24,3 +24,4 @@
 - Added chat conversation summaries with unread counts and last-message snapshots
 - Expanded ops player overview with current party, guild, role, and queue status reads
 - Aligned guild and party chat channel permissions to current resource membership
+- Archived the completed `v1.0` state and established the first `v2` planning baseline
