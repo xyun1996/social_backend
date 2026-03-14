@@ -62,7 +62,7 @@ func (r *Repository) Migrations() []db.Migration {
 			ID: "002_guild_announcement",
 			Statements: []string{
 				`ALTER TABLE guild_guilds
-				 ADD COLUMN announcement TEXT NOT NULL DEFAULT ''`,
+				 ADD COLUMN announcement VARCHAR(2048) NOT NULL DEFAULT ''`,
 				`ALTER TABLE guild_guilds
 				 ADD COLUMN announcement_updated_at TIMESTAMP NULL DEFAULT NULL`,
 			},

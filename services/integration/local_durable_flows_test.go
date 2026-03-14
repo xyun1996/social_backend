@@ -553,18 +553,23 @@ func TestLocalDurableMySQLBootstrapRegistersMigrations(t *testing.T) {
 		t.Fatalf("iterate schema migrations: %v", err)
 	}
 
-	expected := map[string]string{
-		"identity": "001_identity_core",
-		"social":   "001_social_core",
-		"invite":   "001_invite_core",
-		"chat":     "001_chat_core",
-		"party":    "001_party_core",
-		"guild":    "001_guild_core",
+	expected := map[string][]string{
+		"identity": {"001_identity_core"},
+		"social":   {"001_social_core"},
+		"invite":   {"001_invite_core"},
+		"chat":     {"001_chat_core"},
+		"party":    {"001_party_core", "002_party_queue", "003_party_assignment"},
+		"guild":    {"001_guild_core", "002_guild_announcement", "003_guild_logs", "004_guild_progression"},
 	}
-	for service, migrationID := range expected {
+	for service, migrationIDs := range expected {
 		migrations := recorded[service]
-		if len(migrations) != 1 || migrations[0] != migrationID {
+		if len(migrations) != len(migrationIDs) {
 			t.Fatalf("unexpected recorded migrations for %s: %+v", service, migrations)
+		}
+		for idx, migrationID := range migrationIDs {
+			if migrations[idx] != migrationID {
+				t.Fatalf("unexpected recorded migrations for %s: %+v", service, migrations)
+			}
 		}
 	}
 }
