@@ -2,16 +2,16 @@
 
 ## Context
 
-`ops` has continued to grow on the HTTP side with worker queue visibility and player overview aggregation, but `api/proto/ops.proto` still only describes the earlier presence, party, and guild reads. That drift violates the contract-first rule that HTTP and proto baselines should evolve together when they represent the same service semantics.
+`ops` has continued to grow on the HTTP side with worker queue visibility and player overview aggregation, but `api/proto/ops/v1/ops.proto` still only describes the earlier presence, party, and guild reads. That drift violates the contract-first rule that HTTP and proto baselines should evolve together when they represent the same service semantics.
 
 ## Goal
 
-Update `api/proto/ops.proto` so it reflects the current operator-facing read surface.
+Update `api/proto/ops/v1/ops.proto` so it reflects the current operator-facing read surface.
 
 ## Scope
 
-- Add social and player overview messages to `api/proto/ops.proto`
-- Add worker snapshot messages to `api/proto/ops.proto`
+- Add social and player overview messages to `api/proto/ops/v1/ops.proto`
+- Add worker snapshot messages to `api/proto/ops/v1/ops.proto`
 - Add RPCs for player overview and worker snapshot reads
 
 ## Non-Goals

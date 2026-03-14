@@ -6,12 +6,12 @@ The repository already has HTTP contract baselines for `gateway` and `social`, a
 
 ## Goal
 
-Complete the first-round proto contract coverage by adding `gateway.proto` and `social.proto`, then update plan and contract documentation so current status matches the repository.
+Complete the first-round proto contract coverage by adding `api/proto/gateway/v1/gateway.proto` and `api/proto/social/v1/social.proto`, then update plan and contract documentation so current status matches the repository.
 
 ## Scope
 
-- Add `api/proto/gateway.proto`
-- Add `api/proto/social.proto`
+- Add `api/proto/gateway/v1/gateway.proto`
+- Add `api/proto/social/v1/social.proto`
 - Update `api/proto/README.md`
 - Update `docs/plans/current.md`
 

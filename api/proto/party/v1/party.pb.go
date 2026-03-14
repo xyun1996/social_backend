@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: party.proto
+// source: party/v1/party.proto
 
 package partyv1
 
@@ -35,7 +35,7 @@ type Party struct {
 
 func (x *Party) Reset() {
 	*x = Party{}
-	mi := &file_party_proto_msgTypes[0]
+	mi := &file_party_v1_party_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -47,7 +47,7 @@ func (x *Party) String() string {
 func (*Party) ProtoMessage() {}
 
 func (x *Party) ProtoReflect() protoreflect.Message {
-	mi := &file_party_proto_msgTypes[0]
+	mi := &file_party_v1_party_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -60,7 +60,7 @@ func (x *Party) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Party.ProtoReflect.Descriptor instead.
 func (*Party) Descriptor() ([]byte, []int) {
-	return file_party_proto_rawDescGZIP(), []int{0}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Party) GetId() string {
@@ -103,7 +103,7 @@ type ReadyState struct {
 
 func (x *ReadyState) Reset() {
 	*x = ReadyState{}
-	mi := &file_party_proto_msgTypes[1]
+	mi := &file_party_v1_party_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -115,7 +115,7 @@ func (x *ReadyState) String() string {
 func (*ReadyState) ProtoMessage() {}
 
 func (x *ReadyState) ProtoReflect() protoreflect.Message {
-	mi := &file_party_proto_msgTypes[1]
+	mi := &file_party_v1_party_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -128,7 +128,7 @@ func (x *ReadyState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadyState.ProtoReflect.Descriptor instead.
 func (*ReadyState) Descriptor() ([]byte, []int) {
-	return file_party_proto_rawDescGZIP(), []int{1}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ReadyState) GetPartyId() string {
@@ -172,7 +172,7 @@ type QueueState struct {
 
 func (x *QueueState) Reset() {
 	*x = QueueState{}
-	mi := &file_party_proto_msgTypes[2]
+	mi := &file_party_v1_party_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -184,7 +184,7 @@ func (x *QueueState) String() string {
 func (*QueueState) ProtoMessage() {}
 
 func (x *QueueState) ProtoReflect() protoreflect.Message {
-	mi := &file_party_proto_msgTypes[2]
+	mi := &file_party_v1_party_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -197,7 +197,7 @@ func (x *QueueState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueueState.ProtoReflect.Descriptor instead.
 func (*QueueState) Descriptor() ([]byte, []int) {
-	return file_party_proto_rawDescGZIP(), []int{2}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *QueueState) GetPartyId() string {
@@ -247,7 +247,7 @@ type QueueLeaveResult struct {
 
 func (x *QueueLeaveResult) Reset() {
 	*x = QueueLeaveResult{}
-	mi := &file_party_proto_msgTypes[3]
+	mi := &file_party_v1_party_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -259,7 +259,7 @@ func (x *QueueLeaveResult) String() string {
 func (*QueueLeaveResult) ProtoMessage() {}
 
 func (x *QueueLeaveResult) ProtoReflect() protoreflect.Message {
-	mi := &file_party_proto_msgTypes[3]
+	mi := &file_party_v1_party_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -272,7 +272,7 @@ func (x *QueueLeaveResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueueLeaveResult.ProtoReflect.Descriptor instead.
 func (*QueueLeaveResult) Descriptor() ([]byte, []int) {
-	return file_party_proto_rawDescGZIP(), []int{3}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *QueueLeaveResult) GetPartyId() string {
@@ -319,7 +319,7 @@ type QueueHandoff struct {
 
 func (x *QueueHandoff) Reset() {
 	*x = QueueHandoff{}
-	mi := &file_party_proto_msgTypes[4]
+	mi := &file_party_v1_party_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -331,7 +331,7 @@ func (x *QueueHandoff) String() string {
 func (*QueueHandoff) ProtoMessage() {}
 
 func (x *QueueHandoff) ProtoReflect() protoreflect.Message {
-	mi := &file_party_proto_msgTypes[4]
+	mi := &file_party_v1_party_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -344,7 +344,7 @@ func (x *QueueHandoff) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueueHandoff.ProtoReflect.Descriptor instead.
 func (*QueueHandoff) Descriptor() ([]byte, []int) {
-	return file_party_proto_rawDescGZIP(), []int{4}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *QueueHandoff) GetTicketId() string {
@@ -419,7 +419,7 @@ type QueueAssignment struct {
 
 func (x *QueueAssignment) Reset() {
 	*x = QueueAssignment{}
-	mi := &file_party_proto_msgTypes[5]
+	mi := &file_party_v1_party_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -431,7 +431,7 @@ func (x *QueueAssignment) String() string {
 func (*QueueAssignment) ProtoMessage() {}
 
 func (x *QueueAssignment) ProtoReflect() protoreflect.Message {
-	mi := &file_party_proto_msgTypes[5]
+	mi := &file_party_v1_party_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -444,7 +444,7 @@ func (x *QueueAssignment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueueAssignment.ProtoReflect.Descriptor instead.
 func (*QueueAssignment) Descriptor() ([]byte, []int) {
-	return file_party_proto_rawDescGZIP(), []int{5}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *QueueAssignment) GetTicketId() string {
@@ -518,7 +518,7 @@ type MemberState struct {
 
 func (x *MemberState) Reset() {
 	*x = MemberState{}
-	mi := &file_party_proto_msgTypes[6]
+	mi := &file_party_v1_party_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -530,7 +530,7 @@ func (x *MemberState) String() string {
 func (*MemberState) ProtoMessage() {}
 
 func (x *MemberState) ProtoReflect() protoreflect.Message {
-	mi := &file_party_proto_msgTypes[6]
+	mi := &file_party_v1_party_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -543,7 +543,7 @@ func (x *MemberState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemberState.ProtoReflect.Descriptor instead.
 func (*MemberState) Descriptor() ([]byte, []int) {
-	return file_party_proto_rawDescGZIP(), []int{6}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *MemberState) GetPlayerId() string {
@@ -604,7 +604,7 @@ type CreatePartyRequest struct {
 
 func (x *CreatePartyRequest) Reset() {
 	*x = CreatePartyRequest{}
-	mi := &file_party_proto_msgTypes[7]
+	mi := &file_party_v1_party_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -616,7 +616,7 @@ func (x *CreatePartyRequest) String() string {
 func (*CreatePartyRequest) ProtoMessage() {}
 
 func (x *CreatePartyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_party_proto_msgTypes[7]
+	mi := &file_party_v1_party_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -629,7 +629,7 @@ func (x *CreatePartyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePartyRequest.ProtoReflect.Descriptor instead.
 func (*CreatePartyRequest) Descriptor() ([]byte, []int) {
-	return file_party_proto_rawDescGZIP(), []int{7}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CreatePartyRequest) GetLeaderId() string {
@@ -648,7 +648,7 @@ type GetPartyRequest struct {
 
 func (x *GetPartyRequest) Reset() {
 	*x = GetPartyRequest{}
-	mi := &file_party_proto_msgTypes[8]
+	mi := &file_party_v1_party_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -660,7 +660,7 @@ func (x *GetPartyRequest) String() string {
 func (*GetPartyRequest) ProtoMessage() {}
 
 func (x *GetPartyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_party_proto_msgTypes[8]
+	mi := &file_party_v1_party_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -673,7 +673,7 @@ func (x *GetPartyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPartyRequest.ProtoReflect.Descriptor instead.
 func (*GetPartyRequest) Descriptor() ([]byte, []int) {
-	return file_party_proto_rawDescGZIP(), []int{8}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetPartyRequest) GetPartyId() string {
@@ -694,7 +694,7 @@ type CreatePartyInviteRequest struct {
 
 func (x *CreatePartyInviteRequest) Reset() {
 	*x = CreatePartyInviteRequest{}
-	mi := &file_party_proto_msgTypes[9]
+	mi := &file_party_v1_party_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -706,7 +706,7 @@ func (x *CreatePartyInviteRequest) String() string {
 func (*CreatePartyInviteRequest) ProtoMessage() {}
 
 func (x *CreatePartyInviteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_party_proto_msgTypes[9]
+	mi := &file_party_v1_party_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -719,7 +719,7 @@ func (x *CreatePartyInviteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePartyInviteRequest.ProtoReflect.Descriptor instead.
 func (*CreatePartyInviteRequest) Descriptor() ([]byte, []int) {
-	return file_party_proto_rawDescGZIP(), []int{9}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CreatePartyInviteRequest) GetPartyId() string {
@@ -754,7 +754,7 @@ type JoinPartyRequest struct {
 
 func (x *JoinPartyRequest) Reset() {
 	*x = JoinPartyRequest{}
-	mi := &file_party_proto_msgTypes[10]
+	mi := &file_party_v1_party_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -766,7 +766,7 @@ func (x *JoinPartyRequest) String() string {
 func (*JoinPartyRequest) ProtoMessage() {}
 
 func (x *JoinPartyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_party_proto_msgTypes[10]
+	mi := &file_party_v1_party_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -779,7 +779,7 @@ func (x *JoinPartyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JoinPartyRequest.ProtoReflect.Descriptor instead.
 func (*JoinPartyRequest) Descriptor() ([]byte, []int) {
-	return file_party_proto_rawDescGZIP(), []int{10}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *JoinPartyRequest) GetPartyId() string {
@@ -814,7 +814,7 @@ type SetReadyRequest struct {
 
 func (x *SetReadyRequest) Reset() {
 	*x = SetReadyRequest{}
-	mi := &file_party_proto_msgTypes[11]
+	mi := &file_party_v1_party_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -826,7 +826,7 @@ func (x *SetReadyRequest) String() string {
 func (*SetReadyRequest) ProtoMessage() {}
 
 func (x *SetReadyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_party_proto_msgTypes[11]
+	mi := &file_party_v1_party_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -839,7 +839,7 @@ func (x *SetReadyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetReadyRequest.ProtoReflect.Descriptor instead.
 func (*SetReadyRequest) Descriptor() ([]byte, []int) {
-	return file_party_proto_rawDescGZIP(), []int{11}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *SetReadyRequest) GetPartyId() string {
@@ -874,7 +874,7 @@ type JoinQueueRequest struct {
 
 func (x *JoinQueueRequest) Reset() {
 	*x = JoinQueueRequest{}
-	mi := &file_party_proto_msgTypes[12]
+	mi := &file_party_v1_party_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -886,7 +886,7 @@ func (x *JoinQueueRequest) String() string {
 func (*JoinQueueRequest) ProtoMessage() {}
 
 func (x *JoinQueueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_party_proto_msgTypes[12]
+	mi := &file_party_v1_party_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -899,7 +899,7 @@ func (x *JoinQueueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JoinQueueRequest.ProtoReflect.Descriptor instead.
 func (*JoinQueueRequest) Descriptor() ([]byte, []int) {
-	return file_party_proto_rawDescGZIP(), []int{12}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *JoinQueueRequest) GetPartyId() string {
@@ -933,7 +933,7 @@ type LeaveQueueRequest struct {
 
 func (x *LeaveQueueRequest) Reset() {
 	*x = LeaveQueueRequest{}
-	mi := &file_party_proto_msgTypes[13]
+	mi := &file_party_v1_party_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -945,7 +945,7 @@ func (x *LeaveQueueRequest) String() string {
 func (*LeaveQueueRequest) ProtoMessage() {}
 
 func (x *LeaveQueueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_party_proto_msgTypes[13]
+	mi := &file_party_v1_party_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -958,7 +958,7 @@ func (x *LeaveQueueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LeaveQueueRequest.ProtoReflect.Descriptor instead.
 func (*LeaveQueueRequest) Descriptor() ([]byte, []int) {
-	return file_party_proto_rawDescGZIP(), []int{13}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *LeaveQueueRequest) GetPartyId() string {
@@ -988,7 +988,7 @@ type AssignMatchRequest struct {
 
 func (x *AssignMatchRequest) Reset() {
 	*x = AssignMatchRequest{}
-	mi := &file_party_proto_msgTypes[14]
+	mi := &file_party_v1_party_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1000,7 +1000,7 @@ func (x *AssignMatchRequest) String() string {
 func (*AssignMatchRequest) ProtoMessage() {}
 
 func (x *AssignMatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_party_proto_msgTypes[14]
+	mi := &file_party_v1_party_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1013,7 +1013,7 @@ func (x *AssignMatchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AssignMatchRequest.ProtoReflect.Descriptor instead.
 func (*AssignMatchRequest) Descriptor() ([]byte, []int) {
-	return file_party_proto_rawDescGZIP(), []int{14}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *AssignMatchRequest) GetPartyId() string {
@@ -1061,7 +1061,7 @@ type ListReadyStatesResponse struct {
 
 func (x *ListReadyStatesResponse) Reset() {
 	*x = ListReadyStatesResponse{}
-	mi := &file_party_proto_msgTypes[15]
+	mi := &file_party_v1_party_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1073,7 +1073,7 @@ func (x *ListReadyStatesResponse) String() string {
 func (*ListReadyStatesResponse) ProtoMessage() {}
 
 func (x *ListReadyStatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_party_proto_msgTypes[15]
+	mi := &file_party_v1_party_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1086,7 +1086,7 @@ func (x *ListReadyStatesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListReadyStatesResponse.ProtoReflect.Descriptor instead.
 func (*ListReadyStatesResponse) Descriptor() ([]byte, []int) {
-	return file_party_proto_rawDescGZIP(), []int{15}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ListReadyStatesResponse) GetPartyId() string {
@@ -1113,7 +1113,7 @@ type ListMemberStatesResponse struct {
 
 func (x *ListMemberStatesResponse) Reset() {
 	*x = ListMemberStatesResponse{}
-	mi := &file_party_proto_msgTypes[16]
+	mi := &file_party_v1_party_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1125,7 +1125,7 @@ func (x *ListMemberStatesResponse) String() string {
 func (*ListMemberStatesResponse) ProtoMessage() {}
 
 func (x *ListMemberStatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_party_proto_msgTypes[16]
+	mi := &file_party_v1_party_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1138,7 +1138,7 @@ func (x *ListMemberStatesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMemberStatesResponse.ProtoReflect.Descriptor instead.
 func (*ListMemberStatesResponse) Descriptor() ([]byte, []int) {
-	return file_party_proto_rawDescGZIP(), []int{16}
+	return file_party_v1_party_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ListMemberStatesResponse) GetPartyId() string {
@@ -1155,11 +1155,11 @@ func (x *ListMemberStatesResponse) GetMembers() []*MemberState {
 	return nil
 }
 
-var File_party_proto protoreflect.FileDescriptor
+var File_party_v1_party_proto protoreflect.FileDescriptor
 
-const file_party_proto_rawDesc = "" +
+const file_party_v1_party_proto_rawDesc = "" +
 	"\n" +
-	"\vparty.proto\x12\x17social_backend.party.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\finvite.proto\"\x8e\x01\n" +
+	"\x14party/v1/party.proto\x12\x17social_backend.party.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x16invite/v1/invite.proto\"\x8e\x01\n" +
 	"\x05Party\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\tleader_id\x18\x02 \x01(\tR\bleaderId\x12\x1d\n" +
@@ -1276,19 +1276,19 @@ const file_party_proto_rawDesc = "" +
 	"PartyProtoP\x01Z=github.com/xyun1996/social_backend/api/proto/party/v1;partyv1\xa2\x02\x03SPX\xaa\x02\x16SocialBackend.Party.V1\xca\x02\x16SocialBackend\\Party\\V1\xe2\x02\"SocialBackend\\Party\\V1\\GPBMetadata\xea\x02\x18SocialBackend::Party::V1b\x06proto3"
 
 var (
-	file_party_proto_rawDescOnce sync.Once
-	file_party_proto_rawDescData []byte
+	file_party_v1_party_proto_rawDescOnce sync.Once
+	file_party_v1_party_proto_rawDescData []byte
 )
 
-func file_party_proto_rawDescGZIP() []byte {
-	file_party_proto_rawDescOnce.Do(func() {
-		file_party_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_party_proto_rawDesc), len(file_party_proto_rawDesc)))
+func file_party_v1_party_proto_rawDescGZIP() []byte {
+	file_party_v1_party_proto_rawDescOnce.Do(func() {
+		file_party_v1_party_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_party_v1_party_proto_rawDesc), len(file_party_v1_party_proto_rawDesc)))
 	})
-	return file_party_proto_rawDescData
+	return file_party_v1_party_proto_rawDescData
 }
 
-var file_party_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
-var file_party_proto_goTypes = []any{
+var file_party_v1_party_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_party_v1_party_proto_goTypes = []any{
 	(*Party)(nil),                    // 0: social_backend.party.v1.Party
 	(*ReadyState)(nil),               // 1: social_backend.party.v1.ReadyState
 	(*QueueState)(nil),               // 2: social_backend.party.v1.QueueState
@@ -1309,7 +1309,7 @@ var file_party_proto_goTypes = []any{
 	(*timestamppb.Timestamp)(nil),    // 17: google.protobuf.Timestamp
 	(*v1.Invite)(nil),                // 18: social_backend.invite.v1.Invite
 }
-var file_party_proto_depIdxs = []int32{
+var file_party_v1_party_proto_depIdxs = []int32{
 	17, // 0: social_backend.party.v1.Party.created_at:type_name -> google.protobuf.Timestamp
 	17, // 1: social_backend.party.v1.ReadyState.updated_at:type_name -> google.protobuf.Timestamp
 	17, // 2: social_backend.party.v1.QueueState.joined_at:type_name -> google.protobuf.Timestamp
@@ -1352,26 +1352,26 @@ var file_party_proto_depIdxs = []int32{
 	0,  // [0:9] is the sub-list for field type_name
 }
 
-func init() { file_party_proto_init() }
-func file_party_proto_init() {
-	if File_party_proto != nil {
+func init() { file_party_v1_party_proto_init() }
+func file_party_v1_party_proto_init() {
+	if File_party_v1_party_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_party_proto_rawDesc), len(file_party_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_party_v1_party_proto_rawDesc), len(file_party_v1_party_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_party_proto_goTypes,
-		DependencyIndexes: file_party_proto_depIdxs,
-		MessageInfos:      file_party_proto_msgTypes,
+		GoTypes:           file_party_v1_party_proto_goTypes,
+		DependencyIndexes: file_party_v1_party_proto_depIdxs,
+		MessageInfos:      file_party_v1_party_proto_msgTypes,
 	}.Build()
-	File_party_proto = out.File
-	file_party_proto_goTypes = nil
-	file_party_proto_depIdxs = nil
+	File_party_v1_party_proto = out.File
+	file_party_v1_party_proto_goTypes = nil
+	file_party_v1_party_proto_depIdxs = nil
 }

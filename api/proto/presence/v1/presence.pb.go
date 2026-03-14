@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: presence.proto
+// source: presence/v1/presence.proto
 
 package presencev1
 
@@ -39,7 +39,7 @@ type Presence struct {
 
 func (x *Presence) Reset() {
 	*x = Presence{}
-	mi := &file_presence_proto_msgTypes[0]
+	mi := &file_presence_v1_presence_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -51,7 +51,7 @@ func (x *Presence) String() string {
 func (*Presence) ProtoMessage() {}
 
 func (x *Presence) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_proto_msgTypes[0]
+	mi := &file_presence_v1_presence_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -64,7 +64,7 @@ func (x *Presence) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Presence.ProtoReflect.Descriptor instead.
 func (*Presence) Descriptor() ([]byte, []int) {
-	return file_presence_proto_rawDescGZIP(), []int{0}
+	return file_presence_v1_presence_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Presence) GetPlayerId() string {
@@ -142,7 +142,7 @@ type ConnectRequest struct {
 
 func (x *ConnectRequest) Reset() {
 	*x = ConnectRequest{}
-	mi := &file_presence_proto_msgTypes[1]
+	mi := &file_presence_v1_presence_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -154,7 +154,7 @@ func (x *ConnectRequest) String() string {
 func (*ConnectRequest) ProtoMessage() {}
 
 func (x *ConnectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_proto_msgTypes[1]
+	mi := &file_presence_v1_presence_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -167,7 +167,7 @@ func (x *ConnectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectRequest.ProtoReflect.Descriptor instead.
 func (*ConnectRequest) Descriptor() ([]byte, []int) {
-	return file_presence_proto_rawDescGZIP(), []int{1}
+	return file_presence_v1_presence_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ConnectRequest) GetPlayerId() string {
@@ -210,7 +210,7 @@ type HeartbeatRequest struct {
 
 func (x *HeartbeatRequest) Reset() {
 	*x = HeartbeatRequest{}
-	mi := &file_presence_proto_msgTypes[2]
+	mi := &file_presence_v1_presence_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -222,7 +222,7 @@ func (x *HeartbeatRequest) String() string {
 func (*HeartbeatRequest) ProtoMessage() {}
 
 func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_proto_msgTypes[2]
+	mi := &file_presence_v1_presence_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -235,7 +235,7 @@ func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatRequest.ProtoReflect.Descriptor instead.
 func (*HeartbeatRequest) Descriptor() ([]byte, []int) {
-	return file_presence_proto_rawDescGZIP(), []int{2}
+	return file_presence_v1_presence_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *HeartbeatRequest) GetPlayerId() string {
@@ -276,7 +276,7 @@ type DisconnectRequest struct {
 
 func (x *DisconnectRequest) Reset() {
 	*x = DisconnectRequest{}
-	mi := &file_presence_proto_msgTypes[3]
+	mi := &file_presence_v1_presence_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -288,7 +288,7 @@ func (x *DisconnectRequest) String() string {
 func (*DisconnectRequest) ProtoMessage() {}
 
 func (x *DisconnectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_proto_msgTypes[3]
+	mi := &file_presence_v1_presence_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -301,7 +301,7 @@ func (x *DisconnectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisconnectRequest.ProtoReflect.Descriptor instead.
 func (*DisconnectRequest) Descriptor() ([]byte, []int) {
-	return file_presence_proto_rawDescGZIP(), []int{3}
+	return file_presence_v1_presence_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *DisconnectRequest) GetPlayerId() string {
@@ -327,7 +327,7 @@ type GetPresenceRequest struct {
 
 func (x *GetPresenceRequest) Reset() {
 	*x = GetPresenceRequest{}
-	mi := &file_presence_proto_msgTypes[4]
+	mi := &file_presence_v1_presence_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -339,7 +339,7 @@ func (x *GetPresenceRequest) String() string {
 func (*GetPresenceRequest) ProtoMessage() {}
 
 func (x *GetPresenceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_proto_msgTypes[4]
+	mi := &file_presence_v1_presence_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -352,7 +352,7 @@ func (x *GetPresenceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPresenceRequest.ProtoReflect.Descriptor instead.
 func (*GetPresenceRequest) Descriptor() ([]byte, []int) {
-	return file_presence_proto_rawDescGZIP(), []int{4}
+	return file_presence_v1_presence_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetPresenceRequest) GetPlayerId() string {
@@ -362,11 +362,11 @@ func (x *GetPresenceRequest) GetPlayerId() string {
 	return ""
 }
 
-var File_presence_proto protoreflect.FileDescriptor
+var File_presence_v1_presence_proto protoreflect.FileDescriptor
 
-const file_presence_proto_rawDesc = "" +
+const file_presence_v1_presence_proto_rawDesc = "" +
 	"\n" +
-	"\x0epresence.proto\x12\x1asocial_backend.presence.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9f\x03\n" +
+	"\x1apresence/v1/presence.proto\x12\x1asocial_backend.presence.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9f\x03\n" +
 	"\bPresence\x12\x1b\n" +
 	"\tplayer_id\x18\x01 \x01(\tR\bplayerId\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1d\n" +
@@ -406,19 +406,19 @@ const file_presence_proto_rawDesc = "" +
 	"\x1ecom.social_backend.presence.v1B\rPresenceProtoP\x01ZCgithub.com/xyun1996/social_backend/api/proto/presence/v1;presencev1\xa2\x02\x03SPX\xaa\x02\x19SocialBackend.Presence.V1\xca\x02\x19SocialBackend\\Presence\\V1\xe2\x02%SocialBackend\\Presence\\V1\\GPBMetadata\xea\x02\x1bSocialBackend::Presence::V1b\x06proto3"
 
 var (
-	file_presence_proto_rawDescOnce sync.Once
-	file_presence_proto_rawDescData []byte
+	file_presence_v1_presence_proto_rawDescOnce sync.Once
+	file_presence_v1_presence_proto_rawDescData []byte
 )
 
-func file_presence_proto_rawDescGZIP() []byte {
-	file_presence_proto_rawDescOnce.Do(func() {
-		file_presence_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_presence_proto_rawDesc), len(file_presence_proto_rawDesc)))
+func file_presence_v1_presence_proto_rawDescGZIP() []byte {
+	file_presence_v1_presence_proto_rawDescOnce.Do(func() {
+		file_presence_v1_presence_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_presence_v1_presence_proto_rawDesc), len(file_presence_v1_presence_proto_rawDesc)))
 	})
-	return file_presence_proto_rawDescData
+	return file_presence_v1_presence_proto_rawDescData
 }
 
-var file_presence_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_presence_proto_goTypes = []any{
+var file_presence_v1_presence_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_presence_v1_presence_proto_goTypes = []any{
 	(*Presence)(nil),              // 0: social_backend.presence.v1.Presence
 	(*ConnectRequest)(nil),        // 1: social_backend.presence.v1.ConnectRequest
 	(*HeartbeatRequest)(nil),      // 2: social_backend.presence.v1.HeartbeatRequest
@@ -426,7 +426,7 @@ var file_presence_proto_goTypes = []any{
 	(*GetPresenceRequest)(nil),    // 4: social_backend.presence.v1.GetPresenceRequest
 	(*timestamppb.Timestamp)(nil), // 5: google.protobuf.Timestamp
 }
-var file_presence_proto_depIdxs = []int32{
+var file_presence_v1_presence_proto_depIdxs = []int32{
 	5, // 0: social_backend.presence.v1.Presence.last_heartbeat_at:type_name -> google.protobuf.Timestamp
 	5, // 1: social_backend.presence.v1.Presence.last_seen_at:type_name -> google.protobuf.Timestamp
 	5, // 2: social_backend.presence.v1.Presence.connected_at:type_name -> google.protobuf.Timestamp
@@ -446,26 +446,26 @@ var file_presence_proto_depIdxs = []int32{
 	0, // [0:4] is the sub-list for field type_name
 }
 
-func init() { file_presence_proto_init() }
-func file_presence_proto_init() {
-	if File_presence_proto != nil {
+func init() { file_presence_v1_presence_proto_init() }
+func file_presence_v1_presence_proto_init() {
+	if File_presence_v1_presence_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_presence_proto_rawDesc), len(file_presence_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_presence_v1_presence_proto_rawDesc), len(file_presence_v1_presence_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_presence_proto_goTypes,
-		DependencyIndexes: file_presence_proto_depIdxs,
-		MessageInfos:      file_presence_proto_msgTypes,
+		GoTypes:           file_presence_v1_presence_proto_goTypes,
+		DependencyIndexes: file_presence_v1_presence_proto_depIdxs,
+		MessageInfos:      file_presence_v1_presence_proto_msgTypes,
 	}.Build()
-	File_presence_proto = out.File
-	file_presence_proto_goTypes = nil
-	file_presence_proto_depIdxs = nil
+	File_presence_v1_presence_proto = out.File
+	file_presence_v1_presence_proto_goTypes = nil
+	file_presence_v1_presence_proto_depIdxs = nil
 }

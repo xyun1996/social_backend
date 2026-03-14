@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             (unknown)
-// source: party.proto
+// source: party/v1/party.proto
 
 package partyv1
 
@@ -574,5 +574,5 @@ var PartyService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "party.proto",
+	Metadata: "party/v1/party.proto",
 }

@@ -106,21 +106,18 @@ func scanMarkdownDir(dir string) ([]string, string, error) {
 }
 
 func scanProtoDir(dir string) ([]string, string, error) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, "", err
-	}
-
-	files := make([]string, 0)
 	indexRaw, err := os.ReadFile(filepath.Join(dir, "README.md"))
 	if err != nil {
 		return nil, "", err
 	}
-	for _, entry := range entries {
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".proto" {
-			continue
+
+	files := make([]string, 0, len(controlPlaneSurfaces))
+	for _, surface := range controlPlaneSurfaces {
+		path := filepath.Join(dir, surface, "v1", surface+".proto")
+		if _, err := os.Stat(path); err != nil {
+			return nil, "", err
 		}
-		files = append(files, strings.TrimSuffix(entry.Name(), ".proto"))
+		files = append(files, surface)
 	}
 	slices.Sort(files)
 	return files, string(indexRaw), nil

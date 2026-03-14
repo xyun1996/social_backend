@@ -2,7 +2,7 @@
 
 ## Goal
 
-Align `worker.proto` with the already implemented execution surface so background-drain semantics are not documented only through HTTP.
+Align `api/proto/worker/v1/worker.proto` with the already implemented execution surface so background-drain semantics are not documented only through HTTP.
 
 ## Scope
 
@@ -18,5 +18,5 @@ Align `worker.proto` with the already implemented execution surface so backgroun
 
 ## Acceptance
 
-- `api/proto/worker.proto` describes execution requests and responses
+- `api/proto/worker/v1/worker.proto` describes execution requests and responses
 - the proto baseline covers both queue lifecycle and executor lifecycle semantics

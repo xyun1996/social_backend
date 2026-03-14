@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: ops.proto
+// source: ops/v1/ops.proto
 
 package opsv1
 
@@ -38,7 +38,7 @@ type PresenceRecord struct {
 
 func (x *PresenceRecord) Reset() {
 	*x = PresenceRecord{}
-	mi := &file_ops_proto_msgTypes[0]
+	mi := &file_ops_v1_ops_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -50,7 +50,7 @@ func (x *PresenceRecord) String() string {
 func (*PresenceRecord) ProtoMessage() {}
 
 func (x *PresenceRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[0]
+	mi := &file_ops_v1_ops_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -63,7 +63,7 @@ func (x *PresenceRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PresenceRecord.ProtoReflect.Descriptor instead.
 func (*PresenceRecord) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{0}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *PresenceRecord) GetPlayerId() string {
@@ -142,7 +142,7 @@ type SocialSnapshot struct {
 
 func (x *SocialSnapshot) Reset() {
 	*x = SocialSnapshot{}
-	mi := &file_ops_proto_msgTypes[1]
+	mi := &file_ops_v1_ops_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -154,7 +154,7 @@ func (x *SocialSnapshot) String() string {
 func (*SocialSnapshot) ProtoMessage() {}
 
 func (x *SocialSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[1]
+	mi := &file_ops_v1_ops_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -167,7 +167,7 @@ func (x *SocialSnapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SocialSnapshot.ProtoReflect.Descriptor instead.
 func (*SocialSnapshot) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{1}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *SocialSnapshot) GetPlayerId() string {
@@ -223,7 +223,7 @@ type PlayerOverview struct {
 
 func (x *PlayerOverview) Reset() {
 	*x = PlayerOverview{}
-	mi := &file_ops_proto_msgTypes[2]
+	mi := &file_ops_v1_ops_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -235,7 +235,7 @@ func (x *PlayerOverview) String() string {
 func (*PlayerOverview) ProtoMessage() {}
 
 func (x *PlayerOverview) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[2]
+	mi := &file_ops_v1_ops_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -248,7 +248,7 @@ func (x *PlayerOverview) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlayerOverview.ProtoReflect.Descriptor instead.
 func (*PlayerOverview) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{2}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *PlayerOverview) GetPlayerId() string {
@@ -336,7 +336,7 @@ type PartyMemberState struct {
 
 func (x *PartyMemberState) Reset() {
 	*x = PartyMemberState{}
-	mi := &file_ops_proto_msgTypes[3]
+	mi := &file_ops_v1_ops_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -348,7 +348,7 @@ func (x *PartyMemberState) String() string {
 func (*PartyMemberState) ProtoMessage() {}
 
 func (x *PartyMemberState) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[3]
+	mi := &file_ops_v1_ops_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -361,7 +361,7 @@ func (x *PartyMemberState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PartyMemberState.ProtoReflect.Descriptor instead.
 func (*PartyMemberState) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{3}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *PartyMemberState) GetPlayerId() string {
@@ -426,7 +426,7 @@ type PartyQueueState struct {
 
 func (x *PartyQueueState) Reset() {
 	*x = PartyQueueState{}
-	mi := &file_ops_proto_msgTypes[4]
+	mi := &file_ops_v1_ops_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -438,7 +438,7 @@ func (x *PartyQueueState) String() string {
 func (*PartyQueueState) ProtoMessage() {}
 
 func (x *PartyQueueState) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[4]
+	mi := &file_ops_v1_ops_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -451,7 +451,7 @@ func (x *PartyQueueState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PartyQueueState.ProtoReflect.Descriptor instead.
 func (*PartyQueueState) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{4}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *PartyQueueState) GetPartyId() string {
@@ -503,7 +503,7 @@ type GuildMemberState struct {
 
 func (x *GuildMemberState) Reset() {
 	*x = GuildMemberState{}
-	mi := &file_ops_proto_msgTypes[5]
+	mi := &file_ops_v1_ops_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -515,7 +515,7 @@ func (x *GuildMemberState) String() string {
 func (*GuildMemberState) ProtoMessage() {}
 
 func (x *GuildMemberState) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[5]
+	mi := &file_ops_v1_ops_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -528,7 +528,7 @@ func (x *GuildMemberState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GuildMemberState.ProtoReflect.Descriptor instead.
 func (*GuildMemberState) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{5}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GuildMemberState) GetPlayerId() string {
@@ -585,7 +585,7 @@ type PartySnapshot struct {
 
 func (x *PartySnapshot) Reset() {
 	*x = PartySnapshot{}
-	mi := &file_ops_proto_msgTypes[6]
+	mi := &file_ops_v1_ops_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -597,7 +597,7 @@ func (x *PartySnapshot) String() string {
 func (*PartySnapshot) ProtoMessage() {}
 
 func (x *PartySnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[6]
+	mi := &file_ops_v1_ops_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -610,7 +610,7 @@ func (x *PartySnapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PartySnapshot.ProtoReflect.Descriptor instead.
 func (*PartySnapshot) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{6}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *PartySnapshot) GetPartyId() string {
@@ -652,7 +652,7 @@ type GuildSnapshot struct {
 
 func (x *GuildSnapshot) Reset() {
 	*x = GuildSnapshot{}
-	mi := &file_ops_proto_msgTypes[7]
+	mi := &file_ops_v1_ops_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -664,7 +664,7 @@ func (x *GuildSnapshot) String() string {
 func (*GuildSnapshot) ProtoMessage() {}
 
 func (x *GuildSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[7]
+	mi := &file_ops_v1_ops_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -677,7 +677,7 @@ func (x *GuildSnapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GuildSnapshot.ProtoReflect.Descriptor instead.
 func (*GuildSnapshot) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{7}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GuildSnapshot) GetGuildId() string {
@@ -719,7 +719,7 @@ type WorkerJob struct {
 
 func (x *WorkerJob) Reset() {
 	*x = WorkerJob{}
-	mi := &file_ops_proto_msgTypes[8]
+	mi := &file_ops_v1_ops_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -731,7 +731,7 @@ func (x *WorkerJob) String() string {
 func (*WorkerJob) ProtoMessage() {}
 
 func (x *WorkerJob) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[8]
+	mi := &file_ops_v1_ops_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -744,7 +744,7 @@ func (x *WorkerJob) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkerJob.ProtoReflect.Descriptor instead.
 func (*WorkerJob) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{8}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *WorkerJob) GetId() string {
@@ -829,7 +829,7 @@ type WorkerSnapshot struct {
 
 func (x *WorkerSnapshot) Reset() {
 	*x = WorkerSnapshot{}
-	mi := &file_ops_proto_msgTypes[9]
+	mi := &file_ops_v1_ops_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -841,7 +841,7 @@ func (x *WorkerSnapshot) String() string {
 func (*WorkerSnapshot) ProtoMessage() {}
 
 func (x *WorkerSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[9]
+	mi := &file_ops_v1_ops_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -854,7 +854,7 @@ func (x *WorkerSnapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkerSnapshot.ProtoReflect.Descriptor instead.
 func (*WorkerSnapshot) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{9}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *WorkerSnapshot) GetStatus() string {
@@ -896,7 +896,7 @@ type MySQLBootstrapService struct {
 
 func (x *MySQLBootstrapService) Reset() {
 	*x = MySQLBootstrapService{}
-	mi := &file_ops_proto_msgTypes[10]
+	mi := &file_ops_v1_ops_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -908,7 +908,7 @@ func (x *MySQLBootstrapService) String() string {
 func (*MySQLBootstrapService) ProtoMessage() {}
 
 func (x *MySQLBootstrapService) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[10]
+	mi := &file_ops_v1_ops_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -921,7 +921,7 @@ func (x *MySQLBootstrapService) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MySQLBootstrapService.ProtoReflect.Descriptor instead.
 func (*MySQLBootstrapService) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{10}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *MySQLBootstrapService) GetService() string {
@@ -955,7 +955,7 @@ type MySQLBootstrapSnapshot struct {
 
 func (x *MySQLBootstrapSnapshot) Reset() {
 	*x = MySQLBootstrapSnapshot{}
-	mi := &file_ops_proto_msgTypes[11]
+	mi := &file_ops_v1_ops_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -967,7 +967,7 @@ func (x *MySQLBootstrapSnapshot) String() string {
 func (*MySQLBootstrapSnapshot) ProtoMessage() {}
 
 func (x *MySQLBootstrapSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[11]
+	mi := &file_ops_v1_ops_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -980,7 +980,7 @@ func (x *MySQLBootstrapSnapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MySQLBootstrapSnapshot.ProtoReflect.Descriptor instead.
 func (*MySQLBootstrapSnapshot) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{11}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *MySQLBootstrapSnapshot) GetCount() int32 {
@@ -1007,7 +1007,7 @@ type RedisWorkerStatusCount struct {
 
 func (x *RedisWorkerStatusCount) Reset() {
 	*x = RedisWorkerStatusCount{}
-	mi := &file_ops_proto_msgTypes[12]
+	mi := &file_ops_v1_ops_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1019,7 +1019,7 @@ func (x *RedisWorkerStatusCount) String() string {
 func (*RedisWorkerStatusCount) ProtoMessage() {}
 
 func (x *RedisWorkerStatusCount) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[12]
+	mi := &file_ops_v1_ops_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1032,7 +1032,7 @@ func (x *RedisWorkerStatusCount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RedisWorkerStatusCount.ProtoReflect.Descriptor instead.
 func (*RedisWorkerStatusCount) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{12}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *RedisWorkerStatusCount) GetStatus() string {
@@ -1062,7 +1062,7 @@ type RedisRuntimeSnapshot struct {
 
 func (x *RedisRuntimeSnapshot) Reset() {
 	*x = RedisRuntimeSnapshot{}
-	mi := &file_ops_proto_msgTypes[13]
+	mi := &file_ops_v1_ops_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1074,7 +1074,7 @@ func (x *RedisRuntimeSnapshot) String() string {
 func (*RedisRuntimeSnapshot) ProtoMessage() {}
 
 func (x *RedisRuntimeSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[13]
+	mi := &file_ops_v1_ops_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1087,7 +1087,7 @@ func (x *RedisRuntimeSnapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RedisRuntimeSnapshot.ProtoReflect.Descriptor instead.
 func (*RedisRuntimeSnapshot) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{13}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RedisRuntimeSnapshot) GetRedisUrl() string {
@@ -1135,7 +1135,7 @@ type DurableSummary struct {
 
 func (x *DurableSummary) Reset() {
 	*x = DurableSummary{}
-	mi := &file_ops_proto_msgTypes[14]
+	mi := &file_ops_v1_ops_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1147,7 +1147,7 @@ func (x *DurableSummary) String() string {
 func (*DurableSummary) ProtoMessage() {}
 
 func (x *DurableSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[14]
+	mi := &file_ops_v1_ops_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1160,7 +1160,7 @@ func (x *DurableSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DurableSummary.ProtoReflect.Descriptor instead.
 func (*DurableSummary) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{14}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DurableSummary) GetMysql() *MySQLBootstrapSnapshot {
@@ -1186,7 +1186,7 @@ type GetPlayerPresenceRequest struct {
 
 func (x *GetPlayerPresenceRequest) Reset() {
 	*x = GetPlayerPresenceRequest{}
-	mi := &file_ops_proto_msgTypes[15]
+	mi := &file_ops_v1_ops_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1198,7 +1198,7 @@ func (x *GetPlayerPresenceRequest) String() string {
 func (*GetPlayerPresenceRequest) ProtoMessage() {}
 
 func (x *GetPlayerPresenceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[15]
+	mi := &file_ops_v1_ops_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1211,7 +1211,7 @@ func (x *GetPlayerPresenceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPlayerPresenceRequest.ProtoReflect.Descriptor instead.
 func (*GetPlayerPresenceRequest) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{15}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetPlayerPresenceRequest) GetPlayerId() string {
@@ -1230,7 +1230,7 @@ type GetPartySnapshotRequest struct {
 
 func (x *GetPartySnapshotRequest) Reset() {
 	*x = GetPartySnapshotRequest{}
-	mi := &file_ops_proto_msgTypes[16]
+	mi := &file_ops_v1_ops_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1242,7 +1242,7 @@ func (x *GetPartySnapshotRequest) String() string {
 func (*GetPartySnapshotRequest) ProtoMessage() {}
 
 func (x *GetPartySnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[16]
+	mi := &file_ops_v1_ops_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1255,7 +1255,7 @@ func (x *GetPartySnapshotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPartySnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetPartySnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{16}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetPartySnapshotRequest) GetPartyId() string {
@@ -1274,7 +1274,7 @@ type GetGuildSnapshotRequest struct {
 
 func (x *GetGuildSnapshotRequest) Reset() {
 	*x = GetGuildSnapshotRequest{}
-	mi := &file_ops_proto_msgTypes[17]
+	mi := &file_ops_v1_ops_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1286,7 +1286,7 @@ func (x *GetGuildSnapshotRequest) String() string {
 func (*GetGuildSnapshotRequest) ProtoMessage() {}
 
 func (x *GetGuildSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[17]
+	mi := &file_ops_v1_ops_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1299,7 +1299,7 @@ func (x *GetGuildSnapshotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetGuildSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetGuildSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{17}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetGuildSnapshotRequest) GetGuildId() string {
@@ -1318,7 +1318,7 @@ type GetPlayerOverviewRequest struct {
 
 func (x *GetPlayerOverviewRequest) Reset() {
 	*x = GetPlayerOverviewRequest{}
-	mi := &file_ops_proto_msgTypes[18]
+	mi := &file_ops_v1_ops_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1330,7 +1330,7 @@ func (x *GetPlayerOverviewRequest) String() string {
 func (*GetPlayerOverviewRequest) ProtoMessage() {}
 
 func (x *GetPlayerOverviewRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[18]
+	mi := &file_ops_v1_ops_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1343,7 +1343,7 @@ func (x *GetPlayerOverviewRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPlayerOverviewRequest.ProtoReflect.Descriptor instead.
 func (*GetPlayerOverviewRequest) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{18}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetPlayerOverviewRequest) GetPlayerId() string {
@@ -1363,7 +1363,7 @@ type GetWorkerSnapshotRequest struct {
 
 func (x *GetWorkerSnapshotRequest) Reset() {
 	*x = GetWorkerSnapshotRequest{}
-	mi := &file_ops_proto_msgTypes[19]
+	mi := &file_ops_v1_ops_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1375,7 +1375,7 @@ func (x *GetWorkerSnapshotRequest) String() string {
 func (*GetWorkerSnapshotRequest) ProtoMessage() {}
 
 func (x *GetWorkerSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[19]
+	mi := &file_ops_v1_ops_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1388,7 +1388,7 @@ func (x *GetWorkerSnapshotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWorkerSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetWorkerSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{19}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetWorkerSnapshotRequest) GetStatus() string {
@@ -1413,7 +1413,7 @@ type GetMySQLBootstrapSnapshotRequest struct {
 
 func (x *GetMySQLBootstrapSnapshotRequest) Reset() {
 	*x = GetMySQLBootstrapSnapshotRequest{}
-	mi := &file_ops_proto_msgTypes[20]
+	mi := &file_ops_v1_ops_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1425,7 +1425,7 @@ func (x *GetMySQLBootstrapSnapshotRequest) String() string {
 func (*GetMySQLBootstrapSnapshotRequest) ProtoMessage() {}
 
 func (x *GetMySQLBootstrapSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[20]
+	mi := &file_ops_v1_ops_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1438,7 +1438,7 @@ func (x *GetMySQLBootstrapSnapshotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMySQLBootstrapSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetMySQLBootstrapSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{20}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{20}
 }
 
 type GetRedisRuntimeSnapshotRequest struct {
@@ -1449,7 +1449,7 @@ type GetRedisRuntimeSnapshotRequest struct {
 
 func (x *GetRedisRuntimeSnapshotRequest) Reset() {
 	*x = GetRedisRuntimeSnapshotRequest{}
-	mi := &file_ops_proto_msgTypes[21]
+	mi := &file_ops_v1_ops_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1461,7 +1461,7 @@ func (x *GetRedisRuntimeSnapshotRequest) String() string {
 func (*GetRedisRuntimeSnapshotRequest) ProtoMessage() {}
 
 func (x *GetRedisRuntimeSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[21]
+	mi := &file_ops_v1_ops_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1474,7 +1474,7 @@ func (x *GetRedisRuntimeSnapshotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRedisRuntimeSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetRedisRuntimeSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{21}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{21}
 }
 
 type GetDurableSummaryRequest struct {
@@ -1485,7 +1485,7 @@ type GetDurableSummaryRequest struct {
 
 func (x *GetDurableSummaryRequest) Reset() {
 	*x = GetDurableSummaryRequest{}
-	mi := &file_ops_proto_msgTypes[22]
+	mi := &file_ops_v1_ops_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1497,7 +1497,7 @@ func (x *GetDurableSummaryRequest) String() string {
 func (*GetDurableSummaryRequest) ProtoMessage() {}
 
 func (x *GetDurableSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ops_proto_msgTypes[22]
+	mi := &file_ops_v1_ops_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1510,14 +1510,14 @@ func (x *GetDurableSummaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDurableSummaryRequest.ProtoReflect.Descriptor instead.
 func (*GetDurableSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_ops_proto_rawDescGZIP(), []int{22}
+	return file_ops_v1_ops_proto_rawDescGZIP(), []int{22}
 }
 
-var File_ops_proto protoreflect.FileDescriptor
+var File_ops_v1_ops_proto protoreflect.FileDescriptor
 
-const file_ops_proto_rawDesc = "" +
+const file_ops_v1_ops_proto_rawDesc = "" +
 	"\n" +
-	"\tops.proto\x12\x15social_backend.ops.v1\"\xb5\x02\n" +
+	"\x10ops/v1/ops.proto\x12\x15social_backend.ops.v1\"\xb5\x02\n" +
 	"\x0ePresenceRecord\x12\x1b\n" +
 	"\tplayer_id\x18\x01 \x01(\tR\bplayerId\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1d\n" +
@@ -1649,19 +1649,19 @@ const file_ops_proto_rawDesc = "" +
 	"\x19com.social_backend.ops.v1B\bOpsProtoP\x01Z9github.com/xyun1996/social_backend/api/proto/ops/v1;opsv1\xa2\x02\x03SOX\xaa\x02\x14SocialBackend.Ops.V1\xca\x02\x14SocialBackend\\Ops\\V1\xe2\x02 SocialBackend\\Ops\\V1\\GPBMetadata\xea\x02\x16SocialBackend::Ops::V1b\x06proto3"
 
 var (
-	file_ops_proto_rawDescOnce sync.Once
-	file_ops_proto_rawDescData []byte
+	file_ops_v1_ops_proto_rawDescOnce sync.Once
+	file_ops_v1_ops_proto_rawDescData []byte
 )
 
-func file_ops_proto_rawDescGZIP() []byte {
-	file_ops_proto_rawDescOnce.Do(func() {
-		file_ops_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_ops_proto_rawDesc), len(file_ops_proto_rawDesc)))
+func file_ops_v1_ops_proto_rawDescGZIP() []byte {
+	file_ops_v1_ops_proto_rawDescOnce.Do(func() {
+		file_ops_v1_ops_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_ops_v1_ops_proto_rawDesc), len(file_ops_v1_ops_proto_rawDesc)))
 	})
-	return file_ops_proto_rawDescData
+	return file_ops_v1_ops_proto_rawDescData
 }
 
-var file_ops_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
-var file_ops_proto_goTypes = []any{
+var file_ops_v1_ops_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_ops_v1_ops_proto_goTypes = []any{
 	(*PresenceRecord)(nil),                   // 0: social_backend.ops.v1.PresenceRecord
 	(*SocialSnapshot)(nil),                   // 1: social_backend.ops.v1.SocialSnapshot
 	(*PlayerOverview)(nil),                   // 2: social_backend.ops.v1.PlayerOverview
@@ -1686,7 +1686,7 @@ var file_ops_proto_goTypes = []any{
 	(*GetRedisRuntimeSnapshotRequest)(nil),   // 21: social_backend.ops.v1.GetRedisRuntimeSnapshotRequest
 	(*GetDurableSummaryRequest)(nil),         // 22: social_backend.ops.v1.GetDurableSummaryRequest
 }
-var file_ops_proto_depIdxs = []int32{
+var file_ops_v1_ops_proto_depIdxs = []int32{
 	0,  // 0: social_backend.ops.v1.PlayerOverview.presence:type_name -> social_backend.ops.v1.PresenceRecord
 	3,  // 1: social_backend.ops.v1.PartySnapshot.members:type_name -> social_backend.ops.v1.PartyMemberState
 	4,  // 2: social_backend.ops.v1.PartySnapshot.queue:type_name -> social_backend.ops.v1.PartyQueueState
@@ -1719,26 +1719,26 @@ var file_ops_proto_depIdxs = []int32{
 	0,  // [0:9] is the sub-list for field type_name
 }
 
-func init() { file_ops_proto_init() }
-func file_ops_proto_init() {
-	if File_ops_proto != nil {
+func init() { file_ops_v1_ops_proto_init() }
+func file_ops_v1_ops_proto_init() {
+	if File_ops_v1_ops_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ops_proto_rawDesc), len(file_ops_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ops_v1_ops_proto_rawDesc), len(file_ops_v1_ops_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_ops_proto_goTypes,
-		DependencyIndexes: file_ops_proto_depIdxs,
-		MessageInfos:      file_ops_proto_msgTypes,
+		GoTypes:           file_ops_v1_ops_proto_goTypes,
+		DependencyIndexes: file_ops_v1_ops_proto_depIdxs,
+		MessageInfos:      file_ops_v1_ops_proto_msgTypes,
 	}.Build()
-	File_ops_proto = out.File
-	file_ops_proto_goTypes = nil
-	file_ops_proto_depIdxs = nil
+	File_ops_v1_ops_proto = out.File
+	file_ops_v1_ops_proto_goTypes = nil
+	file_ops_v1_ops_proto_depIdxs = nil
 }

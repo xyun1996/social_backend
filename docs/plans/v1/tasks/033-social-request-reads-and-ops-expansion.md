@@ -12,7 +12,7 @@ Add friend request read APIs to `social`, expand `ops` player overview to includ
 
 - Add friend request listing to `social`
 - Expand `ops` social snapshot and player overview
-- Update `social.proto`
+- Update `api/proto/social/v1/social.proto`
 - Update docs and tests
 
 ## Non-Goals
@@ -25,7 +25,7 @@ Add friend request read APIs to `social`, expand `ops` player overview to includ
 
 - `social` exposes a request list read endpoint
 - `ops` player overview includes pending inbox and outbox requests
-- `social.proto` reflects the new read surface
+- `api/proto/social/v1/social.proto` reflects the new read surface
 
 ## Status
 

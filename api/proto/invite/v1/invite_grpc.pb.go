@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             (unknown)
-// source: invite.proto
+// source: invite/v1/invite.proto
 
 package invitev1
 
@@ -231,5 +231,5 @@ var InviteService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "invite.proto",
+	Metadata: "invite/v1/invite.proto",
 }

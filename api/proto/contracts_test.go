@@ -24,17 +24,18 @@ var runtimeServices = []string{
 func TestProtoContractsCoverRuntimeServices(t *testing.T) {
 	t.Parallel()
 
-	entries, err := os.ReadDir(".")
+	_, err := os.ReadDir(".")
 	if err != nil {
 		t.Fatalf("ReadDir api/proto failed: %v", err)
 	}
 
 	protoFiles := map[string]struct{}{}
-	for _, entry := range entries {
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".proto" {
-			continue
+	for _, service := range runtimeServices {
+		path := filepath.Join(service, "v1", service+".proto")
+		if _, err := os.Stat(path); err != nil {
+			t.Fatalf("expected proto contract %s: %v", path, err)
 		}
-		protoFiles[strings.TrimSuffix(entry.Name(), ".proto")] = struct{}{}
+		protoFiles[service] = struct{}{}
 	}
 
 	expected := append([]string(nil), runtimeServices...)
@@ -87,7 +88,7 @@ func TestProtoFilesDeclareRequiredHeaders(t *testing.T) {
 		t.Run(service, func(t *testing.T) {
 			t.Parallel()
 
-			path := service + ".proto"
+			path := filepath.Join(service, "v1", service+".proto")
 			raw, err := os.ReadFile(path)
 			if err != nil {
 				t.Fatalf("ReadFile %s failed: %v", path, err)

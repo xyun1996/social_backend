@@ -31,3 +31,8 @@ Establish repository structure, documentation governance, templates, and the fir
 ## Risks
 
 - Structure may drift unless contributors follow source-of-truth rules.
+
+## Progress Notes
+
+- Shared bootstrap packages, durable local run targets, and Windows-friendly make flows are in place.
+- Proto source contracts now live under versioned service directories and `buf lint` passes on the default repository layout.

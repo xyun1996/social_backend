@@ -13,6 +13,7 @@
 - Added party queue handoff snapshots as the future matchmaker integration boundary
 - Added party match assignment callbacks and durable queue assignment snapshots
 - Added a resource-backed chat channel model with reusable built-in channel bindings
+- Reorganized source proto contracts into versioned service directories and restored clean `buf lint`
 - Added guild owner-managed announcement updates with durable storage support
 - Added guild governance logs with durable storage support
 - Added guild kick and transfer-owner operations

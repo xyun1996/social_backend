@@ -2,11 +2,11 @@
 
 ## Goal
 
-Bring `api/proto/ops.proto` back in line with the current operator-facing HTTP and service surfaces after the durable runtime work.
+Bring `api/proto/ops/v1/ops.proto` back in line with the current operator-facing HTTP and service surfaces after the durable runtime work.
 
 ## Scope
 
-- add the durable summary messages and RPC to `api/proto/ops.proto`
+- add the durable summary messages and RPC to `api/proto/ops/v1/ops.proto`
 - add MySQL bootstrap and Redis runtime snapshot messages and RPCs
 - align existing operator shapes with current fields
   - social pending inbox/outbox
@@ -17,6 +17,6 @@ Bring `api/proto/ops.proto` back in line with the current operator-facing HTTP a
 
 ## Acceptance
 
-- `api/proto/ops.proto` covers the current `ops` HTTP/service read surface
+- `api/proto/ops/v1/ops.proto` covers the current `ops` HTTP/service read surface
 - no current `ops` HTTP endpoint is missing from the proto contract baseline
 - `go test ./...` passes

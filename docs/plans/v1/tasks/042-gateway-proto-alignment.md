@@ -2,7 +2,7 @@
 
 ## Goal
 
-Align `gateway.proto` with the current executable realtime prototype so proto no longer stops at session resolution and presence forwarding.
+Align `api/proto/gateway/v1/gateway.proto` with the current executable realtime prototype so proto no longer stops at session resolution and presence forwarding.
 
 ## Scope
 
@@ -18,5 +18,5 @@ Align `gateway.proto` with the current executable realtime prototype so proto no
 
 ## Acceptance
 
-- `gateway.proto` covers handshake, resume, heartbeat, close, session lookup, inbox reads, chat dispatch, ack, and replay
+- `api/proto/gateway/v1/gateway.proto` covers handshake, resume, heartbeat, close, session lookup, inbox reads, chat dispatch, ack, and replay
 - proto semantics reflect the current gateway prototype boundaries

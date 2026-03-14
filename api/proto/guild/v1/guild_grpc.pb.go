@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             (unknown)
-// source: guild.proto
+// source: guild/v1/guild.proto
 
 package guildv1
 
@@ -346,5 +346,5 @@ var GuildService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "guild.proto",
+	Metadata: "guild/v1/guild.proto",
 }

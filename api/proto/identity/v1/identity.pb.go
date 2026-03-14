@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: identity.proto
+// source: identity/v1/identity.proto
 
 package identityv1
 
@@ -33,7 +33,7 @@ type TokenPair struct {
 
 func (x *TokenPair) Reset() {
 	*x = TokenPair{}
-	mi := &file_identity_proto_msgTypes[0]
+	mi := &file_identity_v1_identity_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -45,7 +45,7 @@ func (x *TokenPair) String() string {
 func (*TokenPair) ProtoMessage() {}
 
 func (x *TokenPair) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[0]
+	mi := &file_identity_v1_identity_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -58,7 +58,7 @@ func (x *TokenPair) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TokenPair.ProtoReflect.Descriptor instead.
 func (*TokenPair) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{0}
+	return file_identity_v1_identity_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *TokenPair) GetAccessToken() string {
@@ -99,7 +99,7 @@ type Subject struct {
 
 func (x *Subject) Reset() {
 	*x = Subject{}
-	mi := &file_identity_proto_msgTypes[1]
+	mi := &file_identity_v1_identity_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -111,7 +111,7 @@ func (x *Subject) String() string {
 func (*Subject) ProtoMessage() {}
 
 func (x *Subject) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[1]
+	mi := &file_identity_v1_identity_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -124,7 +124,7 @@ func (x *Subject) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Subject.ProtoReflect.Descriptor instead.
 func (*Subject) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{1}
+	return file_identity_v1_identity_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Subject) GetAccountId() string {
@@ -151,7 +151,7 @@ type LoginRequest struct {
 
 func (x *LoginRequest) Reset() {
 	*x = LoginRequest{}
-	mi := &file_identity_proto_msgTypes[2]
+	mi := &file_identity_v1_identity_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -163,7 +163,7 @@ func (x *LoginRequest) String() string {
 func (*LoginRequest) ProtoMessage() {}
 
 func (x *LoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[2]
+	mi := &file_identity_v1_identity_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -176,7 +176,7 @@ func (x *LoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginRequest.ProtoReflect.Descriptor instead.
 func (*LoginRequest) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{2}
+	return file_identity_v1_identity_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *LoginRequest) GetAccountId() string {
@@ -202,7 +202,7 @@ type RefreshRequest struct {
 
 func (x *RefreshRequest) Reset() {
 	*x = RefreshRequest{}
-	mi := &file_identity_proto_msgTypes[3]
+	mi := &file_identity_v1_identity_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -214,7 +214,7 @@ func (x *RefreshRequest) String() string {
 func (*RefreshRequest) ProtoMessage() {}
 
 func (x *RefreshRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[3]
+	mi := &file_identity_v1_identity_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -227,7 +227,7 @@ func (x *RefreshRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshRequest.ProtoReflect.Descriptor instead.
 func (*RefreshRequest) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{3}
+	return file_identity_v1_identity_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *RefreshRequest) GetRefreshToken() string {
@@ -246,7 +246,7 @@ type IntrospectRequest struct {
 
 func (x *IntrospectRequest) Reset() {
 	*x = IntrospectRequest{}
-	mi := &file_identity_proto_msgTypes[4]
+	mi := &file_identity_v1_identity_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -258,7 +258,7 @@ func (x *IntrospectRequest) String() string {
 func (*IntrospectRequest) ProtoMessage() {}
 
 func (x *IntrospectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[4]
+	mi := &file_identity_v1_identity_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -271,7 +271,7 @@ func (x *IntrospectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntrospectRequest.ProtoReflect.Descriptor instead.
 func (*IntrospectRequest) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{4}
+	return file_identity_v1_identity_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *IntrospectRequest) GetAccessToken() string {
@@ -281,11 +281,11 @@ func (x *IntrospectRequest) GetAccessToken() string {
 	return ""
 }
 
-var File_identity_proto protoreflect.FileDescriptor
+var File_identity_v1_identity_proto protoreflect.FileDescriptor
 
-const file_identity_proto_rawDesc = "" +
+const file_identity_v1_identity_proto_rawDesc = "" +
 	"\n" +
-	"\x0eidentity.proto\x12\x1asocial_backend.identity.v1\"\x8f\x01\n" +
+	"\x1aidentity/v1/identity.proto\x12\x1asocial_backend.identity.v1\"\x8f\x01\n" +
 	"\tTokenPair\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
 	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\x12\x1d\n" +
@@ -312,26 +312,26 @@ const file_identity_proto_rawDesc = "" +
 	"\x1ecom.social_backend.identity.v1B\rIdentityProtoP\x01ZCgithub.com/xyun1996/social_backend/api/proto/identity/v1;identityv1\xa2\x02\x03SIX\xaa\x02\x19SocialBackend.Identity.V1\xca\x02\x19SocialBackend\\Identity\\V1\xe2\x02%SocialBackend\\Identity\\V1\\GPBMetadata\xea\x02\x1bSocialBackend::Identity::V1b\x06proto3"
 
 var (
-	file_identity_proto_rawDescOnce sync.Once
-	file_identity_proto_rawDescData []byte
+	file_identity_v1_identity_proto_rawDescOnce sync.Once
+	file_identity_v1_identity_proto_rawDescData []byte
 )
 
-func file_identity_proto_rawDescGZIP() []byte {
-	file_identity_proto_rawDescOnce.Do(func() {
-		file_identity_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_identity_proto_rawDesc), len(file_identity_proto_rawDesc)))
+func file_identity_v1_identity_proto_rawDescGZIP() []byte {
+	file_identity_v1_identity_proto_rawDescOnce.Do(func() {
+		file_identity_v1_identity_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_identity_v1_identity_proto_rawDesc), len(file_identity_v1_identity_proto_rawDesc)))
 	})
-	return file_identity_proto_rawDescData
+	return file_identity_v1_identity_proto_rawDescData
 }
 
-var file_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_identity_proto_goTypes = []any{
+var file_identity_v1_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_identity_v1_identity_proto_goTypes = []any{
 	(*TokenPair)(nil),         // 0: social_backend.identity.v1.TokenPair
 	(*Subject)(nil),           // 1: social_backend.identity.v1.Subject
 	(*LoginRequest)(nil),      // 2: social_backend.identity.v1.LoginRequest
 	(*RefreshRequest)(nil),    // 3: social_backend.identity.v1.RefreshRequest
 	(*IntrospectRequest)(nil), // 4: social_backend.identity.v1.IntrospectRequest
 }
-var file_identity_proto_depIdxs = []int32{
+var file_identity_v1_identity_proto_depIdxs = []int32{
 	2, // 0: social_backend.identity.v1.IdentityService.Login:input_type -> social_backend.identity.v1.LoginRequest
 	3, // 1: social_backend.identity.v1.IdentityService.Refresh:input_type -> social_backend.identity.v1.RefreshRequest
 	4, // 2: social_backend.identity.v1.IdentityService.Introspect:input_type -> social_backend.identity.v1.IntrospectRequest
@@ -345,26 +345,26 @@ var file_identity_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_identity_proto_init() }
-func file_identity_proto_init() {
-	if File_identity_proto != nil {
+func init() { file_identity_v1_identity_proto_init() }
+func file_identity_v1_identity_proto_init() {
+	if File_identity_v1_identity_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_identity_proto_rawDesc), len(file_identity_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_identity_v1_identity_proto_rawDesc), len(file_identity_v1_identity_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_identity_proto_goTypes,
-		DependencyIndexes: file_identity_proto_depIdxs,
-		MessageInfos:      file_identity_proto_msgTypes,
+		GoTypes:           file_identity_v1_identity_proto_goTypes,
+		DependencyIndexes: file_identity_v1_identity_proto_depIdxs,
+		MessageInfos:      file_identity_v1_identity_proto_msgTypes,
 	}.Build()
-	File_identity_proto = out.File
-	file_identity_proto_goTypes = nil
-	file_identity_proto_depIdxs = nil
+	File_identity_v1_identity_proto = out.File
+	file_identity_v1_identity_proto_goTypes = nil
+	file_identity_v1_identity_proto_depIdxs = nil
 }

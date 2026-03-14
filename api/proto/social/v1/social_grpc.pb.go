@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             (unknown)
-// source: social.proto
+// source: social/v1/social.proto
 
 package socialv1
 
@@ -307,5 +307,5 @@ var SocialService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "social.proto",
+	Metadata: "social/v1/social.proto",
 }

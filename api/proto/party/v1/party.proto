@@ -5,7 +5,7 @@ package social_backend.party.v1;
 option go_package = "github.com/xyun1996/social_backend/api/proto/party/v1;partyv1";
 
 import "google/protobuf/timestamp.proto";
-import "invite.proto";
+import "invite/v1/invite.proto";
 
 message Party {
   string id = 1;
