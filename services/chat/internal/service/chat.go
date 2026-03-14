@@ -724,7 +724,20 @@ func (s *ChatService) validateSendPermission(ctx context.Context, conversation d
 			return &err
 		}
 		return nil
-	case kindWorld, kindGuild, kindParty, kindPrivate, kindGroup, kindCustom:
+	case kindGuild, kindParty:
+		if senderPlayerID == "system" {
+			return nil
+		}
+		allowed, appErr := s.canAccessConversation(ctx, conversation, senderPlayerID)
+		if appErr != nil {
+			return appErr
+		}
+		if !allowed {
+			err := apperrors.New("forbidden", "sender is not allowed in the conversation", http.StatusForbidden)
+			return &err
+		}
+		return nil
+	case kindWorld, kindPrivate, kindGroup, kindCustom:
 		allowed, appErr := s.canAccessConversation(ctx, conversation, senderPlayerID)
 		if appErr != nil {
 			return appErr

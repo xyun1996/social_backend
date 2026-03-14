@@ -11,8 +11,10 @@ import (
 	"github.com/xyun1996/social_backend/pkg/config"
 	"github.com/xyun1996/social_backend/pkg/db"
 	"github.com/xyun1996/social_backend/pkg/logging"
+	chatclient "github.com/xyun1996/social_backend/services/guild/internal/client/chat"
 	inviteclient "github.com/xyun1996/social_backend/services/guild/internal/client/invite"
 	presenceclient "github.com/xyun1996/social_backend/services/guild/internal/client/presence"
+	workerclient "github.com/xyun1996/social_backend/services/guild/internal/client/worker"
 	"github.com/xyun1996/social_backend/services/guild/internal/handler"
 	mysqlrepo "github.com/xyun1996/social_backend/services/guild/internal/repo/mysql"
 	"github.com/xyun1996/social_backend/services/guild/internal/service"
@@ -43,11 +45,21 @@ func main() {
 func buildGuildService() (*service.GuildService, func(), error) {
 	inviteURL := valueOrDefault(os.Getenv("INVITE_SERVICE_URL"), "http://localhost:8083")
 	presenceURL := valueOrDefault(os.Getenv("PRESENCE_BASE_URL"), "http://localhost:8087")
+	chatURL := valueOrDefault(os.Getenv("CHAT_BASE_URL"), "http://localhost:8084")
+	workerURL := strings.TrimSpace(os.Getenv("WORKER_BASE_URL"))
 	invites := inviteclient.NewHTTPClient(inviteURL)
 	presence := presenceclient.NewHTTPClient(presenceURL)
+	chat := chatclient.NewHTTPClient(chatURL)
+
+	var scheduler service.JobScheduler
+	if workerURL != "" {
+		scheduler = workerclient.NewHTTPClient(workerURL)
+	}
 
 	if !strings.EqualFold(strings.TrimSpace(os.Getenv("GUILD_STORE")), "mysql") {
-		return service.NewGuildService(invites, presence), func() {}, nil
+		guilds := service.NewGuildService(invites, presence)
+		guilds.SetRuntimeIntegrations(chat, scheduler)
+		return guilds, func() {}, nil
 	}
 
 	mysqlConfig := db.LoadMySQLConfig()
@@ -66,7 +78,9 @@ func buildGuildService() (*service.GuildService, func(), error) {
 		}
 	}
 
-	return service.NewGuildServiceWithStore(repo, invites, presence), func() {
+	guilds := service.NewGuildServiceWithStore(repo, invites, presence)
+	guilds.SetRuntimeIntegrations(chat, scheduler)
+	return guilds, func() {
 		_ = sqlDB.Close()
 	}, nil
 }

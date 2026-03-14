@@ -8,6 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/xyun1996/social_backend/pkg/db"
 	workerchatclient "github.com/xyun1996/social_backend/services/worker/internal/client/chat"
+	workerguildclient "github.com/xyun1996/social_backend/services/worker/internal/client/guild"
 	workerinviteclient "github.com/xyun1996/social_backend/services/worker/internal/client/invite"
 	workerhandler "github.com/xyun1996/social_backend/services/worker/internal/handler"
 	workerjobs "github.com/xyun1996/social_backend/services/worker/internal/jobs"
@@ -63,6 +64,13 @@ func (s *Server) RegisterChatOfflineDeliveryHandler(chatBaseURL string) {
 	s.worker.RegisterHandler("chat.offline_delivery", workerjobs.NewChatOfflineDeliveryHandler(workerchatclient.NewHTTPClient(chatBaseURL)).Handle)
 }
 
+// RegisterGuildActivityHandlers wires the guild progression maintenance handlers to a guild base URL.
+func (s *Server) RegisterGuildActivityHandlers(guildBaseURL string) {
+	client := workerguildclient.NewHTTPClient(guildBaseURL)
+	s.worker.RegisterHandler("guild.activity.ensure_current", workerjobs.NewGuildActivityEnsureHandler(client).Handle)
+	s.worker.RegisterHandler("guild.activity.close_expired", workerjobs.NewGuildActivityCloseHandler(client).Handle)
+}
+
 // ExecuteUntilEmpty drains worker jobs and returns a public summary.
 func (s *Server) ExecuteUntilEmpty(ctx context.Context, workerID string, jobType string, limit int) (ExecutionSummary, error) {
 	result, appErr := s.worker.ExecuteUntilEmpty(ctx, workerID, jobType, limit)
@@ -70,9 +78,5 @@ func (s *Server) ExecuteUntilEmpty(ctx context.Context, workerID string, jobType
 		return ExecutionSummary{}, fmt.Errorf("%s: %s", appErr.Code, appErr.Message)
 	}
 
-	return ExecutionSummary{
-		Processed: result.Processed,
-		Completed: result.Completed,
-		Failed:    result.Failed,
-	}, nil
+	return ExecutionSummary{Processed: result.Processed, Completed: result.Completed, Failed: result.Failed}, nil
 }

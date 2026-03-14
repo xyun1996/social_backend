@@ -16,10 +16,13 @@ type schemaExecutor interface {
 }
 
 const (
-	GuildsTable          = "guild_guilds"
-	GuildMembersTable    = "guild_members"
-	GuildLogsTable       = "guild_logs"
-	GuildActivitiesTable = "guild_activities"
+	GuildsTable               = "guild_guilds"
+	GuildMembersTable         = "guild_members"
+	GuildLogsTable            = "guild_logs"
+	GuildActivitiesTable      = "guild_activities"
+	GuildContributionsTable   = "guild_contributions"
+	GuildActivityInstancesTbl = "guild_activity_instances"
+	GuildRewardsTable         = "guild_reward_records"
 )
 
 // Repository implements guild durable storage on MySQL.
@@ -97,6 +100,49 @@ func (r *Repository) Migrations() []db.Migration {
 					delta_xp INT NOT NULL,
 					created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 					INDEX idx_guild_activities_guild_created (guild_id, created_at)
+				);`,
+			},
+		},
+		{
+			ID: "005_guild_progression_v2",
+			Statements: []string{
+				`ALTER TABLE guild_activities
+				 ADD COLUMN instance_id VARCHAR(64) NOT NULL DEFAULT ''`,
+				`ALTER TABLE guild_activities
+				 ADD COLUMN idempotency_key VARCHAR(128) NOT NULL DEFAULT ''`,
+				`ALTER TABLE guild_activities
+				 ADD COLUMN source_type VARCHAR(64) NOT NULL DEFAULT ''`,
+				`CREATE TABLE IF NOT EXISTS guild_contributions (
+					guild_id VARCHAR(64) NOT NULL,
+					player_id VARCHAR(64) NOT NULL,
+					total_xp INT NOT NULL,
+					last_source_type VARCHAR(64) NOT NULL DEFAULT '',
+					updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					PRIMARY KEY (guild_id, player_id),
+					INDEX idx_guild_contributions_total (guild_id, total_xp)
+				);`,
+				`CREATE TABLE IF NOT EXISTS guild_activity_instances (
+					instance_id VARCHAR(64) PRIMARY KEY,
+					guild_id VARCHAR(64) NOT NULL,
+					template_key VARCHAR(64) NOT NULL,
+					period_key VARCHAR(64) NOT NULL,
+					starts_at TIMESTAMP NOT NULL,
+					ends_at TIMESTAMP NOT NULL,
+					status VARCHAR(32) NOT NULL,
+					created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					UNIQUE KEY uq_guild_activity_instance (guild_id, template_key, period_key)
+				);`,
+				`CREATE TABLE IF NOT EXISTS guild_reward_records (
+					reward_id VARCHAR(64) PRIMARY KEY,
+					guild_id VARCHAR(64) NOT NULL,
+					player_id VARCHAR(64) NOT NULL,
+					activity_id VARCHAR(64) NOT NULL,
+					template_key VARCHAR(64) NOT NULL,
+					reward_type VARCHAR(64) NOT NULL,
+					reward_ref VARCHAR(128) NOT NULL DEFAULT '',
+					created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					INDEX idx_guild_reward_records_guild_created (guild_id, created_at)
 				);`,
 			},
 		},
@@ -374,18 +420,24 @@ func (r *Repository) SaveActivity(record domain.GuildActivityRecord) error {
 
 	_, err := r.sqlDB.ExecContext(
 		context.Background(),
-		`INSERT INTO guild_activities (activity_id, guild_id, template_key, player_id, delta_xp, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?)
+		`INSERT INTO guild_activities (activity_id, instance_id, guild_id, template_key, player_id, delta_xp, idempotency_key, source_type, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		 ON DUPLICATE KEY UPDATE
+		   instance_id = VALUES(instance_id),
 		   template_key = VALUES(template_key),
 		   player_id = VALUES(player_id),
 		   delta_xp = VALUES(delta_xp),
+		   idempotency_key = VALUES(idempotency_key),
+		   source_type = VALUES(source_type),
 		   created_at = VALUES(created_at)`,
 		record.ID,
+		record.InstanceID,
 		record.GuildID,
 		record.TemplateKey,
 		record.PlayerID,
 		record.DeltaXP,
+		record.IdempotencyKey,
+		record.SourceType,
 		record.CreatedAt.UTC(),
 	)
 	return err
@@ -397,7 +449,7 @@ func (r *Repository) ListActivities(guildID string) ([]domain.GuildActivityRecor
 	}
 	rows, err := r.sqlDB.QueryContext(
 		context.Background(),
-		`SELECT activity_id, guild_id, template_key, player_id, delta_xp, created_at
+		`SELECT activity_id, instance_id, guild_id, template_key, player_id, delta_xp, idempotency_key, source_type, created_at
 		 FROM guild_activities
 		 WHERE guild_id = ?`,
 		guildID,
@@ -410,7 +462,7 @@ func (r *Repository) ListActivities(guildID string) ([]domain.GuildActivityRecor
 	records := make([]domain.GuildActivityRecord, 0)
 	for rows.Next() {
 		var record domain.GuildActivityRecord
-		if err := rows.Scan(&record.ID, &record.GuildID, &record.TemplateKey, &record.PlayerID, &record.DeltaXP, &record.CreatedAt); err != nil {
+		if err := rows.Scan(&record.ID, &record.InstanceID, &record.GuildID, &record.TemplateKey, &record.PlayerID, &record.DeltaXP, &record.IdempotencyKey, &record.SourceType, &record.CreatedAt); err != nil {
 			return nil, err
 		}
 		records = append(records, record)

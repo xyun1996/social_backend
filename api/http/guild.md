@@ -1,254 +1,124 @@
 # Guild HTTP Contract
 
-Base purpose: guild creation, owner-scoped invite issuance, join via accepted invite, and basic owner governance.
+Base purpose: guild creation, governance, progression, and guild-scoped activity flows.
 
 ## Health
 
 - `GET /healthz`
 
-## Create Guild
+## Guild Aggregate
 
 - `POST /v1/guilds`
-- Request
-
-```json
-{
-  "name": "Raiders",
-  "owner_id": "p1"
-}
-```
-
-- Response `200`
-
-```json
-{
-  "id": "guild-1",
-  "name": "Raiders",
-  "owner_id": "p1",
-  "members": [
-    {
-      "player_id": "p1",
-      "role": "owner",
-      "joined_at": "2026-03-13T10:00:00Z"
-    }
-  ],
-  "created_at": "2026-03-13T10:00:00Z"
-}
-```
-
-## Get Guild
-
 - `GET /v1/guilds/{guildID}`
-- Response `200`: guild shape from create response
-- Response also includes optional announcement fields when set
-- Response also includes progression fields:
-  - `level`
-  - `experience`
-
-## Find Guild Membership By Player
-
 - `GET /v1/guild-memberships/{playerID}`
-- Response `200`
+- `GET /v1/guilds/{guildID}/members`
+- `GET /v1/guilds/{guildID}/logs`
 
-```json
-{
-  "id": "guild-1",
-  "name": "Raiders",
-  "owner_id": "p1",
-  "announcement": "Welcome to the guild",
-  "announcement_updated_at": "2026-03-13T10:05:00Z",
-  "count": 2,
-  "members": []
-}
-```
+Guild aggregate fields now include:
+- `level`
+- `experience`
+- `announcement`
+- `announcement_updated_at`
 
-## Update Announcement
+## Governance Writes
 
 - `POST /v1/guilds/{guildID}/announcement`
-- Request
+- `POST /v1/guilds/{guildID}/invites`
+- `POST /v1/guilds/{guildID}/join`
+- `POST /v1/guilds/{guildID}/kick`
+- `POST /v1/guilds/{guildID}/transfer-owner`
+
+Governance actions also emit guild channel system events when chat is configured.
+
+## Progression Reads
+
+- `GET /v1/guilds/{guildID}/progression`
+- `GET /v1/guilds/{guildID}/contributions`
+- `GET /v1/guilds/{guildID}/rewards`
+
+### `GET /v1/guilds/{guildID}/progression`
+
+```json
+{
+  "guild_id": "guild-1",
+  "level": 2,
+  "experience": 125,
+  "next_level_xp": 200,
+  "updated_at": "2026-03-14T10:00:00Z"
+}
+```
+
+## Activity Templates
+
+- `GET /v1/guilds/activity-templates`
+
+Templates currently shipped in `v2.0`:
+- `sign_in`
+- `donate`
+- `guild_task`
+
+Each template now declares:
+- `period_type`
+- `max_submissions_per_period`
+- `contribution_xp`
+- optional reward bookkeeping defaults
+
+## Activity Runtime
+
+- `GET /v1/guilds/{guildID}/activities`
+- `GET /v1/guilds/{guildID}/activities/{templateKey}/instances`
+- `POST /v1/guilds/{guildID}/activities/{templateKey}`
+- `POST /v1/guilds/{guildID}/activities/{templateKey}/submit`
+
+### Submit Request
 
 ```json
 {
   "actor_player_id": "p1",
-  "announcement": "Welcome to the guild"
+  "idempotency_key": "guild-sign-in-2026-03-14-p1",
+  "source_type": "api"
 }
 ```
 
-- Response `200`: updated guild shape
-- Rules
-- Only the current `owner_id` can update the announcement
-- Announcement text is trimmed before persistence
-
-## List Members
-
-- `GET /v1/guilds/{guildID}/members`
-- Response `200`
+### Submit Response
 
 ```json
 {
-  "guild_id": "guild-1",
-  "count": 2,
-  "members": [
-    {
-      "player_id": "p1",
-      "role": "owner",
-      "presence": "online",
-      "session_id": "sess-1",
-      "realm_id": "realm-1",
-      "location": "lobby"
-    }
-  ]
-}
-```
-
-## List Guild Logs
-
-- `GET /v1/guilds/{guildID}/logs`
-- Response `200`
-
-```json
-{
-  "guild_id": "guild-1",
-  "count": 3,
-  "logs": []
-}
-```
-
-- Rules
-- Logs are ordered oldest to newest in the current prototype
-- Current governance events include guild creation, member join, announcement update, member kick, and owner transfer
-- Activity submissions also append governance log entries
-
-## List Activity Templates
-
-- `GET /v1/guilds/activity-templates`
-- Response `200`
-
-```json
-{
-  "count": 3,
-  "templates": [
-    {
-      "key": "sign_in",
-      "name": "Daily Sign-In",
-      "contribution_xp": 10
-    }
-  ]
-}
-```
-
-## Submit Activity
-
-- `POST /v1/guilds/{guildID}/activities/{templateKey}`
-- Request
-
-```json
-{
-  "actor_player_id": "p1"
-}
-```
-
-- Response `200`
-
-```json
-{
-  "activity": {
+  "record": {
     "id": "act-1",
+    "instance_id": "inst-1",
     "guild_id": "guild-1",
     "template_key": "sign_in",
     "player_id": "p1",
     "delta_xp": 10,
-    "created_at": "2026-03-13T10:10:00Z"
+    "idempotency_key": "guild-sign-in-2026-03-14-p1",
+    "source_type": "api",
+    "created_at": "2026-03-14T10:10:00Z"
   },
   "guild": {
     "id": "guild-1",
     "level": 1,
     "experience": 10
+  },
+  "progression": {
+    "guild_id": "guild-1",
+    "level": 1,
+    "experience": 10,
+    "next_level_xp": 100,
+    "updated_at": "2026-03-14T10:10:00Z"
   }
 }
 ```
 
-- Rules
-- Only current guild members can submit activity templates
-- Unknown template keys return `404`
+Rules:
+- only current guild members can submit
+- period limits are enforced per member and template
+- repeated calls with the same `idempotency_key` return the previously recorded submission
+- successful submissions write guild xp, member contribution, reward bookkeeping, governance log, and guild chat system events
 
-## List Activity Records
+## Internal Worker Hooks
 
-- `GET /v1/guilds/{guildID}/activities`
-- Response `200`
+- `POST /v1/internal/guilds/{guildID}/activities/ensure-current`
+- `POST /v1/internal/guilds/{guildID}/activities/close-expired`
 
-```json
-{
-  "guild_id": "guild-1",
-  "count": 1,
-  "activities": []
-}
-```
-
-## Create Guild Invite
-
-- `POST /v1/guilds/{guildID}/invites`
-- Request
-
-```json
-{
-  "actor_player_id": "p1",
-  "to_player_id": "p2"
-}
-```
-
-- Response `200`: shared invite shape
-- Rules
-- Only `owner_id` can invite in the current prototype
-
-## Join Guild
-
-- `POST /v1/guilds/{guildID}/join`
-- Request
-
-```json
-{
-  "invite_id": "inv-1",
-  "actor_player_id": "p2"
-}
-```
-
-- Response `200`: updated guild shape
-- Rules
-- Invite must belong to `domain = guild`
-- Invite must target this `guildID`
-- Invite must already be `accepted`
-
-## Kick Member
-
-- `POST /v1/guilds/{guildID}/kick`
-- Request
-
-```json
-{
-  "actor_player_id": "p1",
-  "target_player_id": "p2"
-}
-```
-
-- Response `200`: updated guild shape
-- Rules
-- Only `owner_id` can kick members in the current prototype
-- Owners cannot kick themselves through this endpoint; ownership must be transferred first
-
-## Transfer Owner
-
-- `POST /v1/guilds/{guildID}/transfer-owner`
-- Request
-
-```json
-{
-  "actor_player_id": "p1",
-  "target_player_id": "p2"
-}
-```
-
-- Response `200`: updated guild shape
-- Rules
-- Only the current `owner_id` can transfer ownership
-- The transfer target must already be a guild member
+These endpoints are for local worker/runtime maintenance and are not part of the public game-client surface.

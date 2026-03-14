@@ -24,11 +24,18 @@ const (
 	actionGuildAnnouncementUpdated = "guild.announcement_updated"
 	actionGuildMemberKicked        = "guild.member_kicked"
 	actionGuildOwnerTransferred    = "guild.owner_transferred"
+	actionGuildActivityOpened      = "guild.activity_opened"
 	actionGuildActivitySubmitted   = "guild.activity_submitted"
+	actionGuildLeveledUp           = "guild.leveled_up"
+	activityStatusActive           = "active"
+	activityStatusClosed           = "closed"
+	systemSenderID                 = "system"
 )
 
 const (
-	guildXPPerLevel = 100
+	guildXPPerLevel            = 100
+	guildActivityEnsureJobType = "guild.activity.ensure_current"
+	guildActivityCloseJobType  = "guild.activity.close_expired"
 )
 
 // Invite contains the subset of invite state guild depends on.
@@ -61,6 +68,16 @@ type PresenceReader interface {
 	GetPresence(ctx context.Context, playerID string) (PresenceSnapshot, *apperrors.Error)
 }
 
+// GuildChatPublisher publishes guild-scoped system messages into chat.
+type GuildChatPublisher interface {
+	PublishGuildSystemEvent(ctx context.Context, guildID string, memberIDs []string, body string) *apperrors.Error
+}
+
+// JobScheduler captures async scheduling intent for guild follow-up work.
+type JobScheduler interface {
+	EnqueueJob(ctx context.Context, jobType string, payload string) *apperrors.Error
+}
+
 // MemberState combines guild role and presence state.
 type MemberState struct {
 	PlayerID  string `json:"player_id"`
@@ -76,10 +93,14 @@ type GuildService struct {
 	guilds        GuildStore
 	invites       InviteClient
 	presence      PresenceReader
+	chat          GuildChatPublisher
+	scheduler     JobScheduler
 	now           func() time.Time
 	newGuildID    func() (string, error)
 	newLogID      func() (string, error)
 	newActivityID func() (string, error)
+	newInstanceID func() (string, error)
+	newRewardID   func() (string, error)
 }
 
 // NewGuildService constructs an in-memory guild service.
@@ -103,7 +124,22 @@ func NewGuildServiceWithStore(guilds GuildStore, invites InviteClient, presence 
 		newActivityID: func() (string, error) {
 			return idgen.Token(10)
 		},
+		newInstanceID: func() (string, error) {
+			return idgen.Token(10)
+		},
+		newRewardID: func() (string, error) {
+			return idgen.Token(10)
+		},
 	}
+}
+
+// SetRuntimeIntegrations wires optional chat and worker boundaries.
+func (s *GuildService) SetRuntimeIntegrations(chat GuildChatPublisher, scheduler JobScheduler) {
+	if s == nil {
+		return
+	}
+	s.chat = chat
+	s.scheduler = scheduler
 }
 
 // CreateGuild creates a guild with an owner member.
@@ -149,9 +185,9 @@ func (s *GuildService) CreateGuild(name string, ownerID string) (domain.Guild, *
 // ListActivityTemplates returns the fixed guild activity templates.
 func (s *GuildService) ListActivityTemplates() []domain.GuildActivityTemplate {
 	return []domain.GuildActivityTemplate{
-		{Key: "sign_in", Name: "Daily Sign-In", ContributionXP: 10},
-		{Key: "donate", Name: "Guild Donation", ContributionXP: 25},
-		{Key: "task", Name: "Guild Task", ContributionXP: 40},
+		{Key: "sign_in", Name: "Daily Sign-In", PeriodType: "daily", MaxSubmissionsPerPeriod: 1, ContributionXP: 10, RewardType: "badge", RewardRef: "guild_sign_in"},
+		{Key: "donate", Name: "Guild Donation", PeriodType: "daily", MaxSubmissionsPerPeriod: 3, ContributionXP: 25, RewardType: "token", RewardRef: "guild_donation"},
+		{Key: "guild_task", Name: "Guild Task", PeriodType: "weekly", MaxSubmissionsPerPeriod: 5, ContributionXP: 40, RewardType: "token", RewardRef: "guild_task"},
 	}
 }
 
@@ -484,65 +520,8 @@ func (s *GuildService) FindGuildByPlayer(ctx context.Context, playerID string) (
 
 // SubmitActivity applies one of the fixed activity templates and grows guild experience.
 func (s *GuildService) SubmitActivity(guildID string, actorPlayerID string, templateKey string) (domain.GuildActivityRecord, domain.Guild, *apperrors.Error) {
-	if guildID == "" || actorPlayerID == "" || templateKey == "" {
-		err := apperrors.New("invalid_request", "guild_id, actor_player_id, and template_key are required", http.StatusBadRequest)
-		return domain.GuildActivityRecord{}, domain.Guild{}, &err
-	}
-
-	guild, ok, err := s.guilds.GetGuild(guildID)
-	if err != nil {
-		internal := apperrors.Internal()
-		return domain.GuildActivityRecord{}, domain.Guild{}, &internal
-	}
-	if !ok {
-		err := apperrors.New("not_found", "guild not found", http.StatusNotFound)
-		return domain.GuildActivityRecord{}, domain.Guild{}, &err
-	}
-	if !hasMember(guild.Members, actorPlayerID) {
-		err := apperrors.New("forbidden", "only guild members can submit activities", http.StatusForbidden)
-		return domain.GuildActivityRecord{}, domain.Guild{}, &err
-	}
-
-	var template *domain.GuildActivityTemplate
-	for _, candidate := range s.ListActivityTemplates() {
-		if candidate.Key == templateKey {
-			template = &candidate
-			break
-		}
-	}
-	if template == nil {
-		err := apperrors.New("not_found", "activity template not found", http.StatusNotFound)
-		return domain.GuildActivityRecord{}, domain.Guild{}, &err
-	}
-
-	activityID, idErr := s.newActivityID()
-	if idErr != nil {
-		internal := apperrors.Internal()
-		return domain.GuildActivityRecord{}, domain.Guild{}, &internal
-	}
-	record := domain.GuildActivityRecord{
-		ID:          activityID,
-		GuildID:     guildID,
-		TemplateKey: template.Key,
-		PlayerID:    actorPlayerID,
-		DeltaXP:     template.ContributionXP,
-		CreatedAt:   s.now(),
-	}
-
-	guild.Experience += template.ContributionXP
-	guild.Level = 1 + (guild.Experience / guildXPPerLevel)
-	if err := s.guilds.SaveGuild(guild); err != nil {
-		internal := apperrors.Internal()
-		return domain.GuildActivityRecord{}, domain.Guild{}, &internal
-	}
-	if err := s.guilds.SaveActivity(record); err != nil {
-		internal := apperrors.Internal()
-		return domain.GuildActivityRecord{}, domain.Guild{}, &internal
-	}
-	if appErr := s.appendLog(guild.ID, actionGuildActivitySubmitted, actorPlayerID, "", "guild activity submitted: "+template.Key); appErr != nil {
-		return domain.GuildActivityRecord{}, domain.Guild{}, appErr
-	}
-	return record, guild, nil
+	record, guild, _, appErr := s.SubmitActivityWithOptions(context.Background(), guildID, actorPlayerID, templateKey, "", templateKey)
+	return record, guild, appErr
 }
 
 // ListActivities returns submitted activity records for a guild.

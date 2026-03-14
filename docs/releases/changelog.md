@@ -1,27 +1,15 @@
 # Changelog
 
-## Unreleased
+## 2026-03-14
 
-- Initialized repository scaffold for the Social Backend project
-- Added governance documents, milestone structure, ADR baseline, and doc templates
-- Verified local durable MySQL bootstrap, durable status gating, and durable integration test flow
-- Fixed Windows `make` durable targets by routing them through PowerShell wrappers
-- Marked generated proto consumption and gateway replay alignment tasks as completed in project docs
-- Added party leave, kick, and transfer-leader operations
-- Added party social queue join, leave, and queue-state reads with ready/online validation
-- Added ops visibility for active party queue state
-- Added party queue handoff snapshots as the future matchmaker integration boundary
-- Added party match assignment callbacks and durable queue assignment snapshots
-- Added a resource-backed chat channel model with reusable built-in channel bindings
-- Reorganized source proto contracts into versioned service directories and restored clean `buf lint`
-- Expanded ops guild snapshots with announcement and governance log visibility
-- Added guild owner-managed announcement updates with durable storage support
-- Added guild governance logs with durable storage support
-- Added guild kick and transfer-owner operations
-- Added invite cancellation and aligned HTTP/task docs with gateway ack compaction and resume trimming flows
-- Added party match resolution callbacks that clear queue assignment ownership after handoff
-- Added guild progression and durable activity templates for sign-in, donation, and guild tasks
-- Added chat conversation summaries with unread counts and last-message snapshots
-- Expanded ops player overview with current party, guild, role, and queue status reads
-- Aligned guild and party chat channel permissions to current resource membership
-- Archived the completed `v1.0` state and established the first `v2` planning baseline
+- Published `v2.0` as the active implementation line under `guild progression + guild chat integration`.
+- Extended guild durable storage with contributions, activity instances, idempotent activity records, and reward bookkeeping.
+- Added guild progression, contribution, reward, and instance HTTP reads.
+- Wired guild governance and progression events into guild chat through system messages.
+- Expanded ops guild snapshot reads with progression, contribution, activity instance, and reward state.
+- Added minimal worker handlers for guild activity period initialization and expiry transitions.
+- Added local durable integration coverage for guild progression + guild chat.
+
+## Earlier Entries
+
+- See [project-archive-v1.md](project-archive-v1.md) and [release-notes/v1.0.md](release-notes/v1.0.md) for the completed `v1` baseline.

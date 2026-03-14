@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"github.com/xyun1996/social_backend/pkg/db"
+	chatclient "github.com/xyun1996/social_backend/services/guild/internal/client/chat"
 	inviteclient "github.com/xyun1996/social_backend/services/guild/internal/client/invite"
 	presenceclient "github.com/xyun1996/social_backend/services/guild/internal/client/presence"
+	workerclient "github.com/xyun1996/social_backend/services/guild/internal/client/worker"
 	guildhandler "github.com/xyun1996/social_backend/services/guild/internal/handler"
 	mysqlrepo "github.com/xyun1996/social_backend/services/guild/internal/repo/mysql"
 	guildservice "github.com/xyun1996/social_backend/services/guild/internal/service"
@@ -20,17 +22,24 @@ type Server struct {
 }
 
 // NewServer constructs an in-memory guild HTTP server.
-func NewServer(inviteBaseURL string, presenceBaseURL string) *Server {
+func NewServer(inviteBaseURL string, presenceBaseURL string, chatBaseURL string, workerBaseURL string) *Server {
 	guilds := guildservice.NewGuildService(
 		inviteclient.NewHTTPClient(inviteBaseURL),
 		presenceclient.NewHTTPClient(presenceBaseURL),
 	)
+	if chatBaseURL != "" || workerBaseURL != "" {
+		var scheduler guildservice.JobScheduler
+		if workerBaseURL != "" {
+			scheduler = workerclient.NewHTTPClient(workerBaseURL)
+		}
+		guilds.SetRuntimeIntegrations(chatclient.NewHTTPClient(chatBaseURL), scheduler)
+	}
 	server := httptest.NewServer(guildhandler.NewHTTPHandler(guilds).Routes())
 	return &Server{server: server}
 }
 
 // NewDurableServer constructs a guild HTTP server backed by MySQL state.
-func NewDurableServer(mysqlConfig db.MySQLConfig, sqlDB *sql.DB, inviteBaseURL string, presenceBaseURL string) *Server {
+func NewDurableServer(mysqlConfig db.MySQLConfig, sqlDB *sql.DB, inviteBaseURL string, presenceBaseURL string, chatBaseURL string, workerBaseURL string) *Server {
 	repo := mysqlrepo.NewRepository(mysqlConfig, sqlDB)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -43,6 +52,11 @@ func NewDurableServer(mysqlConfig db.MySQLConfig, sqlDB *sql.DB, inviteBaseURL s
 		inviteclient.NewHTTPClient(inviteBaseURL),
 		presenceclient.NewHTTPClient(presenceBaseURL),
 	)
+	var scheduler guildservice.JobScheduler
+	if workerBaseURL != "" {
+		scheduler = workerclient.NewHTTPClient(workerBaseURL)
+	}
+	guilds.SetRuntimeIntegrations(chatclient.NewHTTPClient(chatBaseURL), scheduler)
 	server := httptest.NewServer(guildhandler.NewHTTPHandler(guilds).Routes())
 	return &Server{server: server}
 }

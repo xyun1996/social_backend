@@ -355,7 +355,7 @@ func TestLocalDurableGuildInviteJoinFlow(t *testing.T) {
 	presence := presencetestkit.NewDurableServer(redisConfig, redisClient)
 	defer presence.Close()
 
-	guild := guildtestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL())
+	guild := guildtestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL(), "", "")
 	defer guild.Close()
 
 	var createdGuild struct {
@@ -516,7 +516,7 @@ func TestLocalDurableMySQLBootstrapRegistersMigrations(t *testing.T) {
 		invite := invitetestkit.NewDurableServer(mysqlConfig, sqlDB, "")
 		chat := chattestkit.NewDurableServer(mysqlConfig, sqlDB, "", "")
 		party := partytestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL())
-		guild := guildtestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL())
+		guild := guildtestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL(), "", "")
 		return func() {
 			guild.Close()
 			party.Close()
@@ -559,7 +559,7 @@ func TestLocalDurableMySQLBootstrapRegistersMigrations(t *testing.T) {
 		"invite":   {"001_invite_core"},
 		"chat":     {"001_chat_core"},
 		"party":    {"001_party_core", "002_party_queue", "003_party_assignment"},
-		"guild":    {"001_guild_core", "002_guild_announcement", "003_guild_logs", "004_guild_progression"},
+		"guild":    {"001_guild_core", "002_guild_announcement", "003_guild_logs", "004_guild_progression", "005_guild_progression_v2"},
 	}
 	for service, migrationIDs := range expected {
 		migrations := recorded[service]
@@ -592,7 +592,7 @@ func TestLocalDurableOpsReadsMySQLBootstrapSnapshot(t *testing.T) {
 	defer chat.Close()
 	party := partytestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL())
 	defer party.Close()
-	guild := guildtestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL())
+	guild := guildtestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL(), "", "")
 	defer guild.Close()
 
 	ops := opstestkit.NewDurableServer(mysqlConfig, sqlDB, redisConfig, redisClient, presence.URL(), party.URL(), guild.URL(), "", social.URL())
@@ -691,7 +691,7 @@ func TestLocalDurableOpsReadsDurableSummary(t *testing.T) {
 	defer social.Close()
 	party := partytestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL())
 	defer party.Close()
-	guild := guildtestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL())
+	guild := guildtestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL(), "", "")
 	defer guild.Close()
 	identity := identitytestkit.NewDurableServer(mysqlConfig, sqlDB)
 	defer identity.Close()
@@ -841,4 +841,138 @@ func adminDSN(config db.MySQLConfig) string {
 	adminConfig.Database = ""
 	dsn := adminConfig.DSN()
 	return strings.Replace(dsn, "/?", "/mysql?", 1)
+}
+
+func TestLocalDurableGuildProgressionChatFlow(t *testing.T) {
+	requireLocalDurableTests(t)
+
+	mysqlConfig, sqlDB := newLocalMySQLTestDatabase(t)
+	redisConfig, redisClient := newLocalRedisTestClient(t)
+
+	worker := workertestkit.NewDurableServer(redisConfig, redisClient)
+	defer worker.Close()
+	chat := chattestkit.NewDurableServer(mysqlConfig, sqlDB, "", worker.URL())
+	defer chat.Close()
+	invite := invitetestkit.NewDurableServer(mysqlConfig, sqlDB, "")
+	defer invite.Close()
+	presence := presencetestkit.NewDurableServer(redisConfig, redisClient)
+	defer presence.Close()
+	guild := guildtestkit.NewDurableServer(mysqlConfig, sqlDB, invite.URL(), presence.URL(), chat.URL(), worker.URL())
+	defer guild.Close()
+
+	worker.RegisterGuildActivityHandlers(guild.URL())
+	worker.RegisterChatOfflineDeliveryHandler(chat.URL())
+
+	var createdGuild struct {
+		ID string `json:"id"`
+	}
+	postJSON(t, guild.URL()+"/v1/guilds", map[string]any{
+		"name":     "Progression Guild",
+		"owner_id": "p1",
+	}, &createdGuild)
+
+	var activityPayload struct {
+		Record struct {
+			ID string `json:"id"`
+		} `json:"record"`
+		Progression struct {
+			Experience int `json:"experience"`
+		} `json:"progression"`
+	}
+	postJSON(t, guild.URL()+"/v1/guilds/"+createdGuild.ID+"/activities/sign_in/submit", map[string]any{
+		"actor_player_id": "p1",
+		"idempotency_key": "idem-sign-in-1",
+		"source_type":     "api",
+	}, &activityPayload)
+	if activityPayload.Record.ID == "" || activityPayload.Progression.Experience != 10 {
+		t.Fatalf("unexpected durable guild activity payload: %+v", activityPayload)
+	}
+
+	result, err := worker.ExecuteUntilEmpty(context.Background(), "worker-a", "guild.activity.ensure_current", 10)
+	if err != nil {
+		t.Fatalf("execute ensure jobs failed: %v", err)
+	}
+	if result.Completed == 0 {
+		t.Fatalf("expected at least one completed ensure job: %+v", result)
+	}
+	_, err = worker.ExecuteUntilEmpty(context.Background(), "worker-a", "chat.offline_delivery", 10)
+	if err != nil {
+		t.Fatalf("execute chat jobs failed: %v", err)
+	}
+
+	var progression struct {
+		Level       int `json:"level"`
+		Experience  int `json:"experience"`
+		NextLevelXP int `json:"next_level_xp"`
+	}
+	getJSON(t, guild.URL()+"/v1/guilds/"+createdGuild.ID+"/progression", &progression)
+	if progression.Level != 1 || progression.Experience != 10 || progression.NextLevelXP != 100 {
+		t.Fatalf("unexpected progression payload: %+v", progression)
+	}
+
+	var contributions struct {
+		Count         int `json:"count"`
+		Contributions []struct {
+			PlayerID string `json:"player_id"`
+			TotalXP  int    `json:"total_xp"`
+		} `json:"contributions"`
+	}
+	getJSON(t, guild.URL()+"/v1/guilds/"+createdGuild.ID+"/contributions", &contributions)
+	if contributions.Count != 1 || contributions.Contributions[0].PlayerID != "p1" || contributions.Contributions[0].TotalXP != 10 {
+		t.Fatalf("unexpected contributions payload: %+v", contributions)
+	}
+
+	var rewards struct {
+		Count   int `json:"count"`
+		Rewards []struct {
+			RewardType string `json:"reward_type"`
+		} `json:"rewards"`
+	}
+	getJSON(t, guild.URL()+"/v1/guilds/"+createdGuild.ID+"/rewards", &rewards)
+	if rewards.Count != 1 || rewards.Rewards[0].RewardType == "" {
+		t.Fatalf("unexpected rewards payload: %+v", rewards)
+	}
+
+	var conversations struct {
+		Count         int `json:"count"`
+		Conversations []struct {
+			ID string `json:"id"`
+		} `json:"conversations"`
+	}
+	getJSON(t, chat.URL()+"/v1/conversations?player_id=p1", &conversations)
+	if conversations.Count == 0 {
+		t.Fatalf("expected guild chat conversation to exist")
+	}
+
+	var replay struct {
+		Count    int `json:"count"`
+		Messages []struct {
+			SenderPlayerID string `json:"sender_player_id"`
+			Body           string `json:"body"`
+		} `json:"messages"`
+	}
+	getJSON(t, chat.URL()+"/v1/conversations/"+conversations.Conversations[0].ID+"/messages?player_id=p1&after_seq=0", &replay)
+	if replay.Count == 0 || replay.Messages[0].SenderPlayerID != "system" {
+		t.Fatalf("unexpected guild chat replay payload: %+v", replay)
+	}
+
+	var opsGuild struct {
+		Level         int `json:"level"`
+		Experience    int `json:"experience"`
+		Contributions []struct {
+			TotalXP int `json:"total_xp"`
+		} `json:"contributions"`
+		ActivityInstances []struct {
+			TemplateKey string `json:"template_key"`
+		} `json:"activity_instances"`
+		RewardRecords []struct {
+			RewardType string `json:"reward_type"`
+		} `json:"reward_records"`
+	}
+	ops := opstestkit.NewDurableServer(mysqlConfig, sqlDB, redisConfig, redisClient, presence.URL(), "", guild.URL(), worker.URL(), "")
+	defer ops.Close()
+	getJSON(t, ops.URL()+"/v1/ops/guilds/"+createdGuild.ID, &opsGuild)
+	if opsGuild.Level != 1 || opsGuild.Experience != 10 || len(opsGuild.Contributions) != 1 || len(opsGuild.ActivityInstances) == 0 || len(opsGuild.RewardRecords) != 1 {
+		t.Fatalf("unexpected ops guild payload: %+v", opsGuild)
+	}
 }

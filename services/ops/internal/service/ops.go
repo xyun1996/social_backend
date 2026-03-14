@@ -87,6 +87,36 @@ type GuildLogEntry struct {
 	CreatedAt string `json:"created_at,omitempty"`
 }
 
+// GuildContribution is the operator-facing guild contribution shape.
+type GuildContribution struct {
+	PlayerID       string `json:"player_id"`
+	TotalXP        int    `json:"total_xp"`
+	LastSourceType string `json:"last_source_type,omitempty"`
+	UpdatedAt      string `json:"updated_at,omitempty"`
+}
+
+// GuildActivityInstance is the operator-facing activity instance shape.
+type GuildActivityInstance struct {
+	ID          string `json:"id"`
+	TemplateKey string `json:"template_key"`
+	PeriodKey   string `json:"period_key"`
+	Status      string `json:"status"`
+	StartsAt    string `json:"starts_at,omitempty"`
+	EndsAt      string `json:"ends_at,omitempty"`
+	UpdatedAt   string `json:"updated_at,omitempty"`
+}
+
+// GuildRewardRecord is the operator-facing reward bookkeeping shape.
+type GuildRewardRecord struct {
+	ID          string `json:"id"`
+	PlayerID    string `json:"player_id"`
+	ActivityID  string `json:"activity_id"`
+	TemplateKey string `json:"template_key"`
+	RewardType  string `json:"reward_type"`
+	RewardRef   string `json:"reward_ref,omitempty"`
+	CreatedAt   string `json:"created_at,omitempty"`
+}
+
 // PartySnapshot aggregates current party runtime state.
 type PartySnapshot struct {
 	PartyID string             `json:"party_id"`
@@ -97,15 +127,21 @@ type PartySnapshot struct {
 
 // GuildSnapshot aggregates current guild runtime state.
 type GuildSnapshot struct {
-	GuildID               string             `json:"guild_id"`
-	Name                  string             `json:"name,omitempty"`
-	OwnerID               string             `json:"owner_id,omitempty"`
-	Announcement          string             `json:"announcement,omitempty"`
-	AnnouncementUpdatedAt string             `json:"announcement_updated_at,omitempty"`
-	Count                 int                `json:"count"`
-	Members               []GuildMemberState `json:"members"`
-	LogCount              int                `json:"log_count"`
-	Logs                  []GuildLogEntry    `json:"logs,omitempty"`
+	GuildID               string                  `json:"guild_id"`
+	Name                  string                  `json:"name,omitempty"`
+	OwnerID               string                  `json:"owner_id,omitempty"`
+	Announcement          string                  `json:"announcement,omitempty"`
+	AnnouncementUpdatedAt string                  `json:"announcement_updated_at,omitempty"`
+	Level                 int                     `json:"level"`
+	Experience            int                     `json:"experience"`
+	NextLevelXP           int                     `json:"next_level_xp"`
+	Count                 int                     `json:"count"`
+	Members               []GuildMemberState      `json:"members"`
+	LogCount              int                     `json:"log_count"`
+	Logs                  []GuildLogEntry         `json:"logs,omitempty"`
+	Contributions         []GuildContribution     `json:"contributions,omitempty"`
+	ActivityInstances     []GuildActivityInstance `json:"activity_instances,omitempty"`
+	RewardRecords         []GuildRewardRecord     `json:"reward_records,omitempty"`
 }
 
 // WorkerJob is the operator-facing async job shape.

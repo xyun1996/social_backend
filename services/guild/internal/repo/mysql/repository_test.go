@@ -58,6 +58,15 @@ func TestRepositoryBootstrapSchema(t *testing.T) {
 	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO schema_migrations (service_name, migration_id) VALUES (?, ?)")).
 		WithArgs("guild", "004_guild_progression").
 		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT 1 FROM schema_migrations WHERE service_name = ? AND migration_id = ? LIMIT 1")).
+		WithArgs("guild", "005_guild_progression_v2").
+		WillReturnRows(sqlmock.NewRows([]string{"1"}))
+	for _, statement := range repo.Migrations()[4].Statements {
+		mock.ExpectExec(regexp.QuoteMeta(statement)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO schema_migrations (service_name, migration_id) VALUES (?, ?)")).
+		WithArgs("guild", "005_guild_progression_v2").
+		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	if err := repo.BootstrapSchema(context.Background()); err != nil {
 		t.Fatalf("BootstrapSchema returned error: %v", err)
@@ -212,31 +221,37 @@ func TestRepositorySaveAndListActivities(t *testing.T) {
 
 	repo := NewRepository(db.MySQLConfig{}, sqlDB)
 	record := domain.GuildActivityRecord{
-		ID:          "act-1",
-		GuildID:     "guild-1",
-		TemplateKey: "donate",
-		PlayerID:    "p1",
-		DeltaXP:     25,
-		CreatedAt:   time.Date(2026, 3, 14, 11, 0, 0, 0, time.UTC),
+		ID:             "act-1",
+		InstanceID:     "inst-1",
+		GuildID:        "guild-1",
+		TemplateKey:    "donate",
+		PlayerID:       "p1",
+		DeltaXP:        25,
+		IdempotencyKey: "idem-1",
+		SourceType:     "donate",
+		CreatedAt:      time.Date(2026, 3, 14, 11, 0, 0, 0, time.UTC),
 	}
 
-	mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO guild_activities (activity_id, guild_id, template_key, player_id, delta_xp, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?)
+	mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO guild_activities (activity_id, instance_id, guild_id, template_key, player_id, delta_xp, idempotency_key, source_type, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		 ON DUPLICATE KEY UPDATE
+		   instance_id = VALUES(instance_id),
 		   template_key = VALUES(template_key),
 		   player_id = VALUES(player_id),
 		   delta_xp = VALUES(delta_xp),
+		   idempotency_key = VALUES(idempotency_key),
+		   source_type = VALUES(source_type),
 		   created_at = VALUES(created_at)`)).
-		WithArgs(record.ID, record.GuildID, record.TemplateKey, record.PlayerID, record.DeltaXP, record.CreatedAt.UTC()).
+		WithArgs(record.ID, record.InstanceID, record.GuildID, record.TemplateKey, record.PlayerID, record.DeltaXP, record.IdempotencyKey, record.SourceType, record.CreatedAt.UTC()).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	if err := repo.SaveActivity(record); err != nil {
 		t.Fatalf("SaveActivity returned error: %v", err)
 	}
 
-	rows := sqlmock.NewRows([]string{"activity_id", "guild_id", "template_key", "player_id", "delta_xp", "created_at"}).
-		AddRow(record.ID, record.GuildID, record.TemplateKey, record.PlayerID, record.DeltaXP, record.CreatedAt)
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT activity_id, guild_id, template_key, player_id, delta_xp, created_at
+	rows := sqlmock.NewRows([]string{"activity_id", "instance_id", "guild_id", "template_key", "player_id", "delta_xp", "idempotency_key", "source_type", "created_at"}).
+		AddRow(record.ID, record.InstanceID, record.GuildID, record.TemplateKey, record.PlayerID, record.DeltaXP, record.IdempotencyKey, record.SourceType, record.CreatedAt)
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT activity_id, instance_id, guild_id, template_key, player_id, delta_xp, idempotency_key, source_type, created_at
 		 FROM guild_activities
 		 WHERE guild_id = ?`)).
 		WithArgs(record.GuildID).
